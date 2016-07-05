@@ -1,6 +1,7 @@
 var debug = process.env.NODE_ENV !== "production";
 var webpack = require('webpack');
 var path = require('path');
+var CopyWebpackPlugin = require('copy-webpack-plugin');
 
 var commonLoaders = [
 	{ test: /\.js$/, loader: "jsx-loader" },
@@ -20,6 +21,15 @@ module.exports = [
 		publicPath: __dirname + "/public/",
 		libraryTarget: "commonjs2"
 	},
+	plugins:[
+		new CopyWebpackPlugin([
+			{ from: '../keys/jooga-key.pem', to: '../public/jooga-key.pem'},
+			{ from: '../keys/jooga-cert.pem', to: '../public/jooga-cert.pem'}
+    	], {
+    ignore: [],
+    copyUnmodified: true
+    })
+	],
 	externals: /^[a-z\-0-9]+$/,
 	module: {
 		loaders: commonLoaders

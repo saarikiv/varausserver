@@ -18,7 +18,7 @@ JPS.firebaseConfig = {
 JPS.firebase = require('firebase')
 JPS.app = express();
 JPS.httplistenport = 3000
-JPS.httpslistenport = 3443
+JPS.httpslistenport = 443
 JPS.firebase.initializeApp(JPS.firebaseConfig);
 JPS.TransactionRef = JPS.firebase.database().ref('/transactions/')
 JPS.ShopItemsRef = JPS.firebase.database().ref('/shopItems/')
@@ -41,19 +41,22 @@ process.on('uncaughtException', (err) => {
 })
 
 
-/*
+//console.log("PWD: ", process);
 // For HTTPS - TODO
 const options = {
-  key: fs.readFileSync('keys/jooga-key.pem'),
-  cert: fs.readFileSync('keys/jooga-cert.pem')
+  key: JPS.fs.readFileSync('./public/jooga-key.pem'),
+  cert: JPS.fs.readFileSync('./public/jooga-cert.pem')
 };
-*/
+
 
 JPS.http.createServer(JPS.app).listen(JPS.httplistenport, (err) => {
   if(err) throw err;
-  console.log("Listenig on: ", JPS.httplistenport);
+  console.log("Listenig on HTTP requests at: ", JPS.httplistenport);
 });
-//JPS.https.createServer(options, JPS.app).listen(443);
+JPS.https.createServer(options, JPS.app).listen(JPS.httpslistenport, (err) => {
+  if(err) throw err;
+  console.log("Listenig on HTTPS requests at: ", JPS.httpslistenport);  
+});
 
 // Add headers
 require('./setHeaders.js').setApp(JPS)

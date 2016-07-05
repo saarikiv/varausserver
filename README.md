@@ -14,6 +14,9 @@
 > nvm install stable <br>
 > nvm use stable
 
+###keys
+openssl req -newkey rsa:2048 -new -nodes -x509 -days 3650 -keyout jooga-key.pem -out jooga-cert.pem
+
 #### Github-repo:
 > cd path/to/code <br>
 > git clone https://github.com/saarikiv/joogaserver
