@@ -21,15 +21,6 @@ module.exports = [
 		publicPath: __dirname + "/public/",
 		libraryTarget: "commonjs2"
 	},
-	plugins:[
-		new CopyWebpackPlugin([
-			{ from: '../keys/jooga-key.pem', to: '../public/jooga-key.pem'},
-			{ from: '../keys/jooga-cert.pem', to: '../public/jooga-cert.pem'}
-    	], {
-    ignore: [],
-    copyUnmodified: true
-    })
-	],
 	externals: /^[a-z\-0-9]+$/,
 	module: {
 		loaders: commonLoaders
