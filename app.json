@@ -2,8 +2,7 @@
   "name": "joogaserver",
   "description": "initial",
   "scripts": {
-    "postdeploy": "bin/setup",
-    "pr-predestroy": "bin/teardown"
+    "postdeploy": "./node_modules/.bin/webpack"
   },
   "env": {
     "JOOGATESTER": "TUOMO"
