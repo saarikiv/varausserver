@@ -4,6 +4,9 @@
 > sudo apt-get install atom <br>
 > sudo chown KÄYTTÄJÄ .atom/ -R
 
+####HEROKU
+> wget -O- https://toolbelt.heroku.com/install-ubuntu.sh | sh
+
 #### Atom paketit:
 > apm install color-picker linter emmet file-icons react
 
@@ -15,7 +18,7 @@
 > nvm use stable
 
 ###keys
-openssl req -newkey rsa:2048 -new -nodes -x509 -days 3650 -keyout jooga-key.pem -out jooga-cert.pem
+> openssl req -newkey rsa:2048 -new -nodes -x509 -days 3650 -keyout jooga-key.pem -out jooga-cert.pem
 
 #### Github-repo:
 > cd path/to/code <br>

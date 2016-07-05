@@ -1,4 +1,3 @@
 .git/
 *.log
-public/
 node_modules/

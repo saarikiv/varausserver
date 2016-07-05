@@ -17,8 +17,7 @@ JPS.firebaseConfig = {
 };
 JPS.firebase = require('firebase')
 JPS.app = express();
-JPS.httplistenport = 3000
-JPS.httpslistenport = 443
+JPS.listenport = 3000
 JPS.firebase.initializeApp(JPS.firebaseConfig);
 JPS.TransactionRef = JPS.firebase.database().ref('/transactions/')
 JPS.ShopItemsRef = JPS.firebase.database().ref('/shopItems/')
@@ -40,23 +39,34 @@ process.on('uncaughtException', (err) => {
   console.log("Caught exception:", err);
 })
 
+//Get port primarily from Environment
+JPS.app.set('port', (process.env.PORT || JPS.listenport));
 
-//console.log("PWD: ", process);
+JPS.app.use(express.static(__dirname + '/public'));
+
+JPS.app.listen(JPS.app.get('port'), function() {
+  console.log('Node app is running on port', JPS.app.get('port'));
+});
+
+
+/*
 // For HTTPS - TODO
 const options = {
   key: JPS.fs.readFileSync('./public/jooga-key.pem'),
   cert: JPS.fs.readFileSync('./public/jooga-cert.pem')
 };
+JPS.https.createServer(options, JPS.app).listen(JPS.httpslistenport, (err) => {
+  if(err) throw err;
+  console.log("Listenig on HTTPS requests at: ", JPS.httpslistenport);
+});
+
 
 
 JPS.http.createServer(JPS.app).listen(JPS.httplistenport, (err) => {
   if(err) throw err;
   console.log("Listenig on HTTP requests at: ", JPS.httplistenport);
 });
-JPS.https.createServer(options, JPS.app).listen(JPS.httpslistenport, (err) => {
-  if(err) throw err;
-  console.log("Listenig on HTTPS requests at: ", JPS.httpslistenport);  
-});
+*/
 
 // Add headers
 require('./setHeaders.js').setApp(JPS)

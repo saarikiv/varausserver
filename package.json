@@ -28,10 +28,12 @@
     "style-loader": "^0.13.1",
     "jsx-loader": "^0.13.2"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/saarikiv/joogaserver"
+  },
   "scripts": {
-    "rebuild": "webpack && npm install",
-    "dev": "node public",
-    "start": "node public & webpack",
+    "start": "node public",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Tuomo S",
