@@ -86,7 +86,7 @@ module.exports =
 	  console.log("Caught exception:", err);
 	})
 
-
+	//Get port primarily from Environment
 	JPS.app.set('port', (process.env.PORT || JPS.listenport));
 
 	JPS.app.use(express.static(__dirname + '/public'));
