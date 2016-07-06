@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "joogakoulusilta-projekti",
+  "private_key_id": "787c378af559d5f1613cd74e7680910669793731",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCNu6JmKpVLDcg/\nffX0PnDoaDYXXQHXoIDFXZJ/oEHAzQtXZMyJ7S/kSaPBbai02lX3G5Y+inizprf+\nHtIHF7js0EAs0mup1ZJumg1ck8Drs4+FvJQqMoEhdRgvmifhWGUlq3Z9sl5wZe6R\nRbVzdV+2QG4RwRNmDEQP5UEFY00PYI1gKCkSKuh3F47q3WnWNb/RFLP48//55il5\nNlZSxYmojk4cUf1YF9ywREeJgRSC9l417GfLD66Gwq/584wriKT1AGCr8t2YIHSx\nf/PeOcBruSMf06KN0BXehNt2fMUnpBbUj9N1fxTlJ+oEzw4KQzEJZAgih3X1LQea\nRus9C/lHAgMBAAECggEAOFj7lJCjcAZXsV5blTHp44vizWENpXNLHqw33QOSgJtE\nQgdyBffFTYY1U2ZMZzJScP6Hue+FUy8aAS6xo148B/I3QVqasReWsuAOJdscHNjz\nW2EAqtIPYoTSC8LGziE9fT9wyUJLp3Xu5dSH8hIc7jEpUWeoVa7UtFkZg5HaBh1r\nb/NcMHaMtNOuM/2Ojh+CEHPyx3I9TGS3VYz3iarNp12xDHBAxYU+KbJZQ1iC1daU\n6olxh9Q3TxJSu4joZFizIWl++6Tsu1MWh2XT+n6vsMeRvXR9uxSaVA6fooHC724p\nVmeYaG3de3HsdDy/xgA6j7fznd3DY1MhGU2ePBEamQKBgQDm9GhYo0jyDtO311P0\nIIzvIRbFdGZ3uksbuWvy37pJqInjd6O8qU8o8USaqNZnCvM2Vs5M+33tuX/Amdxt\n3vjHvZMlFiSXEM5lZsY398CNjKGW7GqQQwvzUOLu6UUo1BFrJda6BJSKeDAVKx7D\nED6yZNpVsHQ1w5rjiuax0gCROwKBgQCdGlGP9fbjjvuknc/N2KgiqTFQ7MAvO/XX\nwZNqJ2Ujn2uv3JqM/SGf9Vj/hZPzIxZqd3xjaGVIO1u8eLTV/d6jpgjX06rNXpid\n/aRZrELr6vpmh7W3ozh+KJQ9hW6AKkGdFhYqyFl1zxmSoDLLF5J+x+JvvjLMKjxu\nFIRvcO03ZQKBgD7tv3TPYPPbiGKiQFTXfa82g97fXYAn+YkfV8OApGCnlJKvKaUh\nONl+C+RcNrcy65wVwPaG3AQnNCEFi2NAiubZx7smMmgbAzHr8/yR/BxVgj3+Qvb1\n3c65bmwMkXSTe/+G+uAKmXK1VtyduC8MQRkYk8kfYDq6Bn0TftJa1x67AoGBAIE+\n0bL5y29ShjvbiMX0Y/5/6w6Ed2dkkNA7dKd0WYSA9vrrJkqvRSZvlhRBNIJmb16P\nhknR7OEL1GCtfTg/bxZ61fOZM39ZP31a2gbb7QJhgjcvlpPJOASyJaKnT00pdmlh\nbkMsKEz/YC58lMz4S5D5qJP9iZTlemmlf36fDMjxAoGBAK+cIAeruUtqXt6zfpbe\nYhhmalC/Kpep7muP4wg3DY0gt3YCi+57Y3O6+rBa41HxVJp1c9qTtdN+4DEflBhl\n98n+toTcSZEgwhLdyenfcPvssOZncRSvl3/WTOJEhBIC5du6WH/f774hSBXe11ja\nLJ2WC/YIQhBu7BFWpWxED1s6\n-----END PRIVATE KEY-----\n",
+  "client_email": "joogaserver-stage-herokuapp-co@joogakoulusilta-projekti.iam.gserviceaccount.com",
+  "client_id": "108289192476252508379",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://accounts.google.com/o/oauth2/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/joogaserver-stage-herokuapp-co%40joogakoulusilta-projekti.iam.gserviceaccount.com"
+}

@@ -1,9 +1,6 @@
 {
   "name": "joogaserver",
   "description": "initial",
-  "scripts": {
-    "postdeploy": "./node_modules/.bin/webpack"
-  },
   "env": {
     "JOOGATESTER": "TUOMO"
   },
