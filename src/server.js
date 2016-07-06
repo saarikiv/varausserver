@@ -5,9 +5,6 @@
 var express = require('express')
 var JPS = {} //The global.
 
-JPS.http = require('http')
-JPS.https = require('https')
-JPS.fs = require('fs')
 JPS.braintree = require("braintree");
 
 console.log("ENV: ", process.env.PWD);

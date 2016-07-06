@@ -52,9 +52,6 @@ module.exports =
 	var express = __webpack_require__(7)
 	var JPS = {} //The global.
 
-	JPS.http = __webpack_require__(10)
-	JPS.https = __webpack_require__(11)
-	JPS.fs = __webpack_require__(9)
 	JPS.braintree = __webpack_require__(6);
 
 	console.log("ENV: ", process.env.PWD);
@@ -393,24 +390,6 @@ module.exports =
 /***/ function(module, exports) {
 
 	module.exports = require("firebase");
-
-/***/ },
-/* 9 */
-/***/ function(module, exports) {
-
-	module.exports = require("fs");
-
-/***/ },
-/* 10 */
-/***/ function(module, exports) {
-
-	module.exports = require("http");
-
-/***/ },
-/* 11 */
-/***/ function(module, exports) {
-
-	module.exports = require("https");
 
 /***/ }
 /******/ ]);
