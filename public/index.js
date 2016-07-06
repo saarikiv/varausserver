@@ -49,23 +49,29 @@ module.exports =
 	// Server main faile
 	//------------------------------------------
 
-	var express = __webpack_require__(1)
+	var express = __webpack_require__(7)
 	var JPS = {} //The global.
 
-	JPS.http = __webpack_require__(2)
-	JPS.https = __webpack_require__(3)
-	JPS.fs = __webpack_require__(4)
-	JPS.braintree = __webpack_require__(5);
-	JPS.firebaseConfig = {
-	  apiKey: "AIzaSyCq544Yq7EEY-5spIe1oFCe8gkOzRkS5ak",
-	  authDomain: "joogakoulusilta-projekti.firebaseapp.com",
-	  databaseURL: "https://joogakoulusilta-projekti.firebaseio.com",
-	  storageBucket: "joogakoulusilta-projekti.appspot.com",
-	};
-	JPS.firebase = __webpack_require__(6)
+	JPS.braintree = __webpack_require__(6);
+
+	console.log("ENV: ", process.env.PWD);
+	if(process.env.NODE_ENV == "production") {
+	  JPS.firebaseConfig = {
+	    serviceAccount: "public/joogakoulusilta.json",
+	    databaseURL: "https://joogakoulusilta-654a9.firebaseio.com"
+	  };
+	}
+	else {
+	  JPS.firebaseConfig = {
+	    serviceAccount: "public/joogakoulusilta-projekti.json",
+	    databaseURL: "https://joogakoulusilta-projekti.firebaseio.com"
+	  };
+	}
+	JPS.firebase = __webpack_require__(8)
 	JPS.app = express();
 	JPS.listenport = 3000
 	JPS.firebase.initializeApp(JPS.firebaseConfig);
+
 	JPS.TransactionRef = JPS.firebase.database().ref('/transactions/')
 	JPS.ShopItemsRef = JPS.firebase.database().ref('/shopItems/')
 	JPS.BookingRef = JPS.firebase.database().ref('/bookings/')
@@ -95,39 +101,28 @@ module.exports =
 
 	JPS.app.listen(JPS.app.get('port'), function() {
 	  console.log('Node app is running on port', JPS.app.get('port'));
+	  if(process.env.NODE_ENV == "production") {
+	    console.log("Running against production firebase.");
+	  } else {
+	    console.log("Running against stage firebase.");
+	  }
+	  console.log(JPS.firebaseConfig);
 	});
 
 
-	/*
-	// For HTTPS - TODO
-	const options = {
-	  key: JPS.fs.readFileSync('./public/jooga-key.pem'),
-	  cert: JPS.fs.readFileSync('./public/jooga-cert.pem')
-	};
-	JPS.https.createServer(options, JPS.app).listen(JPS.httpslistenport, (err) => {
-	  if(err) throw err;
-	  console.log("Listenig on HTTPS requests at: ", JPS.httpslistenport);
-	});
-
-
-
-	JPS.http.createServer(JPS.app).listen(JPS.httplistenport, (err) => {
-	  if(err) throw err;
-	  console.log("Listenig on HTTP requests at: ", JPS.httplistenport);
-	});
-	*/
+	__webpack_require__(1).setApp(JPS);
 
 	// Add headers
-	__webpack_require__(7).setApp(JPS)
+	__webpack_require__(5).setApp(JPS);
 
 	// Get client token
-	__webpack_require__(8).setApp(JPS);
+	__webpack_require__(2).setApp(JPS);
 
 	// POST checkout
-	__webpack_require__(9).setApp(JPS);
+	__webpack_require__(3).setApp(JPS);
 
 	// POST reserve slot
-	__webpack_require__(10).setApp(JPS);
+	__webpack_require__(4).setApp(JPS);
 
 	/* WEBPACK VAR INJECTION */}.call(exports, "/"))
 
@@ -135,64 +130,17 @@ module.exports =
 /* 1 */
 /***/ function(module, exports) {
 
-	module.exports = require("express");
-
-/***/ },
-/* 2 */
-/***/ function(module, exports) {
-
-	module.exports = require("http");
-
-/***/ },
-/* 3 */
-/***/ function(module, exports) {
-
-	module.exports = require("https");
-
-/***/ },
-/* 4 */
-/***/ function(module, exports) {
-
-	module.exports = require("fs");
-
-/***/ },
-/* 5 */
-/***/ function(module, exports) {
-
-	module.exports = require("braintree");
-
-/***/ },
-/* 6 */
-/***/ function(module, exports) {
-
-	module.exports = require("firebase");
-
-/***/ },
-/* 7 */
-/***/ function(module, exports) {
-
 	
 	exports.setApp = function (JPS){
-
 	  //#############################
-	  // Add headers
+	  // authenticate
 	  //#############################
-	  JPS.app.use( (req, res, next) => {
-	      // Website you wish to allow to connect
-	      res.setHeader('Access-Control-Allow-Origin', '*');
-	      res.setHeader('content-type', 'text/plain')
-	      // Request methods you wish to allow
-	      res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
-	      res.setHeader('Access-Control-Allow-Headers', 'content-type')
-	      // Pass to next layer of middleware
-	      next();
-	  });
 
 	}
 
 
 /***/ },
-/* 8 */
+/* 2 */
 /***/ function(module, exports) {
 
 	
@@ -219,7 +167,7 @@ module.exports =
 
 
 /***/ },
-/* 9 */
+/* 3 */
 /***/ function(module, exports) {
 
 	
@@ -331,7 +279,7 @@ module.exports =
 
 
 /***/ },
-/* 10 */
+/* 4 */
 /***/ function(module, exports) {
 
 	
@@ -400,6 +348,48 @@ module.exports =
 
 	}
 
+
+/***/ },
+/* 5 */
+/***/ function(module, exports) {
+
+	
+	exports.setApp = function (JPS){
+
+	  //#############################
+	  // Add headers
+	  //#############################
+	  JPS.app.use( (req, res, next) => {
+	      // Website you wish to allow to connect
+	      res.setHeader('Access-Control-Allow-Origin', '*');
+	      res.setHeader('content-type', 'text/plain')
+	      // Request methods you wish to allow
+	      res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
+	      res.setHeader('Access-Control-Allow-Headers', 'content-type')
+	      // Pass to next layer of middleware
+	      next();
+	  });
+
+	}
+
+
+/***/ },
+/* 6 */
+/***/ function(module, exports) {
+
+	module.exports = require("braintree");
+
+/***/ },
+/* 7 */
+/***/ function(module, exports) {
+
+	module.exports = require("express");
+
+/***/ },
+/* 8 */
+/***/ function(module, exports) {
+
+	module.exports = require("firebase");
 
 /***/ }
 /******/ ]);
