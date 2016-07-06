@@ -201,7 +201,7 @@ module.exports =
 	// GET: clienttoken, needed for the client to initiate payment method
 	//######################################################
 	JPS.app.get('/clientToken', (req, res) => {
-	  console.log("ClientToken requested: ", req);
+	  console.log("ClientToken requested");
 	  JPS.gateway.clientToken.generate({}, (err, response) => {
 	        if (err) {
 	          console.error(err);
@@ -282,7 +282,7 @@ module.exports =
 	                  JPS.TokenRef.once('value', tokenSnapshot => {
 	                    JPS.token = tokenSnapshot.val();
 
-	                    JPS.UserRef = firebase.database().ref('/users/' + JPS.currentUserKey);
+	                    JPS.UserRef = JPS.firebase.database().ref('/users/' + JPS.currentUserKey);
 	                    JPS.UserRef.once('value', userSnapshot => {
 
 	                      JPS.user = userSnapshot.val();

@@ -58,7 +58,7 @@ exports.setApp = function (JPS){
                   JPS.TokenRef.once('value', tokenSnapshot => {
                     JPS.token = tokenSnapshot.val();
 
-                    JPS.UserRef = firebase.database().ref('/users/' + JPS.currentUserKey);
+                    JPS.UserRef = JPS.firebase.database().ref('/users/' + JPS.currentUserKey);
                     JPS.UserRef.once('value', userSnapshot => {
 
                       JPS.user = userSnapshot.val();
