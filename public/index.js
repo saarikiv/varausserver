@@ -49,10 +49,10 @@ module.exports =
 	// Server main faile
 	//------------------------------------------
 
-	var express = __webpack_require__(7)
+	var express = __webpack_require__(6)
 	var JPS = {} //The global.
 
-	JPS.braintree = __webpack_require__(6);
+	JPS.braintree = __webpack_require__(5);
 
 	console.log("ENV: ", process.env.PWD);
 	if(process.env.NODE_ENV == "production") {
@@ -67,7 +67,7 @@ module.exports =
 	    databaseURL: "https://joogakoulusilta-projekti.firebaseio.com"
 	  };
 	}
-	JPS.firebase = __webpack_require__(8)
+	JPS.firebase = __webpack_require__(7)
 	JPS.app = express();
 	JPS.listenport = 3000
 	JPS.firebase.initializeApp(JPS.firebaseConfig);
@@ -75,6 +75,7 @@ module.exports =
 	JPS.TransactionRef = JPS.firebase.database().ref('/transactions/')
 	JPS.ShopItemsRef = JPS.firebase.database().ref('/shopItems/')
 	JPS.BookingRef = JPS.firebase.database().ref('/bookings/')
+	JPS.UsersRef = JPS.firebase.database().ref('/users/')
 	JPS.gateway = JPS.braintree.connect({
 	  environment: JPS.braintree.Environment.Sandbox,
 	  merchantId: "3gv7c5tq5q7hxrcs",
@@ -110,19 +111,17 @@ module.exports =
 	});
 
 
-	__webpack_require__(1).setApp(JPS);
-
 	// Add headers
-	__webpack_require__(5).setApp(JPS);
+	__webpack_require__(4).setApp(JPS);
 
 	// Get client token
-	__webpack_require__(2).setApp(JPS);
+	__webpack_require__(1).setApp(JPS);
 
 	// POST checkout
-	__webpack_require__(3).setApp(JPS);
+	__webpack_require__(2).setApp(JPS);
 
 	// POST reserve slot
-	__webpack_require__(4).setApp(JPS);
+	__webpack_require__(3).setApp(JPS);
 
 	/* WEBPACK VAR INJECTION */}.call(exports, "/"))
 
@@ -132,42 +131,38 @@ module.exports =
 
 	
 	exports.setApp = function (JPS){
-	  //#############################
-	  // authenticate
-	  //#############################
-
-	}
-
-
-/***/ },
-/* 2 */
-/***/ function(module, exports) {
-
-	
-	exports.setApp = function (JPS){
 	//######################################################
 	// GET: clienttoken, needed for the client to initiate payment method
 	//######################################################
 	JPS.app.get('/clientToken', (req, res) => {
 	  console.log("ClientToken requested");
+	  JPS.firebase.auth().verifyIdToken(req.query.token).then( decodedToken => {
+	  var uid = decodedToken.sub;
+	  console.log("User: ", uid, " requested client token.");
 	  JPS.gateway.clientToken.generate({}, (err, response) => {
 	        if (err) {
-	          console.error(err);
-	          console.error(response);
+	          console.error("Client token generation failed:", err);
+	          console.error("Client token response:", response);
 	          res.statusCode = 500;
 	          res.end(err);
 	        }
 	        else {
 	          console.log("Sending client token: ", response.clientToken);
+	          res.statusCode = 200;
 	          res.end(response.clientToken);
 	        }
 	    })
+	  }).catch( err => {
+	    console.error("Unauthorized access attempetd: ", err);
+	    res.statusCode = 500;
+	    res.end(err);
+	  });
 	})
 	}
 
 
 /***/ },
-/* 3 */
+/* 2 */
 /***/ function(module, exports) {
 
 	
@@ -180,6 +175,7 @@ module.exports =
 	  // Finally adds to the users entitlement new tokens to use.
 	  //######################################################
 	  JPS.app.post('/checkout', (req, res) => {
+	    console.log("Checkout requested.");
 	    JPS.body = '';
 	    req.on('data', (data) => {
 	      JPS.body += data;
@@ -190,96 +186,98 @@ module.exports =
 	    req.on('end', () => {
 	      JPS.post = JSON.parse(JPS.body);
 	      JPS.nonceFromTheClient = JPS.post.payment_method_nonce;
-	      JPS.currentUserKey = JPS.post.current_user;
+	      JPS.currentUserToken = JPS.post.current_user;
 	      JPS.shopItemKey = JPS.post.item_key;
 	      console.log("POST:", JPS.post);
 
-	      JPS.ShopItemsRef.orderByKey().equalTo(JPS.shopItemKey).once('child_added', snapshot => {
-	        JPS.shopItem = snapshot.val();
-	        console.log("Shopitem:", JPS.shopItem);
-	        JPS.gateway.transaction.sale({
-	                    amount: JPS.shopItem.price,
-	                    paymentMethodNonce: JPS.nonceFromTheClient,
-	                    options: {
-	                      submitForSettlement: true
-	                    }
-	                },  (err, result) => {
-	                  if(err) {
-	                    console.error(err);
+	      JPS.firebase.auth().verifyIdToken(JPS.currentUserToken).then( decodedToken => {
+	        JPS.currentUserUID = decodedToken.sub;
+	        console.log("User: ", JPS.currentUserUID, " requested checkout.");
 
-	                  } else {
-	                    res.statusCode = 200;
-	                  }
-	                  res.end();
+	        JPS.UsersRef.orderByChild('uid').equalTo(JPS.currentUserUID).once('child_added', snapshot => {
 
-	                  JPS.TransactionRef.push({
-	                            user: JPS.currentUserKey,
-	                            token: {
-	                              key: JPS.shopItem.token,
-	                              used: false
-	                            },
-	                            error: err ? err : {code: 0},
-	                            details: result
-	                  }, (error) => {
-	                      if(error){
-	                          console.error("Transaction write to database failed", error);
-	                      }
-	                  })
+	          JPS.user = snapshot.val()
+	          JPS.user.key = snapshot.key;
 
-	                  JPS.TokenRef = JPS.firebase.database().ref('/tokens/' + JPS.shopItem.token);
-	                  JPS.TokenRef.once('value', tokenSnapshot => {
-	                    JPS.token = tokenSnapshot.val();
-
-	                    JPS.UserRef = JPS.firebase.database().ref('/users/' + JPS.currentUserKey);
-	                    JPS.UserRef.once('value', userSnapshot => {
-
-	                      JPS.user = userSnapshot.val();
-	                      console.log(JPS.user);
-
-	                      var ut = JPS.user.tokens.usetimes;
-	                      var ld = JPS.user.tokens.lastday;
-
-	                      if(JPS.token.type === 'count'){
-	                        ut += JPS.token.usetimes
-	                      }
-	                      if(JPS.token.type === 'time'){
-	                        // TODO: use actual dates and push last day forward
-	                        ld += JPS.token.usedays
-	                      }
-
-	                      JPS.UserRef.update({tokens: { usetimes: ut, lastday: ld }}, (err) =>{
-	                        if(err){
-	                          console.error("User update failed: ", err);
+	          JPS.ShopItemsRef.orderByKey().equalTo(JPS.shopItemKey).once('child_added', snapshot => {
+	            JPS.shopItem = snapshot.val();
+	            console.log("Shopitem:", JPS.shopItem);
+	            JPS.gateway.transaction.sale({
+	                        amount: JPS.shopItem.price,
+	                        paymentMethodNonce: JPS.nonceFromTheClient,
+	                        options: {
+	                          submitForSettlement: true
 	                        }
-	                      });
+	                    },  (err, result) => {
+	                      if(err) {
+	                        console.error(err);
 
-
-	                    }, err => {
-	                      if(err){
-	                        console.error("Fetching user details failed: ", err);
+	                      } else {
+	                        res.statusCode = 200;
 	                      }
+	                      res.end();
+
+	                      JPS.TransactionRef.push({
+	                                user: JPS.user.key,
+	                                token: {
+	                                  key: JPS.shopItem.token,
+	                                  used: false
+	                                },
+	                                error: err ? err : {code: 0},
+	                                details: result
+	                      }, (error) => {
+	                          if(error){
+	                              console.error("Transaction write to database failed", error);
+	                          }
+	                      })
+
+	                      JPS.TokenRef = JPS.firebase.database().ref('/tokens/' + JPS.shopItem.token);
+	                      JPS.TokenRef.once('value', tokenSnapshot => {
+	                        JPS.token = tokenSnapshot.val();
+
+	                        console.log("USER: ",JPS.user);
+
+	                        var ut = JPS.user.tokens.usetimes;
+	                        var ld = JPS.user.tokens.lastday;
+
+	                        if(JPS.token.type === 'count'){
+	                          ut += JPS.token.usetimes
+	                        }
+	                        if(JPS.token.type === 'time'){
+	                          // TODO: use actual dates and push last day forward
+	                          ld += JPS.token.usedays
+	                        }
+	                        JPS.OneUserRef = JPS.firebase.database().ref('/users/' + JPS.user.key);
+	                        JPS.OneUserRef.update({tokens: { usetimes: ut, lastday: ld }}, (err) =>{
+	                          if(err){
+	                            console.error("User update failed: ", err);
+	                          }
+	                        });
+
+	                      }, err => {
+	                        console.error("Fetching token info failed: ", err);
+	                      })
 	                    })
-
 	                  }, err => {
-	                    console.error("Fetching token info failed: ", err);
-	                  })
-
-
-	                })
-	              }, error => {
-	        console.error("Failed reading shopItem details: ", error);
-	        res.statusCode = 500;
-	        res.end();
-	      })
-	    })
+	            console.error("Failed reading shopItem details: ", err);
+	            res.statusCode = 500;
+	            res.end();
+	          })
+	        }, err => {
+	          console.error("Failed to fetch user details for: ", JPS.currentUserUID, err);
+	        });
+	    }).catch( err => {
+	      console.error("Unauthorized access attempetd: ", err);
+	      res.statusCode = 500;
+	      res.end(err);
+	    });
 	  })
-
-
+	})
 	}
 
 
 /***/ },
-/* 4 */
+/* 3 */
 /***/ function(module, exports) {
 
 	
@@ -303,54 +301,60 @@ module.exports =
 	    req.on('end', () => {
 	      JPS.post = JSON.parse(JPS.body);
 	      console.log("POST:", JPS.post);
-	      JPS.currentUserKey = JPS.post.user;
+	      JPS.currentUserToken = JPS.post.user;
 	      JPS.slot = JPS.post.slot;
 
-	      JPS.UserRef = JPS.firebase.database().ref('/users/' + JPS.currentUserKey);
+	      JPS.firebase.auth().verifyIdToken(JPS.currentUserToken).then( decodedToken => {
+	        JPS.currentUserUID = decodedToken.sub;
+	        console.log("User: ", JPS.currentUserUID, " requested checkout.");
 
-	      JPS.UserRef.once('value', userSnapshot => {
+	        JPS.UsersRef.orderByChild('uid').equalTo(JPS.currentUserUID).once('child_added', snapshot => {
 
-	        JPS.user = userSnapshot.val();
-	        console.log(JPS.user);
+	          JPS.user = snapshot.val()
+	          JPS.user.key = snapshot.key;
 
-	        var ut = JPS.user.tokens.usetimes;
-	        var ld = JPS.user.tokens.lastday;
+	          console.log("USER:",JPS.user);
 
-	        //TODO: chek if use time is ok
-	        //TODO: manipulate the ut
-	        ut -= 1;
+	          var ut = JPS.user.tokens.usetimes;
+	          var ld = JPS.user.tokens.lastday;
 
-	        JPS.UserRef.update({tokens: { usetimes: ut, lastday: ld }}, (err) =>{
-	          if(err){
-	            console.error("User update failed: ", err);
-	          }
-	        });
+	          //TODO: chek if use time is ok
+	          //TODO: manipulate the ut
+	          ut -= 1;
 
-	        JPS.BookingRef.push({
-	          user: JPS.currentUserKey,
-	          slot: JPS.slot.key
+	          JPS.OneUserRef = JPS.firebase.database().ref('/users/' + JPS.user.key);
+	          JPS.OneUserRef.update({tokens: { usetimes: ut, lastday: ld }}, (err) =>{
+	            if(err){
+	              console.error("User update failed: ", err);
+	            }
+	          });
+
+	          JPS.BookingRef.push({
+	            user: JPS.user.key,
+	            slot: JPS.slot.key
+	          }, err => {
+	            if(err){
+	            console.error("Booking write to firabase failed: ", err);
+	            }
+	          })
+
+	          res.statusCode = 200;
+	          res.end();
 	        }, err => {
-	          if(err){
-	          console.error("Booking write to firabase failed: ", err);
-	          }
-	        })
-
-	      },err => {
-	        if(err){
-	          console.error("Fetching user details failed: ", err);
-	        }
-	      })
-
-	      res.statusCode = 200;
-	      res.end();
+	          console.error("Failed to fetch user details for: ", JPS.currentUserUID, err);
+	        });
+	      }).catch( err => {
+	        console.error("Unauthorized access attempetd: ", err);
+	        res.statusCode = 500;
+	        res.end(err);
+	      });
 	    })
 	  })
-
 	}
 
 
 /***/ },
-/* 5 */
+/* 4 */
 /***/ function(module, exports) {
 
 	
@@ -374,19 +378,19 @@ module.exports =
 
 
 /***/ },
-/* 6 */
+/* 5 */
 /***/ function(module, exports) {
 
 	module.exports = require("braintree");
 
 /***/ },
-/* 7 */
+/* 6 */
 /***/ function(module, exports) {
 
 	module.exports = require("express");
 
 /***/ },
-/* 8 */
+/* 7 */
 /***/ function(module, exports) {
 
 	module.exports = require("firebase");

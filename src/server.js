@@ -28,6 +28,7 @@ JPS.firebase.initializeApp(JPS.firebaseConfig);
 JPS.TransactionRef = JPS.firebase.database().ref('/transactions/')
 JPS.ShopItemsRef = JPS.firebase.database().ref('/shopItems/')
 JPS.BookingRef = JPS.firebase.database().ref('/bookings/')
+JPS.UsersRef = JPS.firebase.database().ref('/users/')
 JPS.gateway = JPS.braintree.connect({
   environment: JPS.braintree.Environment.Sandbox,
   merchantId: "3gv7c5tq5q7hxrcs",
@@ -62,8 +63,6 @@ JPS.app.listen(JPS.app.get('port'), function() {
   console.log(JPS.firebaseConfig);
 });
 
-
-require('./authenticate.js').setApp(JPS);
 
 // Add headers
 require('./setHeaders.js').setApp(JPS);
