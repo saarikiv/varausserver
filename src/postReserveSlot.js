@@ -26,9 +26,9 @@ exports.setApp = function (JPS){
         JPS.currentUserUID = decodedToken.sub;
         console.log("User: ", JPS.currentUserUID, " requested checkout.");
 
-        JPS.UsersRef.orderByChild('uid').equalTo(JPS.currentUserUID).once('child_added', snapshot => {
-
-          JPS.user = snapshot.val()
+        JPS.OneUserRef = JPS.firebase.database().ref('/users/'+JPS.currentUserUID);
+        JPS.OneUserRef.once('value', snapshot => {
+          JPS.user = snapshot.val();
           JPS.user.key = snapshot.key;
 
           console.log("USER:",JPS.user);
@@ -40,7 +40,6 @@ exports.setApp = function (JPS){
           //TODO: manipulate the ut
           ut -= 1;
 
-          JPS.OneUserRef = JPS.firebase.database().ref('/users/' + JPS.user.key);
           JPS.OneUserRef.update({tokens: { usetimes: ut, lastday: ld }}, (err) =>{
             if(err){
               console.error("User update failed: ", err);
