@@ -19,47 +19,53 @@ exports.setApp = function (JPS){
     req.on('end', () => {
       JPS.post = JSON.parse(JPS.body);
       console.log("POST:", JPS.post);
-      JPS.currentUserKey = JPS.post.user;
+      JPS.currentUserToken = JPS.post.user;
       JPS.slot = JPS.post.slot;
 
-      JPS.UserRef = JPS.firebase.database().ref('/users/' + JPS.currentUserKey);
+      JPS.firebase.auth().verifyIdToken(JPS.currentUserToken).then( decodedToken => {
+        JPS.currentUserUID = decodedToken.sub;
+        console.log("User: ", JPS.currentUserUID, " requested checkout.");
 
-      JPS.UserRef.once('value', userSnapshot => {
+        JPS.UsersRef.orderByChild('uid').equalTo(JPS.currentUserUID).once('child_added', snapshot => {
 
-        JPS.user = userSnapshot.val();
-        console.log(JPS.user);
+          JPS.user = snapshot.val()
+          JPS.user.key = snapshot.key;
 
-        var ut = JPS.user.tokens.usetimes;
-        var ld = JPS.user.tokens.lastday;
+          console.log("USER:",JPS.user);
 
-        //TODO: chek if use time is ok
-        //TODO: manipulate the ut
-        ut -= 1;
+          var ut = JPS.user.tokens.usetimes;
+          var ld = JPS.user.tokens.lastday;
 
-        JPS.UserRef.update({tokens: { usetimes: ut, lastday: ld }}, (err) =>{
-          if(err){
-            console.error("User update failed: ", err);
-          }
-        });
+          //TODO: chek if use time is ok
+          //TODO: manipulate the ut
+          ut -= 1;
 
-        JPS.BookingRef.push({
-          user: JPS.currentUserKey,
-          slot: JPS.slot.key
+          JPS.OneUserRef = JPS.firebase.database().ref('/users/' + JPS.user.key);
+          JPS.OneUserRef.update({tokens: { usetimes: ut, lastday: ld }}, (err) =>{
+            if(err){
+              console.error("User update failed: ", err);
+            }
+          });
+
+          JPS.BookingRef.push({
+            user: JPS.user.key,
+            slot: JPS.slot.key
+          }, err => {
+            if(err){
+            console.error("Booking write to firabase failed: ", err);
+            }
+          })
+
+          res.statusCode = 200;
+          res.end();
         }, err => {
-          if(err){
-          console.error("Booking write to firabase failed: ", err);
-          }
-        })
-
-      },err => {
-        if(err){
-          console.error("Fetching user details failed: ", err);
-        }
-      })
-
-      res.statusCode = 200;
-      res.end();
+          console.error("Failed to fetch user details for: ", JPS.currentUserUID, err);
+        });
+      }).catch( err => {
+        console.error("Unauthorized access attempetd: ", err);
+        res.statusCode = 500;
+        res.end(err);
+      });
     })
   })
-
 }
