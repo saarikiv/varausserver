@@ -69,10 +69,10 @@ module.exports =
 	}
 	JPS.firebase = __webpack_require__(7)
 	JPS.app = express();
+	JPS.date = new Date();
 	JPS.listenport = 3000
 	JPS.firebase.initializeApp(JPS.firebaseConfig);
 
-	JPS.TransactionRef = JPS.firebase.database().ref('/transactions/')
 	JPS.ShopItemsRef = JPS.firebase.database().ref('/shopItems/')
 	JPS.BookingRef = JPS.firebase.database().ref('/bookings/')
 	JPS.UsersRef = JPS.firebase.database().ref('/users/')
@@ -175,7 +175,9 @@ module.exports =
 	  // Finally adds to the users entitlement new tokens to use.
 	  //######################################################
 	  JPS.app.post('/checkout', (req, res) => {
-	    console.log("Checkout requested.");
+
+	    JPS.now = Date.now();
+	    console.log("Checkout requested.", JPS.now);
 	    JPS.body = '';
 	    req.on('data', (data) => {
 	      JPS.body += data;
@@ -201,7 +203,7 @@ module.exports =
 
 	          JPS.ShopItemsRef.orderByKey().equalTo(JPS.shopItemKey).once('child_added', snapshot => {
 	            JPS.shopItem = snapshot.val();
-	            console.log("Shopitem:", JPS.shopItem);
+	            console.log("/n*************/nShopitem:", JPS.shopItem);
 	            JPS.gateway.transaction.sale({
 	                        amount: JPS.shopItem.price,
 	                        paymentMethodNonce: JPS.nonceFromTheClient,
@@ -217,17 +219,20 @@ module.exports =
 	                      }
 	                      res.end();
 
-	                      JPS.TransactionRef.push({
-	                                user: JPS.user.key,
-	                                token: {
-	                                  key: JPS.shopItem.token,
-	                                  used: false
-	                                },
-	                                error: err ? err : {code: 0},
-	                                details: result
-	                      }, (error) => {
+	                      JPS.transaction = {
+	                        user: JPS.user.key,
+	                        shopItem: JPS.shopItem,
+	                        error: err ? err : {code: 0},
+	                        details: result
+	                      }
+
+	                      JPS.TransactionRef = JPS.firebase.database().ref('/transactions/'+JPS.user.key+'/'+JPS.now);
+	                      JPS.TransactionRef.update(JPS.transaction, (error) => {
 	                          if(error){
 	                              console.error("Transaction write to database failed", error);
+	                          }
+	                          else{
+	                            console.log("Ttranaction created: ", JPS.transaction);
 	                          }
 	                      })
 
@@ -235,24 +240,24 @@ module.exports =
 	                      JPS.TokenRef.once('value', tokenSnapshot => {
 	                        JPS.token = tokenSnapshot.val();
 
-	                        console.log("USER: ",JPS.user);
+	                        console.log("USER & TOKEN: ",JPS.user, JPS.token);
 
-	                        var ut = JPS.user.tokens.usetimes;
-	                        var ld = JPS.user.tokens.lastday;
-
-	                        if(JPS.token.type === 'count'){
-	                          ut += JPS.token.usetimes
+	                        console.log("UT: ", JPS.token);
+	                        //calculate the expiry moment if type is count
+	                        if(JPS.token.type === "count") {
+	                          JPS.token.expires = JPS.date.setTime(JPS.now + JPS.token.expiresAfterDays*24*60*60*1000);
+	                          JPS.token.unusedtimes = JPS.token.usetimes;
 	                        }
-	                        if(JPS.token.type === 'time'){
-	                          // TODO: use actual dates and push last day forward
-	                          ld += JPS.token.usedays
+	                        if(JPS.token.type === "time") {
+	                          JPS.token.expires = JPS.date.setTime(JPS.now + JPS.token.usedays*24*60*60*1000);
 	                        }
-	                        JPS.OneUserRef.update({tokens: { usetimes: ut, lastday: ld }}, (err) =>{
+	                        JPS.TransactionRef.update(JPS.token, err =>{
 	                          if(err){
-	                            console.error("User update failed: ", err);
+	                            console.error("Failed inserting userToken in to DB: ", err);
+	                          } else {
+	                            console.log("Usertoken saved: ", JPS.token);
 	                          }
-	                        });
-
+	                        })
 	                      }, err => {
 	                        console.error("Fetching token info failed: ", err);
 	                      })
@@ -289,7 +294,8 @@ module.exports =
 	  //######################################################
 
 	  JPS.app.post('/reserveSlot', (req, res) => {
-	    console.log("POST: reserveslot");
+	    JPS.now = Date.now();
+	    console.log("POST: reserveslot", JPS.now);
 	    JPS.body = '';
 	    req.on('data', (data) => {
 	      JPS.body += data;
@@ -301,7 +307,7 @@ module.exports =
 	      JPS.post = JSON.parse(JPS.body);
 	      console.log("POST:", JPS.post);
 	      JPS.currentUserToken = JPS.post.user;
-	      JPS.slot = JPS.post.slot;
+	      JPS.courseInfo = JPS.post.courseInfo;
 
 	      JPS.firebase.auth().verifyIdToken(JPS.currentUserToken).then( decodedToken => {
 	        JPS.currentUserUID = decodedToken.sub;
@@ -313,33 +319,104 @@ module.exports =
 	          JPS.user.key = snapshot.key;
 
 	          console.log("USER:",JPS.user);
+	          console.log("courseINFO:",JPS.courseInfo);
 
-	          var ut = JPS.user.tokens.usetimes;
-	          var ld = JPS.user.tokens.lastday;
+	          JPS.userHasTime = false;
+	          JPS.userHasCount = false;
+	          JPS.earliestToExpire = 0;
+	          JPS.expiryTime = 9999999999999;
+	          JPS.recordToUpdate = {};
+	          JPS.unusedtimes = 0;
 
-	          //TODO: chek if use time is ok
-	          //TODO: manipulate the ut
-	          ut -= 1;
-
-	          JPS.OneUserRef.update({tokens: { usetimes: ut, lastday: ld }}, (err) =>{
-	            if(err){
-	              console.error("User update failed: ", err);
+	          console.log("Starting to process user transactions");
+	          JPS.UserTransactionsRef = JPS.firebase.database().ref('/transactions/'+JPS.currentUserUID);
+	          JPS.UserTransactionsRef.once('value', snapshot => {
+	            console.log("Processing returned data:");
+	            JPS.allTx = snapshot.val();
+	            for (JPS.one in JPS.allTx){
+	              console.log("Processing individual record:", JPS.one);
+	              switch(JPS.allTx[JPS.one].type){
+	                case "time":
+	                console.log("Processing time: ", JPS.allTx[JPS.one]);
+	                  if(JPS.allTx[JPS.one].expires > JPS.now){
+	                    console.log("User has time!!");
+	                    JPS.userHasTime = true;
+	                  }
+	                  break;
+	                case "count":
+	                console.log("Processing count: ", JPS.allTx[JPS.one]);
+	                  console.log("expires: ", JPS.allTx[JPS.one].expires);
+	                  console.log("now: ", JPS.now);
+	                  console.log("unusedtimes: ", JPS.allTx[JPS.one].unusedtimes);
+	                  if((JPS.allTx[JPS.one].expires > JPS.now) && (JPS.allTx[JPS.one].unusedtimes > 0)){
+	                    console.log("User has count!!");
+	                    JPS.userHasCount = true;
+	                    //Find the earliest to expire record
+	                    if(JPS.allTx[JPS.one].expires < JPS.expiryTime){
+	                      JPS.earliestToExpire = JPS.one;
+	                      JPS.expiryTime = JPS.allTx[JPS.one].expires;
+	                      JPS.recordToUpdate = JPS.allTx[JPS.one];
+	                      JPS.unusedtimes = JPS.allTx[JPS.one].unusedtimes;
+	                    }
+	                  }
+	                  break;
+	                default:
+	                  console.error("Unrecognized transaction type: ", JPS.allTx[JPS.one].type);
+	                  res.statusCode = 500;
+	                  res.end();
+	                  break;
+	              }
 	            }
-	          });
 
-	          JPS.BookingRef.push({
-	            user: JPS.user.key,
-	            slot: JPS.slot.key
+	            if(!JPS.userHasTime){
+	              console.log("User does not have time.");
+	              if(!JPS.userHasCount){
+	                console.log("User does not have count");
+	                res.statusCode = 500;
+	                res.end();
+	              }
+	              else {
+	                JPS.recordToUpdate.unusedtimes = JPS.recordToUpdate.unusedtimes - 1;
+	                JPS.unusedtimes = JPS.unusedtimes - 1;
+	                JPS.firebase.database()
+	                  .ref('/transactions/'+JPS.currentUserUID+'/'+JPS.earliestToExpire)
+	                  .update({unusedtimes: JPS.unusedtimes}, err => {
+	                    if(err){
+	                      console.error("Failed to update user transaction data:", JPS.currentUserUID, JPS.earliestToExpire, err);
+	                      res.statusCode = 500;
+	                      res.end();
+
+	                    } else {
+	                      console.log("Updated transaction date for user: ", JPS.currentUserUID);
+	                    }
+	                })
+	              }
+	            } else {
+	              console.log("User has time.");
+	            }
+
+	            JPS.BookingRef.push({
+	              user: JPS.user.key,
+	              courseInfo: JPS.courseInfo.key
+	            }, err => {
+	              if(err){
+	              console.error("Booking write to firabase failed: ", err);
+	              res.statusCode = 500;
+	              res.end();
+	              }
+	            })
+	            res.statusCode = 200;
+	            res.end();
 	          }, err => {
-	            if(err){
-	            console.error("Booking write to firabase failed: ", err);
-	            }
+	            console.error("Fetching user transactions failed: ", err);
+	            res.statusCode = 500;
+	            res.end();
 	          })
 
-	          res.statusCode = 200;
-	          res.end();
 	        }, err => {
 	          console.error("Failed to fetch user details for: ", JPS.currentUserUID, err);
+	          res.statusCode = 500;
+	          res.end();
 	        });
 	      }).catch( err => {
 	        console.error("Unauthorized access attempetd: ", err);

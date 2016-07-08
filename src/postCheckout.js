@@ -8,7 +8,9 @@ exports.setApp = function (JPS){
   // Finally adds to the users entitlement new tokens to use.
   //######################################################
   JPS.app.post('/checkout', (req, res) => {
-    console.log("Checkout requested.");
+
+    JPS.now = Date.now();
+    console.log("Checkout requested.", JPS.now);
     JPS.body = '';
     req.on('data', (data) => {
       JPS.body += data;
@@ -34,7 +36,7 @@ exports.setApp = function (JPS){
 
           JPS.ShopItemsRef.orderByKey().equalTo(JPS.shopItemKey).once('child_added', snapshot => {
             JPS.shopItem = snapshot.val();
-            console.log("Shopitem:", JPS.shopItem);
+            console.log("/n*************/nShopitem:", JPS.shopItem);
             JPS.gateway.transaction.sale({
                         amount: JPS.shopItem.price,
                         paymentMethodNonce: JPS.nonceFromTheClient,
@@ -50,17 +52,20 @@ exports.setApp = function (JPS){
                       }
                       res.end();
 
-                      JPS.TransactionRef.push({
-                                user: JPS.user.key,
-                                token: {
-                                  key: JPS.shopItem.token,
-                                  used: false
-                                },
-                                error: err ? err : {code: 0},
-                                details: result
-                      }, (error) => {
+                      JPS.transaction = {
+                        user: JPS.user.key,
+                        shopItem: JPS.shopItem,
+                        error: err ? err : {code: 0},
+                        details: result
+                      }
+
+                      JPS.TransactionRef = JPS.firebase.database().ref('/transactions/'+JPS.user.key+'/'+JPS.now);
+                      JPS.TransactionRef.update(JPS.transaction, (error) => {
                           if(error){
                               console.error("Transaction write to database failed", error);
+                          }
+                          else{
+                            console.log("Ttranaction created: ", JPS.transaction);
                           }
                       })
 
@@ -68,24 +73,24 @@ exports.setApp = function (JPS){
                       JPS.TokenRef.once('value', tokenSnapshot => {
                         JPS.token = tokenSnapshot.val();
 
-                        console.log("USER: ",JPS.user);
+                        console.log("USER & TOKEN: ",JPS.user, JPS.token);
 
-                        var ut = JPS.user.tokens.usetimes;
-                        var ld = JPS.user.tokens.lastday;
-
-                        if(JPS.token.type === 'count'){
-                          ut += JPS.token.usetimes
+                        console.log("UT: ", JPS.token);
+                        //calculate the expiry moment if type is count
+                        if(JPS.token.type === "count") {
+                          JPS.token.expires = JPS.date.setTime(JPS.now + JPS.token.expiresAfterDays*24*60*60*1000);
+                          JPS.token.unusedtimes = JPS.token.usetimes;
                         }
-                        if(JPS.token.type === 'time'){
-                          // TODO: use actual dates and push last day forward
-                          ld += JPS.token.usedays
+                        if(JPS.token.type === "time") {
+                          JPS.token.expires = JPS.date.setTime(JPS.now + JPS.token.usedays*24*60*60*1000);
                         }
-                        JPS.OneUserRef.update({tokens: { usetimes: ut, lastday: ld }}, (err) =>{
+                        JPS.TransactionRef.update(JPS.token, err =>{
                           if(err){
-                            console.error("User update failed: ", err);
+                            console.error("Failed inserting userToken in to DB: ", err);
+                          } else {
+                            console.log("Usertoken saved: ", JPS.token);
                           }
-                        });
-
+                        })
                       }, err => {
                         console.error("Fetching token info failed: ", err);
                       })
