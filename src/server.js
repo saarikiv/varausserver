@@ -22,10 +22,10 @@ else {
 }
 JPS.firebase = require('firebase')
 JPS.app = express();
+JPS.date = new Date();
 JPS.listenport = 3000
 JPS.firebase.initializeApp(JPS.firebaseConfig);
 
-JPS.TransactionRef = JPS.firebase.database().ref('/transactions/')
 JPS.ShopItemsRef = JPS.firebase.database().ref('/shopItems/')
 JPS.BookingRef = JPS.firebase.database().ref('/bookings/')
 JPS.UsersRef = JPS.firebase.database().ref('/users/')
