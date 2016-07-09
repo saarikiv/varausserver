@@ -82,7 +82,9 @@ exports.setApp = function (JPS){
                           JPS.token.unusedtimes = JPS.token.usetimes;
                         }
                         if(JPS.token.type === "time") {
-                          JPS.token.expires = JPS.date.setTime(JPS.now + JPS.token.usedays*24*60*60*1000);
+                          // TODO: need to find out the last - now just using NOW
+                          JPS.lastTimeUserHasValidUseTime = JPS.now;
+                          JPS.token.expires = JPS.date.setTime(JPS.lastTimeUserHasValidUseTime + JPS.token.usedays*24*60*60*1000);
                         }
                         JPS.TransactionRef.update(JPS.token, err =>{
                           if(err){
