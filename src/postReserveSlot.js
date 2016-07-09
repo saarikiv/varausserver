@@ -82,7 +82,7 @@ exports.setApp = function (JPS){
                   break;
               }
             }
-
+            JPS.transactionReference = 0; //Leave it 0 if bookign is based on time-token.
             if(!JPS.userHasTime){
               console.log("User does not have time.");
               if(!JPS.userHasCount){
@@ -103,6 +103,7 @@ exports.setApp = function (JPS){
                       res.end();
 
                     } else {
+                      JPS.transactionReference = JPS.earliestToExpire;
                       console.log("Updated transaction date for user: ", JPS.currentUserUID);
                     }
                 })
@@ -124,7 +125,8 @@ exports.setApp = function (JPS){
             JPS.bookingTime = JPS.courseTime.getTime() + JPS.daysToAdd*24*60*60*1000 + JPS.courseInfo.start;
             JPS.BookingByCourseRef = JPS.firebase.database().ref('/bookingsbycourse/'+JPS.courseInfo.key+'/'+JPS.bookingTime+'/'+JPS.user.key);
             JPS.BookingByCourseRef.update({
-              user: JPS.user.email
+              user: JPS.user.email,
+              transactionReference: JPS.transactionReference
             }, err => {
               if(err){
                 console.error("Booking by COURSE write to firabase failed: ", err);
@@ -133,7 +135,8 @@ exports.setApp = function (JPS){
             })
             JPS.BookingByUserRef = JPS.firebase.database().ref('/bookingsbyuser/'+JPS.user.key+'/'+JPS.bookingTime);
             JPS.BookingByUserRef.update({
-              course: JPS.courseInfo.key
+              course: JPS.courseInfo.key,
+              transactionReference: JPS.transactionReference
             }, err => {
               if(err){
                 console.error("Booking by USER write to firabase failed: ", err);
