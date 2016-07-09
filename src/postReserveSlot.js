@@ -22,6 +22,7 @@ exports.setApp = function (JPS){
       console.log("POST:", JPS.post);
       JPS.currentUserToken = JPS.post.user;
       JPS.courseInfo = JPS.post.courseInfo;
+      JPS.weeksForward = JPS.post.weeksForward;
 
       JPS.firebase.auth().verifyIdToken(JPS.currentUserToken).then( decodedToken => {
         JPS.currentUserUID = decodedToken.sub;
@@ -90,6 +91,7 @@ exports.setApp = function (JPS){
                 res.end();
               }
               else {
+                //TODO: Check tahat user has not already booked in to the course before reducing count.
                 JPS.recordToUpdate.unusedtimes = JPS.recordToUpdate.unusedtimes - 1;
                 JPS.unusedtimes = JPS.unusedtimes - 1;
                 JPS.firebase.database()
@@ -109,18 +111,38 @@ exports.setApp = function (JPS){
               console.log("User has time.");
             }
 
-            JPS.BookingRef.push({
-              user: JPS.user.key,
-              courseInfo: JPS.courseInfo.key
+            JPS.courseTime = new Date();
+            JPS.courseTime.setHours(0);
+            JPS.courseTime.setMinutes(0);
+            JPS.courseTime.setSeconds(0);
+            JPS.courseTime.setMilliseconds(0);
+            if(JPS.courseInfo.day < JPS.courseTime.getDay()+1){
+              JPS.daysToAdd = (JPS.weeksForward*7) + 7 + JPS.courseInfo.day - JPS.courseTime.getDay()+1;
+            } else {
+              JPS.daysToAdd = (JPS.weeksForward*7) + JPS.courseInfo.day - JPS.courseTime.getDay()+1;
+            }
+            JPS.bookingTime = JPS.courseTime.getTime() + JPS.daysToAdd*24*60*60*1000 + JPS.courseInfo.start;
+            JPS.BookingByCourseRef = JPS.firebase.database().ref('/bookingsbycourse/'+JPS.courseInfo.key+'/'+JPS.bookingTime+'/'+JPS.user.key);
+            JPS.BookingByCourseRef.update({
+              user: JPS.user.email
             }, err => {
               if(err){
-              console.error("Booking write to firabase failed: ", err);
-              res.statusCode = 500;
-              res.end();
+                console.error("Booking by COURSE write to firabase failed: ", err);
+                res.status(500).jsonp({context: "Booking by COURSE write failed", err }).end();
               }
             })
-            res.statusCode = 200;
-            res.end();
+            JPS.BookingByUserRef = JPS.firebase.database().ref('/bookingsbyuser/'+JPS.user.key+'/'+JPS.bookingTime);
+            JPS.BookingByUserRef.update({
+              course: JPS.courseInfo.key
+            }, err => {
+              if(err){
+                console.error("Booking by USER write to firabase failed: ", err);
+                res.statusCode = 500;
+                res.end();
+              }
+            })
+
+            res.status(200).jsonp({context: "Booking done succesfully" }).end();
           }, err => {
             console.error("Fetching user transactions failed: ", err);
             res.statusCode = 500;

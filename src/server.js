@@ -27,7 +27,6 @@ JPS.listenport = 3000
 JPS.firebase.initializeApp(JPS.firebaseConfig);
 
 JPS.ShopItemsRef = JPS.firebase.database().ref('/shopItems/')
-JPS.BookingRef = JPS.firebase.database().ref('/bookings/')
 JPS.UsersRef = JPS.firebase.database().ref('/users/')
 JPS.gateway = JPS.braintree.connect({
   environment: JPS.braintree.Environment.Sandbox,
