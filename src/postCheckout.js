@@ -30,14 +30,18 @@ exports.setApp = function (JPS){
         JPS.currentUserUID = decodedToken.sub;
         console.log("User: ", JPS.currentUserUID, " requested checkout.");
 
-        JPS.OneUserRef = JPS.firebase.database().ref('/users/'+JPS.currentUserUID);
-        JPS.OneUserRef.once('value', snapshot => {
+        JPS.firebase.database().ref('/users/'+JPS.currentUserUID).once('value', snapshot => {
           JPS.user = snapshot.val()
           JPS.user.key = snapshot.key;
 
-          JPS.ShopItemsRef.orderByKey().equalTo(JPS.shopItemKey).once('child_added', snapshot => {
+          JPS.firebase.database().ref('/shopItems/'+JPS.shopItemKey).once('value', snapshot => {
             JPS.shopItem = snapshot.val();
             console.log("/n*************/nShopitem:", JPS.shopItem);
+            //
+            //=======================================
+            // Do transaction to Braintree
+            //=======================================
+            //
             JPS.gateway.transaction.sale({
                         amount: JPS.shopItem.price,
                         paymentMethodNonce: JPS.nonceFromTheClient,
@@ -47,11 +51,10 @@ exports.setApp = function (JPS){
                     },  (err, result) => {
                       if(err) {
                         console.error(err);
-
+                        res.status(500).jsonp({message: "Could not execute transaction to Braintree."}).end(err);
                       } else {
-                        res.statusCode = 200;
+                        console.log("Braintree transaction succesfully done.");
                       }
-                      res.end();
 
                       JPS.transaction = {
                         user: JPS.user.key,
@@ -60,23 +63,15 @@ exports.setApp = function (JPS){
                         details: result
                       }
 
-                      JPS.TransactionRef = JPS.firebase.database().ref('/transactions/'+JPS.user.key+'/'+JPS.now);
-                      JPS.TransactionRef.update(JPS.transaction, (error) => {
-                          if(error){
-                              console.error("Transaction write to database failed", error);
-                          }
-                          else{
-                            console.log("Ttranaction created: ", JPS.transaction);
-                          }
-                      })
+                      //==================================
+                      // Write the transaction to the database
+                      //==================================
+
 
                       JPS.TokenRef = JPS.firebase.database().ref('/tokens/' + JPS.shopItem.token);
                       JPS.TokenRef.once('value', tokenSnapshot => {
                         JPS.token = tokenSnapshot.val();
 
-                        console.log("USER & TOKEN: ",JPS.user, JPS.token);
-
-                        console.log("UT: ", JPS.token);
                         //calculate the expiry moment if type is count
                         if(JPS.token.type === "count") {
                           JPS.token.expires = JPS.date.setTime(JPS.now + JPS.token.expiresAfterDays*24*60*60*1000);
@@ -87,29 +82,32 @@ exports.setApp = function (JPS){
                           JPS.lastTimeUserHasValidUseTime = JPS.now;
                           JPS.token.expires = JPS.date.setTime(JPS.lastTimeUserHasValidUseTime + JPS.token.usedays*24*60*60*1000);
                         }
-                        JPS.TransactionRef.update(JPS.token, err =>{
+                        JPS.firebase.database().ref('/transactions/'+JPS.user.key+'/'+JPS.now)
+                        .update(Object.assign(JPS.transaction,JPS.token), err =>{
                           if(err){
-                            console.error("Failed inserting userToken in to DB: ", err);
+                            console.error("Failed inserting transaction details in to DB: ", err);
+                            res.status(500).jsonp({message: "Saving transaction data failed."}).end(err);
                           } else {
-                            console.log("Usertoken saved: ", JPS.token);
+                            console.log("Transaction saved: ",JPS.transaction, JPS.token);
+                            res.status(200).jsonp(JPS.transaction).end();
                           }
                         })
                       }, err => {
                         console.error("Fetching token info failed: ", err);
+                        res.status(500).jsonp({message: "Failed fetching shop items."}).end(err);
                       })
-                    })
+                    }); // Braintree transaction callback end.
                   }, err => {
             console.error("Failed reading shopItem details: ", err);
-            res.statusCode = 500;
-            res.end();
-          })
+            res.status(500).jsonp({message: "Failed fetching shop items."}).end(err);
+          });
         }, err => {
           console.error("Failed to fetch user details for: ", JPS.currentUserUID, err);
+          res.status(500).jsonp({message: "Fetching user details failde."}).end(err);
         });
     }).catch( err => {
       console.error("Unauthorized access attempetd: ", err);
-      res.statusCode = 500;
-      res.end(err);
+      res.status(500).jsonp({message: "Unauthorized access."}).end(err);
     });
   })
 })
