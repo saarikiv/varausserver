@@ -49,10 +49,11 @@ module.exports =
 	// Server main faile
 	//------------------------------------------
 
-	var express = __webpack_require__(6)
+	var express = __webpack_require__(8)
 	var JPS = {} //The global.
+	JPS.timeHelper = __webpack_require__(6)
 
-	JPS.braintree = __webpack_require__(5);
+	JPS.braintree = __webpack_require__(7);
 
 	console.log("ENV: ", process.env.PWD);
 	if(process.env.NODE_ENV == "production") {
@@ -67,7 +68,7 @@ module.exports =
 	    databaseURL: "https://joogakoulusilta-projekti.firebaseio.com"
 	  };
 	}
-	JPS.firebase = __webpack_require__(7)
+	JPS.firebase = __webpack_require__(9)
 	JPS.app = express();
 	JPS.date = new Date();
 	JPS.listenport = 3000
@@ -111,16 +112,19 @@ module.exports =
 
 
 	// Add headers
-	__webpack_require__(4).setApp(JPS);
+	__webpack_require__(5).setApp(JPS);
 
 	// Get client token
 	__webpack_require__(1).setApp(JPS);
 
 	// POST checkout
-	__webpack_require__(2).setApp(JPS);
+	__webpack_require__(3).setApp(JPS);
 
 	// POST reserve slot
-	__webpack_require__(3).setApp(JPS);
+	__webpack_require__(4).setApp(JPS);
+
+	// POST reserve slot
+	__webpack_require__(2).setApp(JPS);
 
 	/* WEBPACK VAR INJECTION */}.call(exports, "/"))
 
@@ -165,6 +169,95 @@ module.exports =
 /***/ function(module, exports) {
 
 	
+	exports.setApp = function (JPS){
+
+	  //######################################################
+	  // POST: cancelSlot
+	  //######################################################
+
+	  JPS.app.post('/cancelSlot', (req, res) => {
+	    JPS.now = Date.now();
+	    console.log("POST: cancelSlot", JPS.now);
+	    JPS.body = '';
+	    req.on('data', (data) => {
+	      JPS.body += data;
+	      // Too much POST data, kill the connection!
+	      // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
+	      if (JPS.body.length > 1e6) req.connection.destroy();
+	    });
+	    req.on('end', () => {
+	      JPS.post = JSON.parse(JPS.body);
+	      console.log("POST:", JPS.post);
+	      JPS.currentUserToken = JPS.post.user;
+	      JPS.courseInfo = JPS.post.courseInfo;
+	      JPS.cancelItem = JPS.post.cancelItem;
+	      JPS.txRef = JPS.post.transactionReference;
+
+	      JPS.firebase.auth().verifyIdToken(JPS.currentUserToken).then( decodedToken => {
+	        JPS.currentUserUID = decodedToken.sub;
+	        console.log("User: ", JPS.currentUserUID, " requested checkout.");
+
+	        JPS.OneUserRef = JPS.firebase.database().ref('/users/'+JPS.currentUserUID);
+	        JPS.OneUserRef.once('value', snapshot => {
+	          JPS.user = snapshot.val();
+	          JPS.user.key = snapshot.key;
+
+	          console.log("USER:",JPS.user);
+
+	          JPS.bookingsbycourseRef = JPS.firebase.database().ref('/bookingsbycourse/' + JPS.courseInfo.key + '/' + JPS.cancelItem);
+	          JPS.bookingsbycourseRef.remove( err => {
+	            if(err){
+	              res.status(500).jsonp({message: "Removing bookingsbycourse failed."}).end(err);
+	            }
+	            JPS.bookingsbyuserRef = JPS.firebase.database().ref('/bookingsbyuser/' + JPS.user.key + '/' + JPS.cancelItem);
+	            JPS.bookingsbyuserRef.remove( err => {
+	              if(err){
+	                res.status(500).jsonp({message: "Removing bookingsbyuser failed."}).end(err);
+	              }
+	              if(JPS.transactionReference != 0){
+	                //Give back one use time for the user
+	                JPS.TransactionRef = JPS.firebase.database().ref('/transactions/'+JPS.user.key+'/'+JPS.transactionReference);
+	                JPS.TransactionRef.once('value', snapshot => {
+	                  console.log("TRANSACTION: ", snapshot.val());
+	                  JPS.unusedtokens = snapshot.val().unusedtokens;
+	                  console.log("UNUSEDTOKENS: ", JPS.unusedtokens);
+	                  JPS.unusedtokens++;
+	                  JPS.TransactionRef.update({unusedtokens: JPS.unusedtokens}, err => {
+	                    if(err){
+	                      res.status(500).jsonp({message: "failed giving back tokens."}).end(err);
+	                    }
+	                    else {
+	                      res.status(200).jsonp({message : "Cancellation was succesfull."}).end()
+	                    }
+	                  })
+	                }, err => {
+	                  res.status(500).jsonp({message: "failed to get transaction"}).end(err);
+	                })
+	              } else {
+	                res.status(200).jsonp({message : "Cancellation was succesfull."}).end()
+	              }
+	            });
+	          });
+
+	        }, err => {
+	          console.error("Failed to fetch user details for: ", JPS.currentUserUID, err);
+	          res.status(500).jsonp({message: "User fetch failes", user: JPS.currentUserUID}).end(err);
+	        });
+	      }).catch( err => {
+	        console.error("Unauthorized access attempetd: ", err);
+	        res.status(500).jsonp({message: "Unauthorized access"}).end(err);
+	      });
+	    })
+	  })
+	}
+
+
+/***/ },
+/* 3 */
+/***/ function(module, exports) {
+
+	
+
 	exports.setApp = function (JPS){
 
 	  //######################################################
@@ -282,7 +375,7 @@ module.exports =
 
 
 /***/ },
-/* 3 */
+/* 4 */
 /***/ function(module, exports) {
 
 	
@@ -374,8 +467,7 @@ module.exports =
 	              console.log("User does not have time.");
 	              if(!JPS.userHasCount){
 	                console.log("User does not have count");
-	                res.statusCode = 500;
-	                res.end();
+	                res.status(500).jsonp({context: "User is not entitled to book this slot" }).end();
 	              }
 	              else {
 	                //TODO: Check tahat user has not already booked in to the course before reducing count.
@@ -398,18 +490,8 @@ module.exports =
 	            } else {
 	              console.log("User has time.");
 	            }
-
-	            JPS.courseTime = new Date();
-	            JPS.courseTime.setHours(0);
-	            JPS.courseTime.setMinutes(0);
-	            JPS.courseTime.setSeconds(0);
-	            JPS.courseTime.setMilliseconds(0);
-	            if(JPS.courseInfo.day < JPS.courseTime.getDay()+1){
-	              JPS.daysToAdd = (JPS.weeksForward*7) + 7 + JPS.courseInfo.day - JPS.courseTime.getDay()+1;
-	            } else {
-	              JPS.daysToAdd = (JPS.weeksForward*7) + JPS.courseInfo.day - JPS.courseTime.getDay()+1;
-	            }
-	            JPS.bookingTime = JPS.courseTime.getTime() + JPS.daysToAdd*24*60*60*1000 + JPS.courseInfo.start;
+	            JPS.courseTime = JPS.timeHelper.getCourseTimeGMT(JPS.weeksForward, JPS.courseInfo.start, JPS.courseInfo.day)
+	            JPS.bookingTime = JPS.courseTime.getTime();
 	            JPS.BookingByCourseRef = JPS.firebase.database().ref('/bookingsbycourse/'+JPS.courseInfo.key+'/'+JPS.bookingTime+'/'+JPS.user.key);
 	            JPS.BookingByCourseRef.update({
 	              user: JPS.user.email,
@@ -455,7 +537,7 @@ module.exports =
 
 
 /***/ },
-/* 4 */
+/* 5 */
 /***/ function(module, exports) {
 
 	
@@ -479,19 +561,44 @@ module.exports =
 
 
 /***/ },
-/* 5 */
+/* 6 */
+/***/ function(module, exports) {
+
+	
+	module.exports = {
+	  getCourseTimeGMT: (weeksForward, timeOfStart, dayNumber) => {
+
+	  var JHLP = {}
+	  JHLP.courseTime = new Date();
+	  JHLP.dayNumber = JHLP.courseTime.getDay()
+	  JHLP.dayNumber = (JHLP.dayNumber == 0)? 7 : JHLP.dayNumber;
+	  JHLP.daysToAdd = weeksForward*7 + dayNumber - JHLP.dayNumber;
+
+	  JHLP.courseTime.setHours(0);
+	  JHLP.courseTime.setMinutes(0);
+	  JHLP.courseTime.setSeconds(0);
+	  JHLP.courseTime.setMilliseconds(0);
+	  JHLP.courseTime.setTime(JHLP.courseTime.getTime() + JHLP.daysToAdd*24*60*60*1000 + timeOfStart);
+
+	  return JHLP.courseTime;
+	  }
+	}
+
+
+/***/ },
+/* 7 */
 /***/ function(module, exports) {
 
 	module.exports = require("braintree");
 
 /***/ },
-/* 6 */
+/* 8 */
 /***/ function(module, exports) {
 
 	module.exports = require("express");
 
 /***/ },
-/* 7 */
+/* 9 */
 /***/ function(module, exports) {
 
 	module.exports = require("firebase");
