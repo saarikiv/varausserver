@@ -34,12 +34,12 @@ exports.setApp = function (JPS){
 
           console.log("USER:",JPS.user);
 
-          JPS.bookingsbycourseRef = JPS.firebase.database().ref('/bookingsbycourse/' + JPS.courseInfo.key + '/' + JPS.cancelItem);
+          JPS.bookingsbycourseRef = JPS.firebase.database().ref('/bookingsbycourse/' + JPS.courseInfo.key + '/' + JPS.cancelItem + '/' + JPS.user.key);
           JPS.bookingsbycourseRef.remove( err => {
             if(err){
               res.status(500).jsonp({message: "Removing bookingsbycourse failed."}).end(err);
             }
-            JPS.bookingsbyuserRef = JPS.firebase.database().ref('/bookingsbyuser/' + JPS.user.key + '/' + JPS.cancelItem);
+            JPS.bookingsbyuserRef = JPS.firebase.database().ref('/bookingsbyuser/' + JPS.user.key + '/' +JPS.courseInfo.key + '/' + JPS.cancelItem);
             JPS.bookingsbyuserRef.remove( err => {
               if(err){
                 res.status(500).jsonp({message: "Removing bookingsbyuser failed."}).end(err);

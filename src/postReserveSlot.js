@@ -114,7 +114,7 @@ exports.setApp = function (JPS){
             JPS.bookingTime = JPS.courseTime.getTime();
             JPS.BookingByCourseRef = JPS.firebase.database().ref('/bookingsbycourse/'+JPS.courseInfo.key+'/'+JPS.bookingTime+'/'+JPS.user.key);
             JPS.BookingByCourseRef.update({
-              user: JPS.user.email,
+              user: JPS.user.email, //TODO: add other information to be displayed in the aplication
               transactionReference: JPS.transactionReference
             }, err => {
               if(err){
@@ -122,9 +122,8 @@ exports.setApp = function (JPS){
                 res.status(500).jsonp({context: "Booking by COURSE write failed", err }).end();
               }
             })
-            JPS.BookingByUserRef = JPS.firebase.database().ref('/bookingsbyuser/'+JPS.user.key+'/'+JPS.bookingTime);
+            JPS.BookingByUserRef = JPS.firebase.database().ref('/bookingsbyuser/'+JPS.user.key+'/'+JPS.courseInfo.key+'/'+JPS.bookingTime);
             JPS.BookingByUserRef.update({
-              course: JPS.courseInfo.key,
               transactionReference: JPS.transactionReference
             }, err => {
               if(err){
