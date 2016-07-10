@@ -4,6 +4,7 @@
 
 var express = require('express')
 var JPS = {} //The global.
+JPS.timeHelper = require('./timeHelper.js')
 
 JPS.braintree = require("braintree");
 
@@ -74,3 +75,6 @@ require('./postCheckout.js').setApp(JPS);
 
 // POST reserve slot
 require('./postReserveSlot.js').setApp(JPS);
+
+// POST reserve slot
+require('./postCancelSlot.js').setApp(JPS);

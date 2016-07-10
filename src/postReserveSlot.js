@@ -87,8 +87,7 @@ exports.setApp = function (JPS){
               console.log("User does not have time.");
               if(!JPS.userHasCount){
                 console.log("User does not have count");
-                res.statusCode = 500;
-                res.end();
+                res.status(500).jsonp({context: "User is not entitled to book this slot" }).end();
               }
               else {
                 //TODO: Check tahat user has not already booked in to the course before reducing count.
@@ -111,18 +110,8 @@ exports.setApp = function (JPS){
             } else {
               console.log("User has time.");
             }
-
-            JPS.courseTime = new Date();
-            JPS.courseTime.setHours(0);
-            JPS.courseTime.setMinutes(0);
-            JPS.courseTime.setSeconds(0);
-            JPS.courseTime.setMilliseconds(0);
-            if(JPS.courseInfo.day < JPS.courseTime.getDay()+1){
-              JPS.daysToAdd = (JPS.weeksForward*7) + 7 + JPS.courseInfo.day - JPS.courseTime.getDay()+1;
-            } else {
-              JPS.daysToAdd = (JPS.weeksForward*7) + JPS.courseInfo.day - JPS.courseTime.getDay()+1;
-            }
-            JPS.bookingTime = JPS.courseTime.getTime() + JPS.daysToAdd*24*60*60*1000 + JPS.courseInfo.start;
+            JPS.courseTime = JPS.timeHelper.getCourseTimeGMT(JPS.weeksForward, JPS.courseInfo.start, JPS.courseInfo.day)
+            JPS.bookingTime = JPS.courseTime.getTime();
             JPS.BookingByCourseRef = JPS.firebase.database().ref('/bookingsbycourse/'+JPS.courseInfo.key+'/'+JPS.bookingTime+'/'+JPS.user.key);
             JPS.BookingByCourseRef.update({
               user: JPS.user.email,
