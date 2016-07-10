@@ -110,45 +110,47 @@ exports.setApp = function (JPS){
             } else {
               console.log("User has time.");
             }
-            JPS.courseTime = JPS.timeHelper.getCourseTimeGMT(JPS.weeksForward, JPS.courseInfo.start, JPS.courseInfo.day)
-            JPS.bookingTime = JPS.courseTime.getTime();
-            JPS.BookingByCourseRef = JPS.firebase.database().ref('/bookingsbycourse/'+JPS.courseInfo.key+'/'+JPS.bookingTime+'/'+JPS.user.key);
-            JPS.BookingByCourseRef.update({
-              user: JPS.user.email, //TODO: add other information to be displayed in the aplication
-              transactionReference: JPS.transactionReference
-            }, err => {
-              if(err){
-                console.error("Booking by COURSE write to firabase failed: ", err);
-                res.status(500).jsonp({context: "Booking by COURSE write failed", err }).end();
-              }
-            })
-            JPS.BookingByUserRef = JPS.firebase.database().ref('/bookingsbyuser/'+JPS.user.key+'/'+JPS.courseInfo.key+'/'+JPS.bookingTime);
-            JPS.BookingByUserRef.update({
-              transactionReference: JPS.transactionReference
-            }, err => {
-              if(err){
-                console.error("Booking by USER write to firabase failed: ", err);
-                res.statusCode = 500;
-                res.end();
-              }
-            })
+            //If user is entitled, write the bookings in to the database
+            if(JPS.userHasTime || JPS.userHasCount){
 
-            res.status(200).jsonp({context: "Booking done succesfully" }).end();
+              JPS.courseTime = JPS.timeHelper.getCourseTimeGMT(JPS.weeksForward, JPS.courseInfo.start, JPS.courseInfo.day)
+              JPS.bookingTime = JPS.courseTime.getTime();
+
+              JPS.firebase.database().ref('/bookingsbycourse/'+JPS.courseInfo.key+'/'+JPS.bookingTime+'/'+JPS.user.key)
+              .update({
+                user: JPS.user.email, //TODO: add other information to be displayed in the aplication
+                transactionReference: JPS.transactionReference
+              }, err => {
+                if(err){
+                  console.error("Booking by COURSE write to firabase failed: ", err);
+                  res.status(500).jsonp({context: "Booking by COURSE write failed", err }).end();
+                }
+              })
+              JPS.firebase.database().ref('/bookingsbyuser/'+JPS.user.key+'/'+JPS.courseInfo.key+'/'+JPS.bookingTime)
+              .update({
+                transactionReference: JPS.transactionReference
+              }, err => {
+                if(err){
+                  console.error("Booking by USER write to firabase failed: ", err);
+                  res.status(500).jsonp({context: "Booking by USER write failed"}).end(err);
+                }
+              })
+              //======================================
+              res.status(200).jsonp({context: "Booking done succesfully" }).end();
+              //======================================
+            }
           }, err => {
             console.error("Fetching user transactions failed: ", err);
-            res.statusCode = 500;
-            res.end();
+            res.status(500).jsonp({context: "Fetching user transactions failed"}).end(err);
           })
 
         }, err => {
           console.error("Failed to fetch user details for: ", JPS.currentUserUID, err);
-          res.statusCode = 500;
-          res.end();
+          res.status(500).jsonp({context: "Failed to fetch user details", user: JPS.currentUserUID}).end(err);
         });
       }).catch( err => {
         console.error("Unauthorized access attempetd: ", err);
-        res.statusCode = 500;
-        res.end(err);
+        res.status(500).jsonp({context: "Unauthorized access attempetd"}).end(err);
       });
     })
   })

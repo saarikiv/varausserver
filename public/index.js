@@ -35,7 +35,7 @@ module.exports =
 /******/ 	__webpack_require__.c = installedModules;
 
 /******/ 	// __webpack_public_path__
-/******/ 	__webpack_require__.p = "/home/saarikiv/joogaserver/public/";
+/******/ 	__webpack_require__.p = "/home/tsa/repo/joogaserver/public/";
 
 /******/ 	// Load entry module and return exports
 /******/ 	return __webpack_require__(0);
@@ -287,14 +287,18 @@ module.exports =
 	        JPS.currentUserUID = decodedToken.sub;
 	        console.log("User: ", JPS.currentUserUID, " requested checkout.");
 
-	        JPS.OneUserRef = JPS.firebase.database().ref('/users/'+JPS.currentUserUID);
-	        JPS.OneUserRef.once('value', snapshot => {
+	        JPS.firebase.database().ref('/users/'+JPS.currentUserUID).once('value', snapshot => {
 	          JPS.user = snapshot.val()
 	          JPS.user.key = snapshot.key;
 
-	          JPS.ShopItemsRef.orderByKey().equalTo(JPS.shopItemKey).once('child_added', snapshot => {
+	          JPS.firebase.database().ref('/shopItems/'+JPS.shopItemKey).once('value', snapshot => {
 	            JPS.shopItem = snapshot.val();
 	            console.log("/n*************/nShopitem:", JPS.shopItem);
+	            //
+	            //=======================================
+	            // Do transaction to Braintree
+	            //=======================================
+	            //
 	            JPS.gateway.transaction.sale({
 	                        amount: JPS.shopItem.price,
 	                        paymentMethodNonce: JPS.nonceFromTheClient,
@@ -304,11 +308,10 @@ module.exports =
 	                    },  (err, result) => {
 	                      if(err) {
 	                        console.error(err);
-
+	                        res.status(500).jsonp({message: "Could not execute transaction to Braintree."}).end(err);
 	                      } else {
-	                        res.statusCode = 200;
+	                        console.log("Braintree transaction succesfully done.");
 	                      }
-	                      res.end();
 
 	                      JPS.transaction = {
 	                        user: JPS.user.key,
@@ -317,23 +320,15 @@ module.exports =
 	                        details: result
 	                      }
 
-	                      JPS.TransactionRef = JPS.firebase.database().ref('/transactions/'+JPS.user.key+'/'+JPS.now);
-	                      JPS.TransactionRef.update(JPS.transaction, (error) => {
-	                          if(error){
-	                              console.error("Transaction write to database failed", error);
-	                          }
-	                          else{
-	                            console.log("Ttranaction created: ", JPS.transaction);
-	                          }
-	                      })
+	                      //==================================
+	                      // Write the transaction to the database
+	                      //==================================
+
 
 	                      JPS.TokenRef = JPS.firebase.database().ref('/tokens/' + JPS.shopItem.token);
 	                      JPS.TokenRef.once('value', tokenSnapshot => {
 	                        JPS.token = tokenSnapshot.val();
 
-	                        console.log("USER & TOKEN: ",JPS.user, JPS.token);
-
-	                        console.log("UT: ", JPS.token);
 	                        //calculate the expiry moment if type is count
 	                        if(JPS.token.type === "count") {
 	                          JPS.token.expires = JPS.date.setTime(JPS.now + JPS.token.expiresAfterDays*24*60*60*1000);
@@ -344,29 +339,32 @@ module.exports =
 	                          JPS.lastTimeUserHasValidUseTime = JPS.now;
 	                          JPS.token.expires = JPS.date.setTime(JPS.lastTimeUserHasValidUseTime + JPS.token.usedays*24*60*60*1000);
 	                        }
-	                        JPS.TransactionRef.update(JPS.token, err =>{
+	                        JPS.firebase.database().ref('/transactions/'+JPS.user.key+'/'+JPS.now)
+	                        .update(Object.assign(JPS.transaction,JPS.token), err =>{
 	                          if(err){
-	                            console.error("Failed inserting userToken in to DB: ", err);
+	                            console.error("Failed inserting transaction details in to DB: ", err);
+	                            res.status(500).jsonp({message: "Saving transaction data failed."}).end(err);
 	                          } else {
-	                            console.log("Usertoken saved: ", JPS.token);
+	                            console.log("Transaction saved: ",JPS.transaction, JPS.token);
+	                            res.status(200).jsonp(JPS.transaction).end();
 	                          }
 	                        })
 	                      }, err => {
 	                        console.error("Fetching token info failed: ", err);
+	                        res.status(500).jsonp({message: "Failed fetching shop items."}).end(err);
 	                      })
-	                    })
+	                    }); // Braintree transaction callback end.
 	                  }, err => {
 	            console.error("Failed reading shopItem details: ", err);
-	            res.statusCode = 500;
-	            res.end();
-	          })
+	            res.status(500).jsonp({message: "Failed fetching shop items."}).end(err);
+	          });
 	        }, err => {
 	          console.error("Failed to fetch user details for: ", JPS.currentUserUID, err);
+	          res.status(500).jsonp({message: "Fetching user details failde."}).end(err);
 	        });
 	    }).catch( err => {
 	      console.error("Unauthorized access attempetd: ", err);
-	      res.statusCode = 500;
-	      res.end(err);
+	      res.status(500).jsonp({message: "Unauthorized access."}).end(err);
 	    });
 	  })
 	})
@@ -489,45 +487,47 @@ module.exports =
 	            } else {
 	              console.log("User has time.");
 	            }
-	            JPS.courseTime = JPS.timeHelper.getCourseTimeGMT(JPS.weeksForward, JPS.courseInfo.start, JPS.courseInfo.day)
-	            JPS.bookingTime = JPS.courseTime.getTime();
-	            JPS.BookingByCourseRef = JPS.firebase.database().ref('/bookingsbycourse/'+JPS.courseInfo.key+'/'+JPS.bookingTime+'/'+JPS.user.key);
-	            JPS.BookingByCourseRef.update({
-	              user: JPS.user.email, //TODO: add other information to be displayed in the aplication
-	              transactionReference: JPS.transactionReference
-	            }, err => {
-	              if(err){
-	                console.error("Booking by COURSE write to firabase failed: ", err);
-	                res.status(500).jsonp({context: "Booking by COURSE write failed", err }).end();
-	              }
-	            })
-	            JPS.BookingByUserRef = JPS.firebase.database().ref('/bookingsbyuser/'+JPS.user.key+'/'+JPS.courseInfo.key+'/'+JPS.bookingTime);
-	            JPS.BookingByUserRef.update({
-	              transactionReference: JPS.transactionReference
-	            }, err => {
-	              if(err){
-	                console.error("Booking by USER write to firabase failed: ", err);
-	                res.statusCode = 500;
-	                res.end();
-	              }
-	            })
+	            //If user is entitled, write the bookings in to the database
+	            if(JPS.userHasTime || JPS.userHasCount){
 
+	              JPS.courseTime = JPS.timeHelper.getCourseTimeGMT(JPS.weeksForward, JPS.courseInfo.start, JPS.courseInfo.day)
+	              JPS.bookingTime = JPS.courseTime.getTime();
+
+	              JPS.firebase.database().ref('/bookingsbycourse/'+JPS.courseInfo.key+'/'+JPS.bookingTime+'/'+JPS.user.key)
+	              .update({
+	                user: JPS.user.email, //TODO: add other information to be displayed in the aplication
+	                transactionReference: JPS.transactionReference
+	              }, err => {
+	                if(err){
+	                  console.error("Booking by COURSE write to firabase failed: ", err);
+	                  res.status(500).jsonp({context: "Booking by COURSE write failed", err }).end();
+	                }
+	              })
+	              JPS.firebase.database().ref('/bookingsbyuser/'+JPS.user.key+'/'+JPS.courseInfo.key+'/'+JPS.bookingTime)
+	              .update({
+	                transactionReference: JPS.transactionReference
+	              }, err => {
+	                if(err){
+	                  console.error("Booking by USER write to firabase failed: ", err);
+	                  res.status(500).jsonp({context: "Booking by USER write failed"}).end(err);
+	                }
+	              })
+	            }
+	            //======================================
 	            res.status(200).jsonp({context: "Booking done succesfully" }).end();
+	            //======================================
 	          }, err => {
 	            console.error("Fetching user transactions failed: ", err);
-	            res.statusCode = 500;
-	            res.end();
+	            res.status(500).jsonp({context: "Fetching user transactions failed"}).end(err);
 	          })
 
 	        }, err => {
 	          console.error("Failed to fetch user details for: ", JPS.currentUserUID, err);
-	          res.statusCode = 500;
-	          res.end();
+	          res.status(500).jsonp({context: "Failed to fetch user details", user: JPS.currentUserUID}).end(err);
 	        });
 	      }).catch( err => {
 	        console.error("Unauthorized access attempetd: ", err);
-	        res.statusCode = 500;
-	        res.end(err);
+	        res.status(500).jsonp({context: "Unauthorized access attempetd"}).end(err);
 	      });
 	    })
 	  })
