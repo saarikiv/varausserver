@@ -1,4 +1,5 @@
 
+
 exports.setApp = function (JPS){
 
   //######################################################
@@ -8,6 +9,9 @@ exports.setApp = function (JPS){
   // Finally adds to the users entitlement new tokens to use.
   //######################################################
   JPS.app.post('/checkout', (req, res) => {
+
+    JPS.now = Date.now();
+    console.log("Checkout requested.", JPS.now);
     JPS.body = '';
     req.on('data', (data) => {
       JPS.body += data;
@@ -18,89 +22,95 @@ exports.setApp = function (JPS){
     req.on('end', () => {
       JPS.post = JSON.parse(JPS.body);
       JPS.nonceFromTheClient = JPS.post.payment_method_nonce;
-      JPS.currentUserKey = JPS.post.current_user;
+      JPS.currentUserToken = JPS.post.current_user;
       JPS.shopItemKey = JPS.post.item_key;
       console.log("POST:", JPS.post);
 
-      JPS.ShopItemsRef.orderByKey().equalTo(JPS.shopItemKey).once('child_added', snapshot => {
-        JPS.shopItem = snapshot.val();
-        console.log("Shopitem:", JPS.shopItem);
-        JPS.gateway.transaction.sale({
-                    amount: JPS.shopItem.price,
-                    paymentMethodNonce: JPS.nonceFromTheClient,
-                    options: {
-                      submitForSettlement: true
-                    }
-                },  (err, result) => {
-                  if(err) {
-                    console.error(err);
+      JPS.firebase.auth().verifyIdToken(JPS.currentUserToken).then( decodedToken => {
+        JPS.currentUserUID = decodedToken.sub;
+        console.log("User: ", JPS.currentUserUID, " requested checkout.");
 
-                  } else {
-                    res.statusCode = 200;
-                  }
-                  res.end();
+        JPS.OneUserRef = JPS.firebase.database().ref('/users/'+JPS.currentUserUID);
+        JPS.OneUserRef.once('value', snapshot => {
+          JPS.user = snapshot.val()
+          JPS.user.key = snapshot.key;
 
-                  JPS.TransactionRef.push({
-                            user: JPS.currentUserKey,
-                            token: {
-                              key: JPS.shopItem.token,
-                              used: false
-                            },
-                            error: err ? err : {code: 0},
-                            details: result
-                  }, (error) => {
-                      if(error){
-                          console.error("Transaction write to database failed", error);
-                      }
-                  })
-
-                  JPS.TokenRef = JPS.firebase.database().ref('/tokens/' + JPS.shopItem.token);
-                  JPS.TokenRef.once('value', tokenSnapshot => {
-                    JPS.token = tokenSnapshot.val();
-
-                    JPS.UserRef = firebase.database().ref('/users/' + JPS.currentUserKey);
-                    JPS.UserRef.once('value', userSnapshot => {
-
-                      JPS.user = userSnapshot.val();
-                      console.log(JPS.user);
-
-                      var ut = JPS.user.tokens.usetimes;
-                      var ld = JPS.user.tokens.lastday;
-
-                      if(JPS.token.type === 'count'){
-                        ut += JPS.token.usetimes
-                      }
-                      if(JPS.token.type === 'time'){
-                        // TODO: use actual dates and push last day forward
-                        ld += JPS.token.usedays
-                      }
-
-                      JPS.UserRef.update({tokens: { usetimes: ut, lastday: ld }}, (err) =>{
-                        if(err){
-                          console.error("User update failed: ", err);
+          JPS.ShopItemsRef.orderByKey().equalTo(JPS.shopItemKey).once('child_added', snapshot => {
+            JPS.shopItem = snapshot.val();
+            console.log("/n*************/nShopitem:", JPS.shopItem);
+            JPS.gateway.transaction.sale({
+                        amount: JPS.shopItem.price,
+                        paymentMethodNonce: JPS.nonceFromTheClient,
+                        options: {
+                          submitForSettlement: true
                         }
-                      });
+                    },  (err, result) => {
+                      if(err) {
+                        console.error(err);
 
-
-                    }, err => {
-                      if(err){
-                        console.error("Fetching user details failed: ", err);
+                      } else {
+                        res.statusCode = 200;
                       }
+                      res.end();
+
+                      JPS.transaction = {
+                        user: JPS.user.key,
+                        shopItem: JPS.shopItem,
+                        error: err ? err : {code: 0},
+                        details: result
+                      }
+
+                      JPS.TransactionRef = JPS.firebase.database().ref('/transactions/'+JPS.user.key+'/'+JPS.now);
+                      JPS.TransactionRef.update(JPS.transaction, (error) => {
+                          if(error){
+                              console.error("Transaction write to database failed", error);
+                          }
+                          else{
+                            console.log("Ttranaction created: ", JPS.transaction);
+                          }
+                      })
+
+                      JPS.TokenRef = JPS.firebase.database().ref('/tokens/' + JPS.shopItem.token);
+                      JPS.TokenRef.once('value', tokenSnapshot => {
+                        JPS.token = tokenSnapshot.val();
+
+                        console.log("USER & TOKEN: ",JPS.user, JPS.token);
+
+                        console.log("UT: ", JPS.token);
+                        //calculate the expiry moment if type is count
+                        if(JPS.token.type === "count") {
+                          JPS.token.expires = JPS.date.setTime(JPS.now + JPS.token.expiresAfterDays*24*60*60*1000);
+                          JPS.token.unusedtimes = JPS.token.usetimes;
+                        }
+                        if(JPS.token.type === "time") {
+                          // TODO: need to find out the last - now just using NOW
+                          JPS.lastTimeUserHasValidUseTime = JPS.now;
+                          JPS.token.expires = JPS.date.setTime(JPS.lastTimeUserHasValidUseTime + JPS.token.usedays*24*60*60*1000);
+                        }
+                        JPS.TransactionRef.update(JPS.token, err =>{
+                          if(err){
+                            console.error("Failed inserting userToken in to DB: ", err);
+                          } else {
+                            console.log("Usertoken saved: ", JPS.token);
+                          }
+                        })
+                      }, err => {
+                        console.error("Fetching token info failed: ", err);
+                      })
                     })
-
                   }, err => {
-                    console.error("Fetching token info failed: ", err);
-                  })
-
-
-                })
-              }, error => {
-        console.error("Failed reading shopItem details: ", error);
-        res.statusCode = 500;
-        res.end();
-      })
-    })
+            console.error("Failed reading shopItem details: ", err);
+            res.statusCode = 500;
+            res.end();
+          })
+        }, err => {
+          console.error("Failed to fetch user details for: ", JPS.currentUserUID, err);
+        });
+    }).catch( err => {
+      console.error("Unauthorized access attempetd: ", err);
+      res.statusCode = 500;
+      res.end(err);
+    });
   })
-
-
+})
 }

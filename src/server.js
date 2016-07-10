@@ -4,24 +4,31 @@
 
 var express = require('express')
 var JPS = {} //The global.
+JPS.timeHelper = require('./timeHelper.js')
 
-JPS.http = require('http')
-JPS.https = require('https')
-JPS.fs = require('fs')
 JPS.braintree = require("braintree");
-JPS.firebaseConfig = {
-  apiKey: "AIzaSyCq544Yq7EEY-5spIe1oFCe8gkOzRkS5ak",
-  authDomain: "joogakoulusilta-projekti.firebaseapp.com",
-  databaseURL: "https://joogakoulusilta-projekti.firebaseio.com",
-  storageBucket: "joogakoulusilta-projekti.appspot.com",
-};
+
+console.log("ENV: ", process.env.PWD);
+if(process.env.NODE_ENV == "production") {
+  JPS.firebaseConfig = {
+    serviceAccount: "public/joogakoulusilta.json",
+    databaseURL: "https://joogakoulusilta-654a9.firebaseio.com"
+  };
+}
+else {
+  JPS.firebaseConfig = {
+    serviceAccount: "public/joogakoulusilta-projekti.json",
+    databaseURL: "https://joogakoulusilta-projekti.firebaseio.com"
+  };
+}
 JPS.firebase = require('firebase')
 JPS.app = express();
+JPS.date = new Date();
 JPS.listenport = 3000
 JPS.firebase.initializeApp(JPS.firebaseConfig);
-JPS.TransactionRef = JPS.firebase.database().ref('/transactions/')
+
 JPS.ShopItemsRef = JPS.firebase.database().ref('/shopItems/')
-JPS.BookingRef = JPS.firebase.database().ref('/bookings/')
+JPS.UsersRef = JPS.firebase.database().ref('/users/')
 JPS.gateway = JPS.braintree.connect({
   environment: JPS.braintree.Environment.Sandbox,
   merchantId: "3gv7c5tq5q7hxrcs",
@@ -48,30 +55,17 @@ JPS.app.use(express.static(__dirname + '/public'));
 
 JPS.app.listen(JPS.app.get('port'), function() {
   console.log('Node app is running on port', JPS.app.get('port'));
+  if(process.env.NODE_ENV == "production") {
+    console.log("Running against production firebase.");
+  } else {
+    console.log("Running against stage firebase.");
+  }
+  console.log(JPS.firebaseConfig);
 });
 
-
-/*
-// For HTTPS - TODO
-const options = {
-  key: JPS.fs.readFileSync('./public/jooga-key.pem'),
-  cert: JPS.fs.readFileSync('./public/jooga-cert.pem')
-};
-JPS.https.createServer(options, JPS.app).listen(JPS.httpslistenport, (err) => {
-  if(err) throw err;
-  console.log("Listenig on HTTPS requests at: ", JPS.httpslistenport);
-});
-
-
-
-JPS.http.createServer(JPS.app).listen(JPS.httplistenport, (err) => {
-  if(err) throw err;
-  console.log("Listenig on HTTP requests at: ", JPS.httplistenport);
-});
-*/
 
 // Add headers
-require('./setHeaders.js').setApp(JPS)
+require('./setHeaders.js').setApp(JPS);
 
 // Get client token
 require('./getClientToken.js').setApp(JPS);
@@ -81,3 +75,6 @@ require('./postCheckout.js').setApp(JPS);
 
 // POST reserve slot
 require('./postReserveSlot.js').setApp(JPS);
+
+// POST reserve slot
+require('./postCancelSlot.js').setApp(JPS);
