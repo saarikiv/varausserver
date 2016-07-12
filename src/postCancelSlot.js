@@ -23,6 +23,7 @@ exports.setApp = function (JPS){
       JPS.cancelItem = JPS.post.cancelItem;
       JPS.txRef = JPS.post.transactionReference;
 
+
       JPS.firebase.auth().verifyIdToken(JPS.currentUserToken).then( decodedToken => {
         JPS.currentUserUID = decodedToken.sub;
         console.log("User: ", JPS.currentUserUID, " requested checkout.");
