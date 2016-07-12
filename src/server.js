@@ -26,16 +26,12 @@ JPS.app = express();
 JPS.date = new Date();
 JPS.listenport = 3000
 JPS.firebase.initializeApp(JPS.firebaseConfig);
-
-JPS.ShopItemsRef = JPS.firebase.database().ref('/shopItems/')
-JPS.UsersRef = JPS.firebase.database().ref('/users/')
 JPS.gateway = JPS.braintree.connect({
   environment: JPS.braintree.Environment.Sandbox,
   merchantId: "3gv7c5tq5q7hxrcs",
   publicKey: "gksd667wsgn35wjp",
   privateKey: "2c01703b7daffd7352eeaada7a4a95e5"
 });
-
 //------------------------------------------
 // Process handlers
 //------------------------------------------
