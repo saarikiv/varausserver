@@ -42,8 +42,14 @@ JPS.gateway = JPS.braintree.connect({
 process.on('exit', (code) => {
   console.log("Process exited with code:", code);
 })
+JPS.recursionPotential = false;
 process.on('uncaughtException', (err) => {
-  console.log("Caught exception:", err);
+  console.error("Caught exception:", err);
+  JPS.firebase.database().ref('/serverError/' + Date.now()).update({error: err.toString()}, err => {
+    if(err){
+      console.error("Writing error to firebase failed: ", err);
+    }
+  })
 })
 
 console.log("PROCESS: ", process);

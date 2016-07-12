@@ -89,8 +89,14 @@ module.exports =
 	process.on('exit', (code) => {
 	  console.log("Process exited with code:", code);
 	})
+	JPS.recursionPotential = false;
 	process.on('uncaughtException', (err) => {
-	  console.log("Caught exception:", err);
+	  console.error("Caught exception:", err);
+	  JPS.firebase.database().ref('/serverError/' + Date.now()).update({error: err.toString()}, err => {
+	    if(err){
+	      console.error("Writing error to firebase failed: ", err);
+	    }
+	  })
 	})
 
 	console.log("PROCESS: ", process);
@@ -146,19 +152,16 @@ module.exports =
 	        if (err) {
 	          console.error("Client token generation failed:", err);
 	          console.error("Client token response:", response);
-	          res.statusCode = 500;
-	          res.end(err);
+	          res.status(500).jsonp({message: "Token request failed."}).end(err);
 	        }
 	        else {
 	          console.log("Sending client token: ", response.clientToken);
-	          res.statusCode = 200;
-	          res.end(response.clientToken);
+	          res.status(200).end(response.clientToken);
 	        }
 	    })
 	  }).catch( err => {
 	    console.error("Unauthorized access attempetd: ", err);
-	    res.statusCode = 500;
-	    res.end(err);
+	    res.status(500).jsonp({message: "Unauthorized attempt to gt token."}).end(err);
 	  });
 	})
 	}
@@ -214,9 +217,9 @@ module.exports =
 	              if(err){
 	                res.status(500).jsonp({message: "Removing bookingsbyuser failed."}).end(err);
 	              }
-	              if(JPS.transactionReference != 0){
+	              if(JPS.txRef != 0){
 	                //Give back one use time for the user
-	                JPS.TransactionRef = JPS.firebase.database().ref('/transactions/'+JPS.user.key+'/'+JPS.transactionReference);
+	                JPS.TransactionRef = JPS.firebase.database().ref('/transactions/'+JPS.user.key+'/'+JPS.txRef );
 	                JPS.TransactionRef.once('value', snapshot => {
 	                  console.log("TRANSACTION: ", snapshot.val());
 	                  JPS.unusedtimes = snapshot.val().unusedtimes;
@@ -405,8 +408,7 @@ module.exports =
 	        JPS.currentUserUID = decodedToken.sub;
 	        console.log("User: ", JPS.currentUserUID, " requested checkout.");
 
-	        JPS.OneUserRef = JPS.firebase.database().ref('/users/'+JPS.currentUserUID);
-	        JPS.OneUserRef.once('value', snapshot => {
+	        JPS.firebase.database().ref('/users/'+JPS.currentUserUID).once('value', snapshot => {
 	          JPS.user = snapshot.val();
 	          JPS.user.key = snapshot.key;
 
@@ -421,8 +423,7 @@ module.exports =
 	          JPS.unusedtimes = 0;
 
 	          console.log("Starting to process user transactions");
-	          JPS.UserTransactionsRef = JPS.firebase.database().ref('/transactions/'+JPS.currentUserUID);
-	          JPS.UserTransactionsRef.once('value', snapshot => {
+	          JPS.firebase.database().ref('/transactions/'+JPS.currentUserUID).once('value', snapshot => {
 	            console.log("Processing returned data:");
 	            JPS.allTx = snapshot.val();
 	            for (JPS.one in JPS.allTx){
@@ -467,6 +468,7 @@ module.exports =
 	                res.status(500).jsonp({context: "User is not entitled to book this slot" }).end();
 	              }
 	              else {
+	                JPS.transactionReference = JPS.earliestToExpire;
 	                //TODO: Check tahat user has not already booked in to the course before reducing count.
 	                JPS.recordToUpdate.unusedtimes = JPS.recordToUpdate.unusedtimes - 1;
 	                JPS.unusedtimes = JPS.unusedtimes - 1;
@@ -478,8 +480,7 @@ module.exports =
 	                      res.statusCode = 500;
 	                      res.end();
 
-	                    } else {
-	                      JPS.transactionReference = JPS.earliestToExpire;
+	                    } else {  
 	                      console.log("Updated transaction date for user: ", JPS.currentUserUID);
 	                    }
 	                })
@@ -512,10 +513,10 @@ module.exports =
 	                  res.status(500).jsonp({context: "Booking by USER write failed"}).end(err);
 	                }
 	              })
+	              //======================================
+	              res.status(200).jsonp({context: "Booking done succesfully" }).end();
+	              //======================================
 	            }
-	            //======================================
-	            res.status(200).jsonp({context: "Booking done succesfully" }).end();
-	            //======================================
 	          }, err => {
 	            console.error("Fetching user transactions failed: ", err);
 	            res.status(500).jsonp({context: "Fetching user transactions failed"}).end(err);

@@ -44,9 +44,9 @@ exports.setApp = function (JPS){
               if(err){
                 res.status(500).jsonp({message: "Removing bookingsbyuser failed."}).end(err);
               }
-              if(JPS.transactionReference != 0){
+              if(JPS.txRef != 0){
                 //Give back one use time for the user
-                JPS.TransactionRef = JPS.firebase.database().ref('/transactions/'+JPS.user.key+'/'+JPS.transactionReference);
+                JPS.TransactionRef = JPS.firebase.database().ref('/transactions/'+JPS.user.key+'/'+JPS.txRef );
                 JPS.TransactionRef.once('value', snapshot => {
                   console.log("TRANSACTION: ", snapshot.val());
                   JPS.unusedtimes = snapshot.val().unusedtimes;
