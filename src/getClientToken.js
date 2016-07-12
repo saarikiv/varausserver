@@ -12,19 +12,16 @@ JPS.app.get('/clientToken', (req, res) => {
         if (err) {
           console.error("Client token generation failed:", err);
           console.error("Client token response:", response);
-          res.statusCode = 500;
-          res.end(err);
+          res.status(500).jsonp({message: "Token request failed."}).end(err);
         }
         else {
           console.log("Sending client token: ", response.clientToken);
-          res.statusCode = 200;
-          res.end(response.clientToken);
+          res.status(200).end(response.clientToken);
         }
     })
   }).catch( err => {
     console.error("Unauthorized access attempetd: ", err);
-    res.statusCode = 500;
-    res.end(err);
+    res.status(500).jsonp({message: "Unauthorized attempt to gt token."}).end(err);
   });
 })
 }

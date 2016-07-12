@@ -28,8 +28,7 @@ exports.setApp = function (JPS){
         JPS.currentUserUID = decodedToken.sub;
         console.log("User: ", JPS.currentUserUID, " requested checkout.");
 
-        JPS.OneUserRef = JPS.firebase.database().ref('/users/'+JPS.currentUserUID);
-        JPS.OneUserRef.once('value', snapshot => {
+        JPS.firebase.database().ref('/users/'+JPS.currentUserUID).once('value', snapshot => {
           JPS.user = snapshot.val();
           JPS.user.key = snapshot.key;
 
@@ -44,8 +43,7 @@ exports.setApp = function (JPS){
           JPS.unusedtimes = 0;
 
           console.log("Starting to process user transactions");
-          JPS.UserTransactionsRef = JPS.firebase.database().ref('/transactions/'+JPS.currentUserUID);
-          JPS.UserTransactionsRef.once('value', snapshot => {
+          JPS.firebase.database().ref('/transactions/'+JPS.currentUserUID).once('value', snapshot => {
             console.log("Processing returned data:");
             JPS.allTx = snapshot.val();
             for (JPS.one in JPS.allTx){
@@ -90,6 +88,7 @@ exports.setApp = function (JPS){
                 res.status(500).jsonp({context: "User is not entitled to book this slot" }).end();
               }
               else {
+                JPS.transactionReference = JPS.earliestToExpire;
                 //TODO: Check tahat user has not already booked in to the course before reducing count.
                 JPS.recordToUpdate.unusedtimes = JPS.recordToUpdate.unusedtimes - 1;
                 JPS.unusedtimes = JPS.unusedtimes - 1;
@@ -101,8 +100,7 @@ exports.setApp = function (JPS){
                       res.statusCode = 500;
                       res.end();
 
-                    } else {
-                      JPS.transactionReference = JPS.earliestToExpire;
+                    } else {  
                       console.log("Updated transaction date for user: ", JPS.currentUserUID);
                     }
                 })
