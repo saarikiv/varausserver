@@ -23,59 +23,79 @@ exports.setApp = function (JPS){
       JPS.cancelItem = JPS.post.cancelItem;
       JPS.txRef = JPS.post.transactionReference;
 
-
-      JPS.firebase.auth().verifyIdToken(JPS.currentUserToken).then( decodedToken => {
+      JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
+      .then( decodedToken => {
         JPS.currentUserUID = decodedToken.sub;
         console.log("User: ", JPS.currentUserUID, " requested checkout.");
-
-        JPS.OneUserRef = JPS.firebase.database().ref('/users/'+JPS.currentUserUID);
-        JPS.OneUserRef.once('value', snapshot => {
+        return JPS.firebase.database().ref('/users/'+JPS.currentUserUID).once('value');
+      })
+      .then( snapshot => {
+        if(snapshot.val() != null){
           JPS.user = snapshot.val();
           JPS.user.key = snapshot.key;
-
           console.log("USER:",JPS.user);
-
-          JPS.bookingsbycourseRef = JPS.firebase.database().ref('/bookingsbycourse/' + JPS.courseInfo.key + '/' + JPS.cancelItem + '/' + JPS.user.key);
-          JPS.bookingsbycourseRef.remove( err => {
-            if(err){
-              res.status(500).jsonp({message: "Removing bookingsbycourse failed."}).end(err);
-            }
-            JPS.bookingsbyuserRef = JPS.firebase.database().ref('/bookingsbyuser/' + JPS.user.key + '/' +JPS.courseInfo.key + '/' + JPS.cancelItem);
-            JPS.bookingsbyuserRef.remove( err => {
-              if(err){
-                res.status(500).jsonp({message: "Removing bookingsbyuser failed."}).end(err);
-              }
-              if(JPS.txRef != 0){
-                //Give back one use time for the user
-                JPS.TransactionRef = JPS.firebase.database().ref('/transactions/'+JPS.user.key+'/'+JPS.txRef );
-                JPS.TransactionRef.once('value', snapshot => {
-                  console.log("TRANSACTION: ", snapshot.val());
-                  JPS.unusedtimes = snapshot.val().unusedtimes;
-                  JPS.unusedtimes++;
-                  JPS.TransactionRef.update({unusedtimes: JPS.unusedtimes}, err => {
-                    if(err){
-                      res.status(500).jsonp({message: "failed giving back tokens."}).end(err);
-                    }
-                    else {
-                      res.status(200).jsonp({message : "Cancellation was succesfull."}).end()
-                    }
-                  })
-                }, err => {
-                  res.status(500).jsonp({message: "failed to get transaction"}).end(err);
-                })
+          return JPS.firebase.database().ref('/bookingsbycourse/' + JPS.courseInfo.key + '/' + JPS.cancelItem + '/' + JPS.user.key).once('value');
+        } else {
+          throw(new Error("User record does not exist in the database: " + JPS.currentUserUID))
+        }
+      })
+      .then( snapshot =>{
+        if(snapshot.val() != null){
+          return JPS.firebase.database().ref('/bookingsbyuser/' + JPS.user.key + '/' +JPS.courseInfo.key + '/' + JPS.cancelItem).once('value');
+        } else {
+          throw(new Error("Booking by-COURSE does not exist in the database."))
+        }
+      })
+      .then( snapshot =>{
+        if(snapshot.val() != null){
+          return JPS.firebase.database().ref('/bookingsbyuser/' + JPS.user.key + '/' +JPS.courseInfo.key + '/' + JPS.cancelItem).remove();
+        } else {
+          throw(new Error("Booking by-USER does not exist in the database."))
+        }
+      })
+      .then( err => {
+        if(err){
+          throw(new Error(err.message + " " + err.code));
+        }
+        return JPS.firebase.database().ref('/bookingsbycourse/' + JPS.courseInfo.key + '/' + JPS.cancelItem + '/' + JPS.user.key).remove();
+      })
+      .then( err => {
+        if(err){
+          throw(new Error(err.message + " " + err.code));
+        }
+        else {
+          if(JPS.txRef != 0){
+            //Give back one use time for the user
+            JPS.TransactionRef = JPS.firebase.database().ref('/transactions/'+JPS.user.key+'/'+JPS.txRef );
+            JPS.TransactionRef.once('value')
+            .then( snapshot => {
+              if(snapshot.val() == null){
+                throw(new Error("Transaction not found in the DB: TX:" + JPS.user.key+"/"+JPS.txRef));
               } else {
-                res.status(200).jsonp({message : "Cancellation was succesfull."}).end()
+                JPS.unusedtimes = snapshot.val().unusedtimes;
+                JPS.unusedtimes++;
+                JPS.TransactionRef.update({unusedtimes: JPS.unusedtimes})
+                .then( err => {
+                  if(err){
+                    throw(new Error(err.message + " " + err.code));
+                  } else {
+                    res.status(200).jsonp({message : "Cancellation COUNT was succesfull."}).end();
+                  }
+                }). catch( err => {
+                  throw(new Error(err.message + " " + err.code));
+                })
               }
-            });
-          });
-
-        }, err => {
-          console.error("Failed to fetch user details for: ", JPS.currentUserUID, err);
-          res.status(500).jsonp({message: "User fetch failes", user: JPS.currentUserUID}).end(err);
-        });
-      }).catch( err => {
-        console.error("Unauthorized access attempetd: ", err);
-        res.status(500).jsonp({message: "Unauthorized access"}).end(err);
+            }).catch( err => {
+              throw(new Error(err.message + " " + err.code));
+            })
+          } else {
+            res.status(200).jsonp({message : "Cancellation TIME was succesfull."}).end();
+          }
+        }
+      })
+      .catch( err => {
+        console.error("POST Cancel Slot failed: ", err);
+        res.status(500).jsonp({message: "POST Cancel Slot failed:"}).end(err);
       });
     })
   })
