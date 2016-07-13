@@ -59,13 +59,15 @@ module.exports =
 	if(process.env.NODE_ENV == "production") {
 	  JPS.firebaseConfig = {
 	    serviceAccount: "public/joogakoulusilta.json",
-	    databaseURL: "https://joogakoulusilta-654a9.firebaseio.com"
+	    databaseURL: "https://joogakoulusilta-654a9.firebaseio.com",
+	    databaseAuthVariableOverride: { uid: "joogaserver" }
 	  };
 	}
 	else {
 	  JPS.firebaseConfig = {
 	    serviceAccount: "public/joogakoulusilta-projekti.json",
-	    databaseURL: "https://joogakoulusilta-projekti.firebaseio.com"
+	    databaseURL: "https://joogakoulusilta-projekti.firebaseio.com",
+	    databaseAuthVariableOverride: { uid: "joogaserver" }
 	  };
 	}
 	JPS.firebase = __webpack_require__(9)
@@ -210,57 +212,42 @@ module.exports =
 	        }
 	      })
 	      .then( snapshot =>{
-	        if(snapshot.val() != null){
-	          return JPS.firebase.database().ref('/bookingsbyuser/' + JPS.user.key + '/' +JPS.courseInfo.key + '/' + JPS.cancelItem).once('value');
-	        } else {
+	        if(snapshot.val() == null){
 	          throw(new Error("Booking by-COURSE does not exist in the database."))
 	        }
+	        return JPS.firebase.database().ref('/bookingsbyuser/' + JPS.user.key + '/' +JPS.courseInfo.key + '/' + JPS.cancelItem).once('value');
 	      })
 	      .then( snapshot =>{
-	        if(snapshot.val() != null){
-	          return JPS.firebase.database().ref('/bookingsbyuser/' + JPS.user.key + '/' +JPS.courseInfo.key + '/' + JPS.cancelItem).remove();
-	        } else {
+	        if(snapshot.val() == null){
 	          throw(new Error("Booking by-USER does not exist in the database."))
 	        }
+	        return JPS.firebase.database().ref('/bookingsbyuser/' + JPS.user.key + '/' +JPS.courseInfo.key + '/' + JPS.cancelItem).remove();
 	      })
-	      .then( err => {
-	        if(err){
-	          throw(new Error(err.message + " " + err.code));
-	        }
+	      .then(()=>{
 	        return JPS.firebase.database().ref('/bookingsbycourse/' + JPS.courseInfo.key + '/' + JPS.cancelItem + '/' + JPS.user.key).remove();
 	      })
-	      .then( err => {
-	        if(err){
-	          throw(new Error(err.message + " " + err.code));
-	        }
-	        else {
-	          if(JPS.txRef != 0){
-	            //Give back one use time for the user
-	            JPS.TransactionRef = JPS.firebase.database().ref('/transactions/'+JPS.user.key+'/'+JPS.txRef );
-	            JPS.TransactionRef.once('value')
-	            .then( snapshot => {
-	              if(snapshot.val() == null){
-	                throw(new Error("Transaction not found in the DB: TX:" + JPS.user.key+"/"+JPS.txRef));
-	              } else {
-	                JPS.unusedtimes = snapshot.val().unusedtimes;
-	                JPS.unusedtimes++;
-	                JPS.TransactionRef.update({unusedtimes: JPS.unusedtimes})
-	                .then( err => {
-	                  if(err){
-	                    throw(new Error(err.message + " " + err.code));
-	                  } else {
-	                    res.status(200).jsonp({message : "Cancellation COUNT was succesfull."}).end();
-	                  }
-	                }). catch( err => {
-	                  throw(new Error(err.message + " " + err.code));
-	                })
-	              }
-	            }).catch( err => {
+	      .then(()=>{
+	        if(JPS.txRef != 0){
+	          //Give back one use time for the user
+	          JPS.firebase.database().ref('/transactions/'+JPS.user.key+'/'+JPS.txRef ).once('value')
+	          .then( snapshot => {
+	            if(snapshot.val() == null){
+	              throw(new Error("Transaction not found in the DB: TX:" + JPS.user.key+"/"+JPS.txRef));
+	            }
+	            JPS.unusedtimes = snapshot.val().unusedtimes;
+	            JPS.unusedtimes++;
+	            return JPS.firebase.database().ref('/transactions/'+JPS.user.key+'/'+JPS.txRef ).update({unusedtimes: JPS.unusedtimes})
+	          })
+	          .then( err => {
+	            if(err){
 	              throw(new Error(err.message + " " + err.code));
-	            })
-	          } else {
-	            res.status(200).jsonp({message : "Cancellation TIME was succesfull."}).end();
-	          }
+	            }
+	            res.status(200).jsonp({message : "Cancellation COUNT was succesfull."}).end();
+	          }).catch( err => {
+	            throw(new Error(err.message + " " + err.code));
+	          })
+	        } else {
+	          res.status(200).jsonp({message : "Cancellation TIME was succesfull."}).end();
 	        }
 	      })
 	      .catch( err => {
