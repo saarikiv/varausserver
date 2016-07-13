@@ -12,13 +12,15 @@ console.log("ENV: ", process.env.PWD);
 if(process.env.NODE_ENV == "production") {
   JPS.firebaseConfig = {
     serviceAccount: "public/joogakoulusilta.json",
-    databaseURL: "https://joogakoulusilta-654a9.firebaseio.com"
+    databaseURL: "https://joogakoulusilta-654a9.firebaseio.com",
+    databaseAuthVariableOverride: { uid: "joogaserver" }
   };
 }
 else {
   JPS.firebaseConfig = {
     serviceAccount: "public/joogakoulusilta-projekti.json",
-    databaseURL: "https://joogakoulusilta-projekti.firebaseio.com"
+    databaseURL: "https://joogakoulusilta-projekti.firebaseio.com",
+    databaseAuthVariableOverride: { uid: "joogaserver" }
   };
 }
 JPS.firebase = require('firebase')
