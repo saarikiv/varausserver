@@ -86,6 +86,7 @@ exports.setApp = function (JPS){
                 } else {
                   console.log("Transaction saved: ",JPS.transaction, JPS.shopItem);
                   res.status(200).jsonp(JPS.transaction).end();
+                  JPS.mailer.sendReceipt(JPS.user.email, JPS.transaction); //Send confirmation email
                 }
           }).catch( err => {
             throw(new Error(err.message + " " + err.code));

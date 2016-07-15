@@ -35,7 +35,7 @@ module.exports =
 /******/ 	__webpack_require__.c = installedModules;
 
 /******/ 	// __webpack_public_path__
-/******/ 	__webpack_require__.p = "/home/saarikiv/joogaserver/public/";
+/******/ 	__webpack_require__.p = "/home/tsa/repo/joogaserver/public/";
 
 /******/ 	// Load entry module and return exports
 /******/ 	return __webpack_require__(0);
@@ -49,11 +49,11 @@ module.exports =
 	// Server main faile
 	//------------------------------------------
 
-	var express = __webpack_require__(8)
+	var express = __webpack_require__(9)
 	var JPS = {} //The global.
-	JPS.timeHelper = __webpack_require__(6)
-
-	JPS.braintree = __webpack_require__(7);
+	JPS.timeHelper = __webpack_require__(7)
+	JPS.mailer = __webpack_require__(2)
+	JPS.braintree = __webpack_require__(8);
 
 	console.log("ENV: ", process.env.PWD);
 	if(process.env.NODE_ENV == "production") {
@@ -70,7 +70,7 @@ module.exports =
 	    databaseAuthVariableOverride: { uid: "joogaserver" }
 	  };
 	}
-	JPS.firebase = __webpack_require__(9)
+	JPS.firebase = __webpack_require__(10)
 	JPS.app = express();
 	JPS.date = new Date();
 	JPS.listenport = 3000
@@ -115,20 +115,22 @@ module.exports =
 	});
 
 
+	JPS.mailer.initializeMail();
+
 	// Add headers
-	__webpack_require__(5).setApp(JPS);
+	__webpack_require__(6).setApp(JPS);
 
 	// Get client token
 	__webpack_require__(1).setApp(JPS);
 
 	// POST checkout
-	__webpack_require__(3).setApp(JPS);
-
-	// POST reserve slot
 	__webpack_require__(4).setApp(JPS);
 
 	// POST reserve slot
-	__webpack_require__(2).setApp(JPS);
+	__webpack_require__(5).setApp(JPS);
+
+	// POST reserve slot
+	__webpack_require__(3).setApp(JPS);
 
 	/* WEBPACK VAR INJECTION */}.call(exports, "/"))
 
@@ -168,6 +170,107 @@ module.exports =
 
 /***/ },
 /* 2 */
+/***/ function(module, exports, __webpack_require__) {
+
+	
+	var JPSM = {}
+	JPSM.Mailgun = __webpack_require__(11)
+	JPSM.mg_api_key = 'key-4230707292ae718f00a8274d41beb7f3';
+	JPSM.mg_domain = 'sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
+	JPSM.mg_from_who = 'postmaster@sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
+	JPSM.initialized = false;
+
+	module.exports = {
+
+	  initializeMail: () => {
+	    if(!JPSM.initialized){
+	      JPSM.mailgun = new JPSM.Mailgun({apiKey: JPSM.mg_api_key, domain: JPSM.mg_domain});
+	    }
+	    JPSM.initialized = true;
+	  },
+
+	  sendConfirmation: (sendTo, courseInfo, courseTime) => {
+	    if(!JPSM.initialized) return;
+	    JPSM.data = {
+	      from: JPSM.mg_from_who,
+	      to: sendTo,
+	      subject: 'Varausvahvistus:' + courseTime.toString() + ' - Joogakoulu Silta',
+	      html: 'Kiitos varauksesta ajalle: ' + courseTime.toString() + JSON.stringify(courseInfo)
+	    }
+	      JPSM.mailgun.messages().send(JPSM.data, (err, body) => {
+	        if (err) {
+	            console.error("MAILGUN-error: ", err);
+	        } else {
+	          console.log("MAIL-SENT: ", body);
+	        }
+	    });
+	  },
+
+	  sendCancellationCount: (sendTo, courseInfo, courseTimeMs) => {
+	    if(!JPSM.initialized) return;
+	    console.log("1");
+	    var day = new Date()
+	    console.log("2");
+	    day.setTime(courseTimeMs)
+	    console.log("3");
+	    JPSM.data = {
+	      from: JPSM.mg_from_who,
+	      to: sendTo,
+	      subject: 'Peruutusvahvistus:' + day.toString() + ' - Joogakoulu Silta',
+	      html: 'Palautimme kertalipun. Kiitos peruutuksesta kurssille, aika: ' + day.toString() + ' Kurssi: ' + JSON.stringify(courseInfo)
+	    }
+	    console.log("4");
+	      JPSM.mailgun.messages().send(JPSM.data, (err, body) => {
+	        if (err) {
+	            console.error("MAILGUN-error: ", err);
+	        } else {
+	          console.log("CANCEL-SENT: ", body);
+	        }
+	    });
+	  },
+
+	  sendCancellationTime: (sendTo, courseInfo, courseTimeMs) => {
+	    if(!JPSM.initialized) return;
+	    var day = new Date()
+	    day.setTime(courseTimeMs)
+	    JPSM.data = {
+	      from: JPSM.mg_from_who,
+	      to: sendTo,
+	      subject: 'Peruutusvahvistus:' + day.toString() + ' - Joogakoulu Silta',
+	      html: 'Kiitos peruutuksesta kurssille, aika: ' + day.toString() + ' Kurssi: ' + JSON.stringify(courseInfo)
+	    }
+	      JPSM.mailgun.messages().send(JPSM.data, (err, body) => {
+	        if (err) {
+	            console.error("MAILGUN-error: ", err);
+	        } else {
+	          console.log("CANCEL-SENT: ", body);
+	        }
+	    });
+	  },
+
+	  sendReceipt: (sendTo, transaction) => {
+	    if(!JPSM.initialized) return;
+	    JPSM.data = {
+	      from: JPSM.mg_from_who,
+	      to: sendTo,
+	      subject: 'Ostovahvistus, Joogakoulu Silta',
+	      html: 'Kiitos ostosta.' + JSON.stringify(transaction)
+	    }
+	      JPSM.mailgun.messages().send(JPSM.data, (err, body) => {
+	        if (err) {
+	            console.error("MAILGUN-RECEIPT-error: ", err);
+	        } else {
+	          console.log("RECEIPT-SENT: ", body);
+	        }
+	    });
+	  }
+
+
+	}
+
+
+/***/ },
+/* 3 */
 /***/ function(module, exports) {
 
 	
@@ -227,6 +330,7 @@ module.exports =
 	        return JPS.firebase.database().ref('/bookingsbycourse/' + JPS.courseInfo.key + '/' + JPS.cancelItem + '/' + JPS.user.key).remove();
 	      })
 	      .then(()=>{
+	        console.log("Transaction reference: ", JPS.txRef)
 	        if(JPS.txRef != 0){
 	          //Give back one use time for the user
 	          JPS.firebase.database().ref('/transactions/'+JPS.user.key+'/'+JPS.txRef ).once('value')
@@ -239,15 +343,18 @@ module.exports =
 	            return JPS.firebase.database().ref('/transactions/'+JPS.user.key+'/'+JPS.txRef ).update({unusedtimes: JPS.unusedtimes})
 	          })
 	          .then( err => {
+	            console.log("ERROR: ", err);
 	            if(err){
 	              throw(new Error(err.message + " " + err.code));
 	            }
 	            res.status(200).jsonp({message : "Cancellation COUNT was succesfull."}).end();
+	            JPS.mailer.sendCancellationCount(JPS.user.email, JPS.courseInfo, JPS.cancelItem); //Send confirmation email
 	          }).catch( err => {
 	            throw(new Error(err.message + " " + err.code));
 	          })
 	        } else {
 	          res.status(200).jsonp({message : "Cancellation TIME was succesfull."}).end();
+	          JPS.mailer.sendCancellationTime(JPS.user.email, JPS.courseInfo, JPS.cancelItem); //Send confirmation email
 	        }
 	      })
 	      .catch( err => {
@@ -260,7 +367,7 @@ module.exports =
 
 
 /***/ },
-/* 3 */
+/* 4 */
 /***/ function(module, exports) {
 
 	
@@ -351,6 +458,7 @@ module.exports =
 	                } else {
 	                  console.log("Transaction saved: ",JPS.transaction, JPS.shopItem);
 	                  res.status(200).jsonp(JPS.transaction).end();
+	                  JPS.mailer.sendReceipt(JPS.user.email, JPS.transaction); //Send confirmation email
 	                }
 	          }).catch( err => {
 	            throw(new Error(err.message + " " + err.code));
@@ -366,7 +474,7 @@ module.exports =
 
 
 /***/ },
-/* 4 */
+/* 5 */
 /***/ function(module, exports) {
 
 	
@@ -496,6 +604,7 @@ module.exports =
 	              else{
 	                //======================================
 	                res.status(200).jsonp({context: "Booking done succesfully" }).end();
+	                JPS.mailer.sendConfirmation(JPS.user.email, JPS.courseInfo, JPS.courseTime); //Send confirmation email
 	                //======================================
 	              }
 	            })
@@ -514,7 +623,7 @@ module.exports =
 
 
 /***/ },
-/* 5 */
+/* 6 */
 /***/ function(module, exports) {
 
 	
@@ -538,7 +647,7 @@ module.exports =
 
 
 /***/ },
-/* 6 */
+/* 7 */
 /***/ function(module, exports) {
 
 	
@@ -563,22 +672,28 @@ module.exports =
 
 
 /***/ },
-/* 7 */
+/* 8 */
 /***/ function(module, exports) {
 
 	module.exports = require("braintree");
 
 /***/ },
-/* 8 */
+/* 9 */
 /***/ function(module, exports) {
 
 	module.exports = require("express");
 
 /***/ },
-/* 9 */
+/* 10 */
 /***/ function(module, exports) {
 
 	module.exports = require("firebase");
+
+/***/ },
+/* 11 */
+/***/ function(module, exports) {
+
+	module.exports = require("mailgun-js");
 
 /***/ }
 /******/ ]);

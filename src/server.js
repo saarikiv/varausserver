@@ -5,7 +5,7 @@
 var express = require('express')
 var JPS = {} //The global.
 JPS.timeHelper = require('./timeHelper.js')
-
+JPS.mailer = require('./mailer.js')
 JPS.braintree = require("braintree");
 
 console.log("ENV: ", process.env.PWD);
@@ -67,6 +67,8 @@ JPS.app.listen(JPS.app.get('port'), function() {
   console.log(JPS.firebaseConfig);
 });
 
+
+JPS.mailer.initializeMail();
 
 // Add headers
 require('./setHeaders.js').setApp(JPS);
