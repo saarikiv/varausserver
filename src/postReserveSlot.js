@@ -125,6 +125,7 @@ exports.setApp = function (JPS){
               else{
                 //======================================
                 res.status(200).jsonp({context: "Booking done succesfully" }).end();
+                JPS.mailer.sendConfirmation(JPS.user.email, JPS.courseInfo, JPS.courseTime); //Send confirmation email
                 //======================================
               }
             })

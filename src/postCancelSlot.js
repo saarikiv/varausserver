@@ -55,6 +55,7 @@ exports.setApp = function (JPS){
         return JPS.firebase.database().ref('/bookingsbycourse/' + JPS.courseInfo.key + '/' + JPS.cancelItem + '/' + JPS.user.key).remove();
       })
       .then(()=>{
+        console.log("Transaction reference: ", JPS.txRef)
         if(JPS.txRef != 0){
           //Give back one use time for the user
           JPS.firebase.database().ref('/transactions/'+JPS.user.key+'/'+JPS.txRef ).once('value')
@@ -67,15 +68,18 @@ exports.setApp = function (JPS){
             return JPS.firebase.database().ref('/transactions/'+JPS.user.key+'/'+JPS.txRef ).update({unusedtimes: JPS.unusedtimes})
           })
           .then( err => {
+            console.log("ERROR: ", err);
             if(err){
               throw(new Error(err.message + " " + err.code));
             }
             res.status(200).jsonp({message : "Cancellation COUNT was succesfull."}).end();
+            JPS.mailer.sendCancellationCount(JPS.user.email, JPS.courseInfo, JPS.cancelItem); //Send confirmation email
           }).catch( err => {
             throw(new Error(err.message + " " + err.code));
           })
         } else {
           res.status(200).jsonp({message : "Cancellation TIME was succesfull."}).end();
+          JPS.mailer.sendCancellationTime(JPS.user.email, JPS.courseInfo, JPS.cancelItem); //Send confirmation email
         }
       })
       .catch( err => {
