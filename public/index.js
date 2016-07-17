@@ -35,7 +35,7 @@ module.exports =
 /******/ 	__webpack_require__.c = installedModules;
 
 /******/ 	// __webpack_public_path__
-/******/ 	__webpack_require__.p = "/home/tsa/repo/joogaserver/public/";
+/******/ 	__webpack_require__.p = "/home/saarikiv/joogaserver/public/";
 
 /******/ 	// Load entry module and return exports
 /******/ 	return __webpack_require__(0);
@@ -299,14 +299,8 @@ module.exports =
 
 	        console.log("sendReceipt")
 	        console.log(trx.title)
-	        console.log(trx.desc)
 	        var expires = new Date();
 	        expires.setTime(trx.expires);
-	        console.log("1111111111111111111111111")
-	        console.log(JPSM.jps.timeHelper.getDayStr(expires))
-	        console.log(trx.details.transaction.currencyIsoCode)
-	        console.log(trx.details.transaction.id)
-	        console.log(trx.details.transaction.paymentInstrumentType)
 
 	        JPSM.html =
 	            "<h1>Ostokuitti</h1>" +
@@ -315,8 +309,8 @@ module.exports =
 	            "<p>Tuotekuvaus: " + trx.desc + "</p>" +
 	            "<p>Voimassaolo loppuu: " + JPSM.jps.timeHelper.getDayStr(expires) + "</p>" +
 	            "<p>Veroton hinta: " + trx.price + " " + trx.details.transaction.currencyIsoCode + "</p>" +
-	            "<p>ALV(20)     : " + "xx,xx" + trx.details.transaction.currencyIsoCode + "</p>" +
-	            "<p>Yhteensä     : " + "xx,xx" + trx.details.transaction.currencyIsoCode + "</p>" +
+	            "<p>ALV(20)     : " + "xx,xx" + " " + trx.details.transaction.currencyIsoCode + "</p>" +
+	            "<p>Yhteensä     : " + "xx,xx" + " " + trx.details.transaction.currencyIsoCode + "</p>" +
 	            "<br></br>" +
 	            "<p>Ostotunniste: " + trxId + "</p>" +
 	            "<p>Maksupalvelutunniste: " + trx.details.transaction.id + "</p>" +
@@ -666,15 +660,22 @@ module.exports =
 	            JPS.bookingTime = JPS.courseTime.getTime();
 	            JPS.firebase.database().ref('/bookingsbycourse/'+JPS.courseInfo.key+'/'+JPS.bookingTime+'/'+JPS.user.key)
 	            .update({
-	              user: JPS.user.email, //TODO: add other information to be displayed in the aplication
-	              transactionReference: JPS.transactionReference
+	              user: (JPS.user.alias)? JPS.user.alias : JPS.user.firstname + " " + JPS.user.lastname,
+	              transactionReference: JPS.transactionReference,
+	              courseName: JPS.courseInfo.courseType.name,
+	              courseTime: JPS.bookingTime
 	            })
 	            .then( err => {
 	              if(err){
 	                console.error("Booking by COURSE write to firabase failed: ", err);
 	                throw(new Error("Booking by COURSE write to firabase failed: " + err.toString()))
 	              }
-	              return JPS.firebase.database().ref('/bookingsbyuser/'+JPS.user.key+'/'+JPS.courseInfo.key+'/'+JPS.bookingTime).update({ transactionReference: JPS.transactionReference  })
+	              return JPS.firebase.database().ref('/bookingsbyuser/'+JPS.user.key+'/'+JPS.courseInfo.key+'/'+JPS.bookingTime)
+	              .update({ 
+	                transactionReference: JPS.transactionReference,
+	                courseName: JPS.courseInfo.courseType.name,
+	                courseTime: JPS.bookingTime
+	              })
 	            })
 	            .then( err => {
 	              if(err){
