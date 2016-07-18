@@ -89,8 +89,8 @@ exports.setApp = function(JPS) {
                 .catch(err => {
                     console.error("POST Cancel Slot failed: ", err);
                     res.status(500).jsonp({
-                        message: "POST Cancel Slot failed:"
-                    }).end(err);
+                        message: "POST Cancel Slot failed:" + err.toString()
+                    }).end();
                 });
         })
     })

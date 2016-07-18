@@ -85,6 +85,9 @@ require('./getClientToken.js').setApp(JPS);
 // POST checkout
 require('./postCheckout.js').setApp(JPS);
 
+// POST checkout
+require('./postCashbuy.js').setApp(JPS);
+
 // POST reserve slot
 require('./postReserveSlot.js').setApp(JPS);
 
