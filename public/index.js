@@ -312,9 +312,9 @@ module.exports =
 	            "<p>Tuote: " + trx.title + "</p>" +
 	            "<p>Tuotekuvaus: " + trx.desc + "</p>" +
 	            "<p>Voimassaolo loppuu: " + JPSM.jps.timeHelper.getDayStr(expires) + "</p>" +
-	            "<p>Veroton hinta: " + trx.price + " " + trx.details.transaction.currencyIsoCode + "</p>" +
-	            "<p>ALV(20)     : " + "xx,xx" + " " + trx.details.transaction.currencyIsoCode + "</p>" +
-	            "<p>Yhteensä     : " + "xx,xx" + " " + trx.details.transaction.currencyIsoCode + "</p>" +
+	            "<p>Veroton hinta: " + trx.beforetax + " " + trx.details.transaction.currencyIsoCode + "</p>" +
+	            "<p>ALV(" + trx.taxpercent + ")     : " + trx.taxamount + " " + trx.details.transaction.currencyIsoCode + "</p>" +
+	            "<p>Yhteensä     : " + trx.price + " " + trx.details.transaction.currencyIsoCode + "</p>" +
 	            "<br></br>" +
 	            "<p>Ostotunniste: " + trxId + "</p>" +
 	            "<p>Maksupalvelutunniste: " + trx.details.transaction.id + "</p>" +
@@ -340,6 +340,7 @@ module.exports =
 
 
 	}
+
 
 /***/ },
 /* 3 */
