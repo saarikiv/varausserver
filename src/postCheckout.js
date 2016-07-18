@@ -71,26 +71,44 @@ exports.setApp = function(JPS) {
                         if (JPS.shopItem.type === "count") {
                             JPS.shopItem.expires = JPS.date.setTime(JPS.now + JPS.shopItem.expiresAfterDays * 24 * 60 * 60 * 1000);
                             JPS.shopItem.unusedtimes = JPS.shopItem.usetimes;
-                        }
-                        if (JPS.shopItem.type === "time") {
-                            // TODO: need to find out the last - now just using NOW
-                            JPS.lastTimeUserHasValidUseTime = JPS.now;
-                            JPS.shopItem.expires = JPS.date.setTime(JPS.lastTimeUserHasValidUseTime + JPS.shopItem.usedays * 24 * 60 * 60 * 1000);
-                        }
-                        JPS.firebase.database().ref('/transactions/' + JPS.user.key + '/' + JPS.now)
-                            .update(Object.assign(JPS.transaction, JPS.shopItem))
-                            .then(err => {
-                                if (err) {
-                                    console.error("Failed inserting transaction details in to DB: ", err);
-                                    throw (new Error(err.message + " " + err.code));
-                                } else {
+                            JPS.firebase.database().ref('/transactions/' + JPS.user.key + '/' + JPS.now)
+                                .update(Object.assign(JPS.transaction, JPS.shopItem))
+                                .then(() => {
                                     console.log("Transaction saved: ", JPS.transaction, JPS.shopItem);
                                     res.status(200).jsonp(JPS.transaction).end();
                                     JPS.mailer.sendReceipt(JPS.user.email, JPS.transaction, JPS.now); //Send confirmation email
-                                }
-                            }).catch(err => {
-                                throw (new Error(err.message + " " + err.code));
-                            });
+                                }).catch(err => {
+                                    throw (new Error(err.message + " " + err.code));
+                                });
+                        }
+                        if (JPS.shopItem.type === "time") {
+                            JPS.lastTimeUserHasValidUseTime = JPS.now;
+                            JPS.firebase.database().ref('/transactions/' + JPS.user.key).once('value')
+                                .then(snapshot => {
+                                    var one;
+                                    var all = snapshot.val();
+                                    for (one in all) {
+                                        if (all[one].type === "time") {
+                                            if (all[one].expires > JPS.lastTimeUserHasValidUseTime) {
+                                                JPS.lastTimeUserHasValidUseTime = all[one].expires;
+                                            }
+                                        }
+                                    }
+                                    JPS.shopItem.expires = JPS.date.setTime(JPS.lastTimeUserHasValidUseTime + JPS.shopItem.usedays * 24 * 60 * 60 * 1000);
+                                    return JPS.firebase.database().ref('/transactions/' + JPS.user.key + '/' + JPS.now)
+                                        .update(Object.assign(JPS.transaction, JPS.shopItem))
+                                })
+                                .then(() => {
+                                    console.log("Transaction saved: ", JPS.transaction, JPS.shopItem);
+                                    res.status(200).jsonp(JPS.transaction).end();
+                                    JPS.mailer.sendReceipt(JPS.user.email, JPS.transaction, JPS.now); //Send confirmation email
+                                })
+                                .catch(err => {
+                                    console.error(err.message + " " + err.code)
+                                    throw (new Error(err.message + " " + err.code));
+                                });
+                        }
+
                     })
                 }).catch(err => {
                     console.error("Checkout failde: ", err);
