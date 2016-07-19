@@ -79,10 +79,10 @@ module.exports =
 	JPS.listenport = 3000
 	JPS.firebase.initializeApp(JPS.firebaseConfig);
 	JPS.gateway = JPS.braintree.connect({
-	    environment: JPS.braintree.Environment.Sandbox,
-	    merchantId: "3gv7c5tq5q7hxrcs",
-	    publicKey: "gksd667wsgn35wjp",
-	    privateKey: "2c01703b7daffd7352eeaada7a4a95e5"
+	    environment: (process.env.BRAINTREE_ENV === "production") ? JPS.braintree.Environment.Production : JPS.braintree.Environment.Sandbox,
+	    merchantId: process.env.BRAINTREE_MI || "3gv7c5tq5q7hxrcs",
+	    publicKey: process.env.BRAINTREE_PUBK || "gksd667wsgn35wjp",
+	    privateKey: process.env.BRAINTREE_PRIK || "2c01703b7daffd7352eeaada7a4a95e5"
 	});
 	//------------------------------------------
 	// Process handlers
@@ -140,7 +140,6 @@ module.exports =
 
 	// POST reserve slot
 	__webpack_require__(3).setApp(JPS);
-
 	/* WEBPACK VAR INJECTION */}.call(exports, "/"))
 
 /***/ },
@@ -183,7 +182,7 @@ module.exports =
 
 	var JPSM = {}
 	JPSM.Mailgun = __webpack_require__(12)
-	JPSM.mg_api_key = 'key-4230707292ae718f00a8274d41beb7f3';
+	JPSM.mg_api_key = process.env.MAILGUN_API_KEY || 'key-4230707292ae718f00a8274d41beb7f3';
 	JPSM.mg_domain = 'sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
 	JPSM.mg_from_who = 'postmaster@sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
 	JPSM.initialized = false;
@@ -340,7 +339,6 @@ module.exports =
 
 
 	}
-
 
 /***/ },
 /* 3 */
@@ -511,6 +509,7 @@ module.exports =
 	                            details: {
 	                                success: true,
 	                                transaction: {
+	                                    id: "myyjä: " + JPS.user.sukunimi,
 	                                    amount: JPS.shopItem.price.toString(),
 	                                    paymentInstrumentType: "cash",
 	                                    currencyIsoCode: "EUR"
@@ -525,19 +524,19 @@ module.exports =
 	                    if (JPS.shopItem.type === "count") {
 	                        JPS.shopItem.expires = JPS.date.setTime(JPS.now + JPS.shopItem.expiresAfterDays * 24 * 60 * 60 * 1000);
 	                        JPS.shopItem.unusedtimes = JPS.shopItem.usetimes;
-	                        JPS.firebase.database().ref('/transactions/' + JPS.user.key + '/' + JPS.now)
+	                        JPS.firebase.database().ref('/transactions/' + JPS.forUser.key + '/' + JPS.now)
 	                            .update(Object.assign(JPS.transaction, JPS.shopItem))
 	                            .then(() => {
 	                                console.log("Transaction saved: ", JPS.transaction, JPS.shopItem);
 	                                res.status(200).jsonp(JPS.transaction).end();
-	                                JPS.mailer.sendReceipt(JPS.user.email, JPS.transaction, JPS.now); //Send confirmation email
+	                                JPS.mailer.sendReceipt(JPS.forUser.email, JPS.transaction, JPS.now); //Send confirmation email
 	                            }).catch(err => {
 	                                throw (new Error(err.message + " " + err.code));
 	                            });
 	                    }
 	                    if (JPS.shopItem.type === "time") {
 	                        JPS.lastTimeUserHasValidUseTime = JPS.now;
-	                        JPS.firebase.database().ref('/transactions/' + JPS.user.key).once('value')
+	                        JPS.firebase.database().ref('/transactions/' + JPS.forUser.key).once('value')
 	                            .then(snapshot => {
 	                                var one;
 	                                var all = snapshot.val();
@@ -549,13 +548,13 @@ module.exports =
 	                                    }
 	                                }
 	                                JPS.shopItem.expires = JPS.date.setTime(JPS.lastTimeUserHasValidUseTime + JPS.shopItem.usedays * 24 * 60 * 60 * 1000);
-	                                return JPS.firebase.database().ref('/transactions/' + JPS.user.key + '/' + JPS.now)
+	                                return JPS.firebase.database().ref('/transactions/' + JPS.forUser.key + '/' + JPS.now)
 	                                    .update(Object.assign(JPS.transaction, JPS.shopItem))
 	                            })
 	                            .then(() => {
 	                                console.log("Transaction saved: ", JPS.transaction, JPS.shopItem);
 	                                res.status(200).jsonp(JPS.transaction).end();
-	                                JPS.mailer.sendReceipt(JPS.user.email, JPS.transaction, JPS.now); //Send confirmation email
+	                                JPS.mailer.sendReceipt(JPS.forUser.email, JPS.transaction, JPS.now); //Send confirmation email
 	                            })
 	                            .catch(err => {
 	                                console.error(err.message + " " + err.code)

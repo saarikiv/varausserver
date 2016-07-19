@@ -60,6 +60,7 @@ exports.setApp = function(JPS) {
                             details: {
                                 success: true,
                                 transaction: {
+                                    id: "myyjä: " + JPS.user.sukunimi,
                                     amount: JPS.shopItem.price.toString(),
                                     paymentInstrumentType: "cash",
                                     currencyIsoCode: "EUR"
@@ -74,19 +75,19 @@ exports.setApp = function(JPS) {
                     if (JPS.shopItem.type === "count") {
                         JPS.shopItem.expires = JPS.date.setTime(JPS.now + JPS.shopItem.expiresAfterDays * 24 * 60 * 60 * 1000);
                         JPS.shopItem.unusedtimes = JPS.shopItem.usetimes;
-                        JPS.firebase.database().ref('/transactions/' + JPS.user.key + '/' + JPS.now)
+                        JPS.firebase.database().ref('/transactions/' + JPS.forUser.key + '/' + JPS.now)
                             .update(Object.assign(JPS.transaction, JPS.shopItem))
                             .then(() => {
                                 console.log("Transaction saved: ", JPS.transaction, JPS.shopItem);
                                 res.status(200).jsonp(JPS.transaction).end();
-                                JPS.mailer.sendReceipt(JPS.user.email, JPS.transaction, JPS.now); //Send confirmation email
+                                JPS.mailer.sendReceipt(JPS.forUser.email, JPS.transaction, JPS.now); //Send confirmation email
                             }).catch(err => {
                                 throw (new Error(err.message + " " + err.code));
                             });
                     }
                     if (JPS.shopItem.type === "time") {
                         JPS.lastTimeUserHasValidUseTime = JPS.now;
-                        JPS.firebase.database().ref('/transactions/' + JPS.user.key).once('value')
+                        JPS.firebase.database().ref('/transactions/' + JPS.forUser.key).once('value')
                             .then(snapshot => {
                                 var one;
                                 var all = snapshot.val();
@@ -98,13 +99,13 @@ exports.setApp = function(JPS) {
                                     }
                                 }
                                 JPS.shopItem.expires = JPS.date.setTime(JPS.lastTimeUserHasValidUseTime + JPS.shopItem.usedays * 24 * 60 * 60 * 1000);
-                                return JPS.firebase.database().ref('/transactions/' + JPS.user.key + '/' + JPS.now)
+                                return JPS.firebase.database().ref('/transactions/' + JPS.forUser.key + '/' + JPS.now)
                                     .update(Object.assign(JPS.transaction, JPS.shopItem))
                             })
                             .then(() => {
                                 console.log("Transaction saved: ", JPS.transaction, JPS.shopItem);
                                 res.status(200).jsonp(JPS.transaction).end();
-                                JPS.mailer.sendReceipt(JPS.user.email, JPS.transaction, JPS.now); //Send confirmation email
+                                JPS.mailer.sendReceipt(JPS.forUser.email, JPS.transaction, JPS.now); //Send confirmation email
                             })
                             .catch(err => {
                                 console.error(err.message + " " + err.code)
