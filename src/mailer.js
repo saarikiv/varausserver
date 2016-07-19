@@ -1,6 +1,6 @@
 var JPSM = {}
 JPSM.Mailgun = require('mailgun-js')
-JPSM.mg_api_key = 'key-4230707292ae718f00a8274d41beb7f3';
+JPSM.mg_api_key = process.env.MAILGUN_API_KEY || 'key-4230707292ae718f00a8274d41beb7f3';
 JPSM.mg_domain = 'sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
 JPSM.mg_from_who = 'postmaster@sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
 JPSM.initialized = false;
