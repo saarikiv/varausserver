@@ -35,7 +35,7 @@ module.exports =
 /******/ 	__webpack_require__.c = installedModules;
 
 /******/ 	// __webpack_public_path__
-/******/ 	__webpack_require__.p = "/home/tsa/repo/joogaserver/public/";
+/******/ 	__webpack_require__.p = "/home/saarikiv/joogaserver/public/";
 
 /******/ 	// Load entry module and return exports
 /******/ 	return __webpack_require__(0);
@@ -471,6 +471,7 @@ module.exports =
 	            JPS.forUserId = JPS.post.for_user;
 	            JPS.currentUserToken = JPS.post.current_user;
 	            JPS.shopItemKey = JPS.post.item_key;
+	            JPS.itemType = JPS.post.purchase_target;
 	            console.log("POST:", JPS.post);
 
 	            JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
@@ -495,7 +496,12 @@ module.exports =
 	                .then(snapshot => {
 	                    JPS.forUser = snapshot.val()
 	                    JPS.forUser.key = snapshot.key;
-	                    return JPS.firebase.database().ref('/shopItems/' + JPS.shopItemKey).once('value');
+	                    switch(JPS.itemType){
+	                      case "special":
+	                        return JPS.firebase.database().ref('/specialCourses/' + JPS.shopItemKey).once('value');
+	                      default:
+	                        return JPS.firebase.database().ref('/shopItems/' + JPS.shopItemKey).once('value');
+	                    }
 	                })
 	                .then(snapshot => {
 	                    JPS.shopItem = snapshot.val();
@@ -561,6 +567,18 @@ module.exports =
 	                                throw (new Error(err.message + " " + err.code));
 	                            });
 	                    }
+	                    if(JPS.shopItem.type === "special"){
+	                      console.log("special course purchase ok....");
+	                      JPS.firebase.database().ref('/transactions/' + JPS.forUser.key + '/' + JPS.now)
+	                          .update(Object.assign(JPS.transaction, JPS.shopItem))
+	                          .then(() => {
+	                              console.log("Transaction saved: ", JPS.transaction, JPS.shopItem);
+	                              res.status(200).jsonp(JPS.transaction).end();
+	                              JPS.mailer.sendReceipt(JPS.forUser.email, JPS.transaction, JPS.now); //Send confirmation email
+	                          }).catch(err => {
+	                              throw (new Error(err.message + " " + err.code));
+	                          });
+	                    }
 
 	                }).catch(err => {
 	                    console.error("Cashpay failde: ", err);
@@ -571,6 +589,7 @@ module.exports =
 	        })
 	    })
 	}
+
 
 /***/ },
 /* 5 */
@@ -600,6 +619,7 @@ module.exports =
 	            JPS.nonceFromTheClient = JPS.post.payment_method_nonce;
 	            JPS.currentUserToken = JPS.post.current_user;
 	            JPS.shopItemKey = JPS.post.item_key;
+	            JPS.itemType = JPS.post.purchase_target;
 	            console.log("POST:", JPS.post);
 
 	            JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
@@ -611,7 +631,13 @@ module.exports =
 	                .then(snapshot => {
 	                    JPS.user = snapshot.val()
 	                    JPS.user.key = snapshot.key;
-	                    return JPS.firebase.database().ref('/shopItems/' + JPS.shopItemKey).once('value');
+	                    switch(JPS.itemType){
+	                      case "special":
+	                        return JPS.firebase.database().ref('/specialCourses/' + JPS.shopItemKey).once('value');
+	                      default:
+	                        return JPS.firebase.database().ref('/shopItems/' + JPS.shopItemKey).once('value');
+	                    }
+
 	                })
 	                .then(snapshot => {
 	                    JPS.shopItem = snapshot.val();
@@ -686,6 +712,18 @@ module.exports =
 	                                    throw (new Error(err.message + " " + err.code));
 	                                });
 	                        }
+	                        if(JPS.shopItem.type === "special"){
+	                          console.log("special course purchase....");
+	                          JPS.firebase.database().ref('/transactions/' + JPS.user.key + '/' + JPS.now)
+	                              .update(Object.assign(JPS.transaction, JPS.shopItem))
+	                              .then(() => {
+	                                  console.log("Transaction saved: ", JPS.transaction, JPS.shopItem);
+	                                  res.status(200).jsonp(JPS.transaction).end();
+	                                  JPS.mailer.sendReceipt(JPS.user.email, JPS.transaction, JPS.now); //Send confirmation email
+	                              }).catch(err => {
+	                                  throw (new Error(err.message + " " + err.code));
+	                              });
+	                        }
 
 	                    })
 	                }).catch(err => {
@@ -697,6 +735,7 @@ module.exports =
 	        })
 	    })
 	}
+
 
 /***/ },
 /* 6 */
