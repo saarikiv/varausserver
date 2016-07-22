@@ -66,6 +66,7 @@ exports.setApp = function(JPS) {
                         JPS.transaction = {
                                 user: JPS.user.key,
                                 shopItem: JPS.shopItem,
+                                shopItemKey: JPS.shopItemKey,
                                 error: err ? err : {
                                     code: 0
                                 },
@@ -117,6 +118,7 @@ exports.setApp = function(JPS) {
                         }
                         if(JPS.shopItem.type === "special"){
                           console.log("special course purchase....");
+                          JPS.shopItem.expires = 0;
                           JPS.firebase.database().ref('/transactions/' + JPS.user.key + '/' + JPS.now)
                               .update(Object.assign(JPS.transaction, JPS.shopItem))
                               .then(() => {
