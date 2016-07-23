@@ -122,6 +122,14 @@ exports.setApp = function(JPS) {
                           JPS.firebase.database().ref('/transactions/' + JPS.user.key + '/' + JPS.now)
                               .update(Object.assign(JPS.transaction, JPS.shopItem))
                               .then(() => {
+                                return JPS.firebase.database().ref('/scbookingsbycourse/' + JPS.shopItemKey + '/' + JPS.user.key)
+                                .update({transactionReference: JPS.now, shopItem: JPS.shopItem})
+                              })
+                              .then(() => {
+                                return JPS.firebase.database().ref('/scbookingsbyuser/' + JPS.forUser.key + '/' + JPS.shopItemKey)
+                                .update({transactionReference: JPS.now, shopItem: JPS.shopItem})
+                              })
+                              .then(() => {
                                   console.log("Transaction saved: ", JPS.transaction, JPS.shopItem);
                                   res.status(200).jsonp(JPS.transaction).end();
                                   JPS.mailer.sendReceipt(JPS.user.email, JPS.transaction, JPS.now); //Send confirmation email
