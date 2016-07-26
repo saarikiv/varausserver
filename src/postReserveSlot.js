@@ -24,6 +24,7 @@ exports.setApp = function (JPS){
       JPS.currentUserToken = JPS.post.user;
       JPS.courseInfo = JPS.post.courseInfo;
       JPS.weeksForward = JPS.post.weeksForward;
+      JPS.timezoneOffset = JPS.post.timezoneOffset;
 
       JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
       .then( decodedToken => {
@@ -103,7 +104,7 @@ exports.setApp = function (JPS){
           }
           //If user is entitled, write the bookings in to the database
           if(JPS.userHasTime || JPS.userHasCount){
-            JPS.courseTime = JPS.timeHelper.getCourseTimeGMT(JPS.weeksForward, JPS.courseInfo.start, JPS.courseInfo.day)
+            JPS.courseTime = JPS.timeHelper.getCourseTimeUTC(JPS.weeksForward, JPS.courseInfo.start, JPS.courseInfo.day)
             JPS.bookingTime = JPS.courseTime.getTime();
             JPS.firebase.database().ref('/bookingsbycourse/'+JPS.courseInfo.key+'/'+JPS.bookingTime+'/'+JPS.user.key)
             .update({
@@ -118,7 +119,7 @@ exports.setApp = function (JPS){
                 throw(new Error("Booking by COURSE write to firabase failed: " + err.toString()))
               }
               return JPS.firebase.database().ref('/bookingsbyuser/'+JPS.user.key+'/'+JPS.courseInfo.key+'/'+JPS.bookingTime)
-              .update({ 
+              .update({
                 transactionReference: JPS.transactionReference,
                 courseName: JPS.courseInfo.courseType.name,
                 courseTime: JPS.bookingTime
