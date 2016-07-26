@@ -21,6 +21,7 @@ exports.setApp = function(JPS) {
             JPS.courseInfo = JPS.post.courseInfo;
             JPS.cancelItem = JPS.post.cancelItem;
             JPS.txRef = JPS.post.transactionReference;
+            JPS.timezoneOffset = JPS.post.timezoneOffset;
 
             JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
                 .then(decodedToken => {
