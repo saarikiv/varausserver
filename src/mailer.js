@@ -52,6 +52,70 @@ module.exports = {
         });
     },
 
+    sendCourseCancellationCount: (sendTo, courseInfo, courseTimeMs) => {
+        if (!JPSM.initialized) return;
+        var day = new Date()
+        day.setTime(courseTimeMs)
+        console.log("sendCourseCancellationCount")
+        console.log(courseTimeMs)
+
+        JPSM.html =
+            "<h1>Kurssi jolle olet ilmoittautunut on peruttu!</h1>" +
+            "<p>Kurssi " + courseInfo.courseType.name + " on peruttu.</p>" +
+            "<p>Kurssipäivä: " + JPSM.jps.timeHelper.getDayStr(day) + "</p>" +
+            "<p>Kurssiaika: " + JPSM.jps.timeHelper.getTimeStr(day) + "</p>" +
+            "<br></br>" +
+            "<p>Kertalippusi on palautettu tilillesi.</p>" +
+            "<p>Terve tuloa jonain toisena ajankohtana.</p>" +
+            "<footer><a href=\"https: //joogakoulusilta-projekti.firebaseapp.com\">Joogakoulu Silta</a>, jooga(at)joogasilta.com</footer>"
+
+        JPSM.data = {
+            from: JPSM.mg_from_who,
+            to: sendTo,
+            subject: 'Kurssin peruutusilmoitus:' + day.toString() + ' - Joogakoulu Silta',
+            html: JPSM.html
+        }
+        JPSM.mailgun.messages().send(JPSM.data, (err, body) => {
+            if (err) {
+                console.error("MAILGUN-error: ", err);
+            } else {
+                console.log("CANCEL-SENT: ", body);
+            }
+        });
+    },
+
+    sendCourseCancellationTime: (sendTo, courseInfo, courseTimeMs) => {
+        if (!JPSM.initialized) return;
+        var day = new Date()
+        day.setTime(courseTimeMs)
+        console.log("sendCancellationTime")
+        console.log(courseTimeMs)
+
+        JPSM.html =
+            "<h1>Kurssi jolle olet ilmoittautunut on peruttu!</h1>" +
+            "<p>Kurssi " + courseInfo.courseType.name + " on peruttu.</p>" +
+            "<p>Kurssipäivä: " + JPSM.jps.timeHelper.getDayStr(day) + "</p>" +
+            "<p>Kurssiaika: " + JPSM.jps.timeHelper.getTimeStr(day) + "</p>" +
+            "<br></br>" +
+            "<p>Terve tuloa jonain toisena ajankohtana.</p>" +
+            "<footer><a href=\"https: //joogakoulusilta-projekti.firebaseapp.com\">Joogakoulu Silta</a>, jooga(at)joogasilta.com</footer>"
+
+        JPSM.data = {
+            from: JPSM.mg_from_who,
+            to: sendTo,
+            subject: 'Kurssin peruutusilmoitus:' + day.toString() + ' - Joogakoulu Silta',
+            html: JPSM.html
+        }
+        JPSM.mailgun.messages().send(JPSM.data, (err, body) => {
+            if (err) {
+                console.error("MAILGUN-error: ", err);
+            } else {
+                console.log("CANCEL-SENT: ", body);
+            }
+        });
+    },
+
+
     sendCancellationCount: (sendTo, courseInfo, courseTimeMs) => {
         if (!JPSM.initialized) return;
         var day = new Date()
