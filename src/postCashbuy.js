@@ -1,10 +1,7 @@
 exports.setApp = function(JPS) {
 
     //######################################################
-    // POST: checkout, post the item being purchased
-    // This post will read the shop item and find out the token + price associated with it
-    // It then creates payment transaction and inserts the payment data to the firebase
-    // Finally adds to the users entitlement new tokens to use.
+    // POST: cashbuy, post the item being purchased
     //######################################################
     JPS.app.post('/cashbuy', (req, res) => {
 
@@ -47,11 +44,11 @@ exports.setApp = function(JPS) {
                 .then(snapshot => {
                     JPS.forUser = snapshot.val()
                     JPS.forUser.key = snapshot.key;
-                    switch(JPS.itemType){
-                      case "special":
-                        return JPS.firebase.database().ref('/specialCourses/' + JPS.shopItemKey).once('value');
-                      default:
-                        return JPS.firebase.database().ref('/shopItems/' + JPS.shopItemKey).once('value');
+                    switch (JPS.itemType) {
+                        case "special":
+                            return JPS.firebase.database().ref('/specialCourses/' + JPS.shopItemKey).once('value');
+                        default:
+                            return JPS.firebase.database().ref('/shopItems/' + JPS.shopItemKey).once('value');
                     }
                 })
                 .then(snapshot => {
@@ -119,26 +116,26 @@ exports.setApp = function(JPS) {
                                 throw (new Error(err.message + " " + err.code));
                             });
                     }
-                    if(JPS.shopItem.type === "special"){
-                      console.log("special course purchase ok....");
-                      JPS.shopItem.expires = 0;
-                      JPS.firebase.database().ref('/transactions/' + JPS.forUser.key + '/' + JPS.now)
-                          .update(Object.assign(JPS.transaction, JPS.shopItem))
-                          .then(() => {
-                            return JPS.firebase.database().ref('/scbookingsbycourse/' + JPS.shopItemKey + '/' + JPS.forUser.key)
-                            .update({transactionReference: JPS.now, shopItem: JPS.shopItem})
-                          })
-                          .then(() => {
-                            return JPS.firebase.database().ref('/scbookingsbyuser/' + JPS.forUser.key + '/' + JPS.shopItemKey)
-                            .update({transactionReference: JPS.now, shopItem: JPS.shopItem})
-                          })
-                          .then(() => {
-                              console.log("Transaction saved: ", JPS.transaction, JPS.shopItem);
-                              res.status(200).jsonp(JPS.transaction).end();
-                              JPS.mailer.sendReceipt(JPS.forUser.email, JPS.transaction, JPS.now); //Send confirmation email
-                          }).catch(err => {
-                              throw (new Error(err.message + " " + err.code));
-                          });
+                    if (JPS.shopItem.type === "special") {
+                        console.log("special course purchase ok....");
+                        JPS.shopItem.expires = 0;
+                        JPS.firebase.database().ref('/transactions/' + JPS.forUser.key + '/' + JPS.now)
+                            .update(Object.assign(JPS.transaction, JPS.shopItem))
+                            .then(() => {
+                                return JPS.firebase.database().ref('/scbookingsbycourse/' + JPS.shopItemKey + '/' + JPS.forUser.key)
+                                    .update({ transactionReference: JPS.now, shopItem: JPS.shopItem })
+                            })
+                            .then(() => {
+                                return JPS.firebase.database().ref('/scbookingsbyuser/' + JPS.forUser.key + '/' + JPS.shopItemKey)
+                                    .update({ transactionReference: JPS.now, shopItem: JPS.shopItem })
+                            })
+                            .then(() => {
+                                console.log("Transaction saved: ", JPS.transaction, JPS.shopItem);
+                                res.status(200).jsonp(JPS.transaction).end();
+                                JPS.mailer.sendReceipt(JPS.forUser.email, JPS.transaction, JPS.now); //Send confirmation email
+                            }).catch(err => {
+                                throw (new Error(err.message + " " + err.code));
+                            });
                     }
 
                 }).catch(err => {
