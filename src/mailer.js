@@ -26,7 +26,7 @@ module.exports = {
         console.log(courseInfo)
         console.log(courseTime)
 
-        JPSM.html =
+        JPSM.html = 
             "<h1>Varauksen vahvistus</h1>" +
             "<p>Varauksesi kurssille " + courseInfo.courseType.name + " on vahvistettu.</p>" +
             "<p>Kurssipäivä: " + JPSM.jps.timeHelper.getDayStr(courseTime) + "</p>" +
