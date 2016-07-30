@@ -1002,6 +1002,7 @@ module.exports =
 	      JPS.courseInfo = JPS.post.courseInfo;
 	      JPS.weeksForward = JPS.post.weeksForward;
 	      JPS.timezoneOffset = JPS.post.timezoneOffset;
+	      JPS.courseTime = JPS.timeHelper.getCourseTimeLocal(JPS.weeksForward, JPS.courseInfo.start, JPS.courseInfo.day)
 
 	      JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
 	      .then( decodedToken => {
@@ -1031,7 +1032,7 @@ module.exports =
 	        for (JPS.one in JPS.allTx){
 	          switch(JPS.allTx[JPS.one].type){
 	            case "time":
-	              if(JPS.allTx[JPS.one].expires > JPS.now){
+	              if(JPS.allTx[JPS.one].expires > JPS.courseTime.getTime()){
 	                    JPS.userHasTime = true;
 	              }
 	              break;
@@ -1081,7 +1082,6 @@ module.exports =
 	          }
 	          //If user is entitled, write the bookings in to the database
 	          if(JPS.userHasTime || JPS.userHasCount){
-	            JPS.courseTime = JPS.timeHelper.getCourseTimeUTC(JPS.weeksForward, JPS.courseInfo.start, JPS.courseInfo.day)
 	            JPS.bookingTime = JPS.courseTime.getTime();
 	            JPS.firebase.database().ref('/bookingsbycourse/'+JPS.courseInfo.key+'/'+JPS.bookingTime+'/'+JPS.user.key)
 	            .update({
@@ -1159,7 +1159,7 @@ module.exports =
 	var JHLP = {}
 
 	module.exports = {
-	    getCourseTimeUTC: (weeksForward, timeOfStart, dayNumber) => {
+	    getCourseTimeLocal: (weeksForward, timeOfStart, dayNumber) => {
 
 	        JHLP.courseTime = new Date();
 	        JHLP.dayNumber = JHLP.courseTime.getDay()
