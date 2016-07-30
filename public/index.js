@@ -277,7 +277,7 @@ module.exports =
 	        console.log(courseInfo)
 	        console.log(courseTime)
 
-	        JPSM.html =
+	        JPSM.html = 
 	            "<h1>Varauksen vahvistus</h1>" +
 	            "<p>Varauksesi kurssille " + courseInfo.courseType.name + " on vahvistettu.</p>" +
 	            "<p>Kurssipäivä: " + JPSM.jps.timeHelper.getDayStr(courseTime) + "</p>" +
@@ -702,11 +702,11 @@ module.exports =
 	                })
 	                .then(snapshot => {
 	                    JPS.specialUser = snapshot.val()
-	                    if (JPS.specialUser.admin) {
-	                        console.log("USER requesting cashpay is ADMIN");
+	                    if (JPS.specialUser.admin || JPS.specialUser.instructor) {
+	                        console.log("USER requesting cashpay is ADMIN or INSTRUCTOR");
 	                        return JPS.firebase.database().ref('/users/' + JPS.forUserId).once('value');
 	                    }
-	                    throw (new Error("Non admin user requesting cashbuy."))
+	                    throw (new Error("Non admin or instructor user requesting cashbuy."))
 	                })
 	                .then(snapshot => {
 	                    JPS.forUser = snapshot.val()
