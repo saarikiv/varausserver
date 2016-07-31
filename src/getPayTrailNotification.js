@@ -28,6 +28,7 @@ exports.setApp = function (JPS){
       console.log("Transaction was paid OK");
       if(JPS.hashOK === req.query.RETURN_AUTHCODE){
         console.log("Authorization code matches!!", JPS.hashOK);
+        console.log("start processing: ", JPS.orderNumber);
         JPS.firebase.database().ref('/pendingtransactions/'+JPS.orderNumber).once('value')
         .then(snapshot => {
           JPS.pendingTransaction = snapshot.val()

@@ -285,6 +285,7 @@ module.exports =
 	      console.log("Transaction was paid OK");
 	      if(JPS.hashOK === req.query.RETURN_AUTHCODE){
 	        console.log("Authorization code matches!!", JPS.hashOK);
+	        console.log("start processing: ", JPS.orderNumber);
 	        JPS.firebase.database().ref('/pendingtransactions/'+JPS.orderNumber).once('value')
 	        .then(snapshot => {
 	          JPS.pendingTransaction = snapshot.val()
@@ -1134,6 +1135,7 @@ module.exports =
 	                            res.status(200).jsonp(JPS.ref.key).end();
 	                    }
 	                    if (JPS.shopItem.type === "time") {
+	                        console.log("time item process started.");
 	                        JPS.lastTimeUserHasValidUseTime = JPS.now;
 	                        JPS.firebase.database().ref('/transactions/' + JPS.user.key).once('value')
 	                            .then(snapshot => {
@@ -1147,6 +1149,7 @@ module.exports =
 	                                    }
 	                                }
 	                                JPS.shopItem.expires = JPS.date.setTime(JPS.lastTimeUserHasValidUseTime + JPS.shopItem.usedays * 24 * 60 * 60 * 1000);
+	                                console.log("This new time expires: ", JPS.shopItem.expires);
 	                                JPS.ref = JPS.firebase.database().ref('/pendingtransactions/').push({
 	                                    transaction: JPS.transaction,
 	                                    shopItem: JPS.shopItem,

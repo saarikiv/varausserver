@@ -72,6 +72,7 @@ exports.setApp = function(JPS) {
                             res.status(200).jsonp(JPS.ref.key).end();
                     }
                     if (JPS.shopItem.type === "time") {
+                        console.log("time item process started.");
                         JPS.lastTimeUserHasValidUseTime = JPS.now;
                         JPS.firebase.database().ref('/transactions/' + JPS.user.key).once('value')
                             .then(snapshot => {
@@ -85,6 +86,7 @@ exports.setApp = function(JPS) {
                                     }
                                 }
                                 JPS.shopItem.expires = JPS.date.setTime(JPS.lastTimeUserHasValidUseTime + JPS.shopItem.usedays * 24 * 60 * 60 * 1000);
+                                console.log("This new time expires: ", JPS.shopItem.expires);
                                 JPS.ref = JPS.firebase.database().ref('/pendingtransactions/').push({
                                     transaction: JPS.transaction,
                                     shopItem: JPS.shopItem,
