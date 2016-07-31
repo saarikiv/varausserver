@@ -272,8 +272,8 @@ module.exports =
 	    console.log("PAID", req.query.PAID);
 	    console.log("METHOD", req.query.METHOD);
 	    console.log("RETURN_AUTHCODE", req.query.RETURN_AUTHCODE);
-	    JPS.hashOK = md5(req.query.ORDER_NUMBER + '|' + req.query.TIMESTAMP + '|' + req.query.PAID + '|' + req.query.METHOD + '|' + merchantAuthenticationhash).toUpperCase()
-	    JPS.hashNOK = md5(req.query.ORDER_NUMBER + '|' + req.query.TIMESTAMP + '|' + merchantAuthenticationhash).toUpperCase()
+	    JPS.hashOK = md5(req.query.ORDER_NUMBER + '|' + req.query.TIMESTAMP + '|' + req.query.PAID + '|' + req.query.METHOD + '|' + JPS.merchantAuthenticationhash).toUpperCase()
+	    JPS.hashNOK = md5(req.query.ORDER_NUMBER + '|' + req.query.TIMESTAMP + '|' + JPS.merchantAuthenticationhash).toUpperCase()
 	    console.log("HASH-OK", JPS.hashOK);
 	    console.log("HASH-NOK", JPS.hashNOK);
 	    JPS.orderNumber = req.query.ORDER_NUMBER;
