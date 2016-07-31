@@ -41,7 +41,30 @@ module.exports =
 /******/ 	return __webpack_require__(0);
 /******/ })
 /************************************************************************/
-/******/ ([
+/******/ ((function(modules) {
+	// Check all modules for deduplicated modules
+	for(var i in modules) {
+		if(Object.prototype.hasOwnProperty.call(modules, i)) {
+			switch(typeof modules[i]) {
+			case "function": break;
+			case "object":
+				// Module can be created from a template
+				modules[i] = (function(_m) {
+					var args = _m.slice(1), fn = modules[_m[0]];
+					return function (a,b,c) {
+						fn.apply(this, [a,b,c].concat(args));
+					};
+				}(modules[i]));
+				break;
+			default:
+				// Module is a copy of another module
+				modules[i] = modules[modules[i]];
+				break;
+			}
+		}
+	}
+	return modules;
+}([
 /* 0 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -49,12 +72,12 @@ module.exports =
 	// Server main faile
 	//------------------------------------------
 
-	var express = __webpack_require__(13)
+	var express = __webpack_require__(14)
 	var JPS = {} //The global.
-	JPS.timeHelper = __webpack_require__(11)
+	JPS.timeHelper = __webpack_require__(12)
 	JPS.cancelHelper = __webpack_require__(1)
 	JPS.mailer = __webpack_require__(4)
-	JPS.braintree = __webpack_require__(12);
+	JPS.braintree = __webpack_require__(13);
 
 	console.log("ENV: ", process.env.PWD);
 	if (process.env.NODE_ENV == "production") {
@@ -74,7 +97,7 @@ module.exports =
 	        }
 	    };
 	}
-	JPS.firebase = __webpack_require__(14)
+	JPS.firebase = __webpack_require__(15)
 	JPS.app = express();
 	JPS.date = new Date();
 	JPS.listenport = 3000
@@ -125,7 +148,7 @@ module.exports =
 	JPS.mailer.initializeMail(JPS);
 
 	// Add headers
-	__webpack_require__(10).setApp(JPS);
+	__webpack_require__(11).setApp(JPS);
 
 	// Get client token
 	__webpack_require__(2).setApp(JPS);
@@ -136,6 +159,9 @@ module.exports =
 	// POST checkout
 	__webpack_require__(8).setApp(JPS);
 
+	// POST checkout
+	__webpack_require__(9).setApp(JPS);
+
 	// POST CashBuy
 	__webpack_require__(7).setApp(JPS);
 
@@ -143,7 +169,7 @@ module.exports =
 	__webpack_require__(5).setApp(JPS);
 
 	// POST reserve slot
-	__webpack_require__(9).setApp(JPS);
+	__webpack_require__(10).setApp(JPS);
 
 	// POST reserve slot
 	__webpack_require__(6).setApp(JPS);
@@ -276,7 +302,7 @@ module.exports =
 /***/ function(module, exports, __webpack_require__) {
 
 	var JPSM = {}
-	JPSM.Mailgun = __webpack_require__(15)
+	JPSM.Mailgun = __webpack_require__(16)
 	JPSM.mg_api_key = process.env.MAILGUN_API_KEY || 'key-4230707292ae718f00a8274d41beb7f3';
 	JPSM.mg_domain = 'sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
 	JPSM.mg_from_who = 'postmaster@sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
@@ -999,6 +1025,8 @@ module.exports =
 
 /***/ },
 /* 9 */
+8,
+/* 10 */
 /***/ function(module, exports) {
 
 	
@@ -1155,7 +1183,7 @@ module.exports =
 
 
 /***/ },
-/* 10 */
+/* 11 */
 /***/ function(module, exports) {
 
 	
@@ -1179,7 +1207,7 @@ module.exports =
 
 
 /***/ },
-/* 11 */
+/* 12 */
 /***/ function(module, exports) {
 
 	var JHLP = {}
@@ -1209,28 +1237,28 @@ module.exports =
 	}
 
 /***/ },
-/* 12 */
+/* 13 */
 /***/ function(module, exports) {
 
 	module.exports = require("braintree");
 
 /***/ },
-/* 13 */
+/* 14 */
 /***/ function(module, exports) {
 
 	module.exports = require("express");
 
 /***/ },
-/* 14 */
+/* 15 */
 /***/ function(module, exports) {
 
 	module.exports = require("firebase");
 
 /***/ },
-/* 15 */
+/* 16 */
 /***/ function(module, exports) {
 
 	module.exports = require("mailgun-js");
 
 /***/ }
-/******/ ]);
+/******/ ])));
