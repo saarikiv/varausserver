@@ -1072,15 +1072,17 @@ module.exports =
 	                    if (JPS.shopItem.type === "count") {
 	                        JPS.shopItem.expires = JPS.date.setTime(JPS.now + JPS.shopItem.expiresAfterDays * 24 * 60 * 60 * 1000);
 	                        JPS.shopItem.unusedtimes = JPS.shopItem.usetimes;
-	                        JPS.firebase.database().ref('/pendingtransactions/' + JPS.user.key + '/' + JPS.now)
-	                            .update(Object.assign(JPS.transaction, JPS.shopItem))
-	                            .then(() => {
-	                                console.log("Transaction saved: ", JPS.transaction, JPS.shopItem);
-	                                res.status(200).jsonp(JPS.transaction).end();
-	                                JPS.mailer.sendReceipt(JPS.user.email, JPS.transaction, JPS.now); //Send confirmation email
-	                            }).catch(err => {
+	                        JPS.ref = JPS.firebase.database().ref('/pendingtransactions/').push({
+	                                transaction: JPS.transaction,
+	                                shopItem: JPS.shopItem,
+	                                user: JPS.user.key,
+	                                timestamp: JPS.now
+	                            })
+	                            .catch(err => {
 	                                throw (new Error(err.message + " " + err.code));
 	                            });
+	                            console.log("Pending count transaction saved: ", JPS.ref);
+	                            res.status(200).jsonp(JPS.transaction).end();
 	                    }
 	                    if (JPS.shopItem.type === "time") {
 	                        JPS.lastTimeUserHasValidUseTime = JPS.now;
@@ -1096,46 +1098,37 @@ module.exports =
 	                                    }
 	                                }
 	                                JPS.shopItem.expires = JPS.date.setTime(JPS.lastTimeUserHasValidUseTime + JPS.shopItem.usedays * 24 * 60 * 60 * 1000);
-	                                return JPS.firebase.database().ref('/transactions/' + JPS.user.key + '/' + JPS.now)
-	                                    .update(Object.assign(JPS.transaction, JPS.shopItem))
-	                            })
-	                            .then(() => {
-	                                console.log("Transaction saved: ", JPS.transaction, JPS.shopItem);
-	                                res.status(200).jsonp(JPS.transaction).end();
-	                                JPS.mailer.sendReceipt(JPS.user.email, JPS.transaction, JPS.now); //Send confirmation email
+	                                JPS.ref = JPS.firebase.database().ref('/pendingtransactions/').push({
+	                                    transaction: JPS.transaction,
+	                                    shopItem: JPS.shopItem,
+	                                    user: JPS.user.key,
+	                                    timestamp: JPS.now
+	                                })
 	                            })
 	                            .catch(err => {
 	                                console.error(err.message + " " + err.code)
 	                                throw (new Error(err.message + " " + err.code));
 	                            });
+	                            console.log("Pending time transaction saved: ", JPS.transaction, JPS.shopItem);
+	                            res.status(200).jsonp(JPS.transaction).end();
 	                    }
 	                    if(JPS.shopItem.type === "special"){
 	                        console.log("special course purchase....");
 	                        JPS.shopItem.expires = 0;
-	                        JPS.firebase.database().ref('/transactions/' + JPS.user.key + '/' + JPS.now)
-	                            .update(Object.assign(JPS.transaction, JPS.shopItem))
-	                            .then(() => {
-	                            return JPS.firebase.database().ref('/scbookingsbycourse/' + JPS.shopItemKey + '/' + JPS.user.key)
-	                            .update({transactionReference: JPS.now, shopItem: JPS.shopItem})
-	                            })
-	                            .then(() => {
-	                            return JPS.firebase.database().ref('/scbookingsbyuser/' + JPS.forUser.key + '/' + JPS.shopItemKey)
-	                            .update({transactionReference: JPS.now, shopItem: JPS.shopItem})
-	                            })
-	                            .then(() => {
-	                                console.log("Transaction saved: ", JPS.transaction, JPS.shopItem);
-	                                res.status(200).jsonp(JPS.transaction).end();
-	                                JPS.mailer.sendReceipt(JPS.user.email, JPS.transaction, JPS.now); //Send confirmation email
-	                            }).catch(err => {
-	                                throw (new Error(err.message + " " + err.code));
-	                            });
+	                        JPS.firebase.database().ref('/pendingtransactions/' + JPS.user.key + '/' + JPS.now)
+	                        .update(Object.assign(JPS.transaction, JPS.shopItem))
+	                        .then(() => {
+	                            res.status(200).jsonp(JPS.transaction).end();
+	                        }).catch(err => {
+	                            throw (new Error(err.message + " " + err.code));
+	                        });
 	                    }
 
 	                    })
 	                }).catch(err => {
-	                    console.error("Checkout failde: ", err);
+	                    console.error("Initialize Pay Trai transaction failed: ", err);
 	                    res.status(500).jsonp({
-	                        message: "Checkout failde."
+	                        message: "Initialize Pay Trai transaction failde."
 	                    }).end(err);
 	                });
 	        })
