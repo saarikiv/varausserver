@@ -112,7 +112,7 @@ exports.setApp = function(JPS) {
                     }).catch(err => {
                     console.error("Initialize Pay Trai transaction failed: ", err);
                     res.status(500).jsonp({
-                        message: "Initialize Pay Trai transaction failde."
+                        message: "Initialize Pay Trai transaction failde." + err.toString()
                     }).end(err);
                 });
             })

@@ -1040,7 +1040,7 @@ module.exports =
 	            JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
 	                .then(decodedToken => {
 	                    JPS.currentUserUID = decodedToken.sub;
-	                    console.log("User: ", JPS.currentUserUID, " requested checkout.");
+	                    console.log("User: ", JPS.currentUserUID, " requested initializepaytrailtransaction.");
 	                    return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
 	                })
 	                .then(snapshot => {
@@ -1060,9 +1060,7 @@ module.exports =
 	                            user: JPS.user.key,
 	                            shopItem: JPS.shopItem,
 	                            shopItemKey: JPS.shopItemKey,
-	                            error: err ? err : {
-	                                code: 0
-	                            },
+	                            error: { code: 0 },
 	                            details: result
 	                        }
 	                        //==================================
@@ -1127,7 +1125,7 @@ module.exports =
 	                    }).catch(err => {
 	                    console.error("Initialize Pay Trai transaction failed: ", err);
 	                    res.status(500).jsonp({
-	                        message: "Initialize Pay Trai transaction failde."
+	                        message: "Initialize Pay Trai transaction failde." + err.toString()
 	                    }).end(err);
 	                });
 	            })
