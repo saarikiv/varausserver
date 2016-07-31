@@ -282,8 +282,9 @@ module.exports =
 	    JPS.paymentMethod = req.query.METHOD
 	    JPS.authorizationCode = req.query.RETURN_AUTHCODE;
 	    if(req.query.PAID){
+	      console.log("Transaction was paid OK");
 	      if(JPS.hashOK === req.query.RETURN_AUTHCODE){
-	////////////////
+	        console.log("Authorization code matches!!", JPS.hashOK);
 	        JPS.firebase.database().ref('/pendingtransactions/'+JPS.orderNumber).once('value')
 	        .then(snapshot => {
 	          JPS.pendingTransaction = snapshot.val()
@@ -314,6 +315,7 @@ module.exports =
 	        })
 	////////////////
 	      } else {
+	        console.error("Input authorization code did not match: " + JPS.hashOK + "!=" + JPS.authorizationCode + " --- " + JPS.hashNOK);
 	        throw (new Error("Input authorization code did not match: " + JPS.hashOK + "!=" + JPS.authorizationCode + " --- " + JPS.hashNOK))
 	      }
 	    }
