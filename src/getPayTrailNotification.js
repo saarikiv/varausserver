@@ -15,8 +15,8 @@ exports.setApp = function (JPS){
     console.log("PAID", req.query.PAID);
     console.log("METHOD", req.query.METHOD);
     console.log("RETURN_AUTHCODE", req.query.RETURN_AUTHCODE);
-    var hash1 = md5().toUpperCase(req.query.ORDER_NUMBER + '|' + req.query.TIMESTAMP + '|' + req.query.PAID + '|' + req.query.METHOD + '|' + merchantAuthenticationhash)
-    var hash2 = md5().toUpperCase(req.query.ORDER_NUMBER + '|' + req.query.TIMESTAMP + '|' + merchantAuthenticationhash)
+    var hash1 = md5(req.query.ORDER_NUMBER + '|' + req.query.TIMESTAMP + '|' + req.query.PAID + '|' + req.query.METHOD + '|' + merchantAuthenticationhash).toUpperCase()
+    var hash2 = md5(req.query.ORDER_NUMBER + '|' + req.query.TIMESTAMP + '|' + merchantAuthenticationhash).toUpperCase()
     console.log("HASH1", hash1);
     console.log("HASH2", hash2);
     res.status(200).end();
