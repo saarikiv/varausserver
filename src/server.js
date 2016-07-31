@@ -83,6 +83,9 @@ require('./setHeaders.js').setApp(JPS);
 // Get client token
 require('./getClientToken.js').setApp(JPS);
 
+// Get paytrail notification
+require('./getPayTrailNotification.js').setApp(JPS);
+
 // POST checkout
 require('./postCheckout.js').setApp(JPS);
 

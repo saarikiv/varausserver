@@ -49,12 +49,12 @@ module.exports =
 	// Server main faile
 	//------------------------------------------
 
-	var express = __webpack_require__(12)
+	var express = __webpack_require__(13)
 	var JPS = {} //The global.
-	JPS.timeHelper = __webpack_require__(10)
+	JPS.timeHelper = __webpack_require__(11)
 	JPS.cancelHelper = __webpack_require__(1)
-	JPS.mailer = __webpack_require__(3)
-	JPS.braintree = __webpack_require__(11);
+	JPS.mailer = __webpack_require__(4)
+	JPS.braintree = __webpack_require__(12);
 
 	console.log("ENV: ", process.env.PWD);
 	if (process.env.NODE_ENV == "production") {
@@ -74,7 +74,7 @@ module.exports =
 	        }
 	    };
 	}
-	JPS.firebase = __webpack_require__(13)
+	JPS.firebase = __webpack_require__(14)
 	JPS.app = express();
 	JPS.date = new Date();
 	JPS.listenport = 3000
@@ -125,25 +125,28 @@ module.exports =
 	JPS.mailer.initializeMail(JPS);
 
 	// Add headers
-	__webpack_require__(9).setApp(JPS);
+	__webpack_require__(10).setApp(JPS);
 
 	// Get client token
 	__webpack_require__(2).setApp(JPS);
 
+	// Get paytrail notification
+	__webpack_require__(3).setApp(JPS);
+
 	// POST checkout
-	__webpack_require__(7).setApp(JPS);
-
-	// POST CashBuy
-	__webpack_require__(6).setApp(JPS);
-
-	// POST CancelCourse
-	__webpack_require__(4).setApp(JPS);
-
-	// POST reserve slot
 	__webpack_require__(8).setApp(JPS);
 
-	// POST reserve slot
+	// POST CashBuy
+	__webpack_require__(7).setApp(JPS);
+
+	// POST CancelCourse
 	__webpack_require__(5).setApp(JPS);
+
+	// POST reserve slot
+	__webpack_require__(9).setApp(JPS);
+
+	// POST reserve slot
+	__webpack_require__(6).setApp(JPS);
 	/* WEBPACK VAR INJECTION */}.call(exports, "/"))
 
 /***/ },
@@ -247,10 +250,28 @@ module.exports =
 
 /***/ },
 /* 3 */
+/***/ function(module, exports) {
+
+	
+	exports.setApp = function (JPS){
+
+	//######################################################
+	// GET: clienttoken, needed for the client to initiate payment method
+	//######################################################
+
+	  JPS.app.get('/paytrailnotification', (req, res) => {
+	    console.log("paytrailnotification requested", req, res);
+	    res.status(200).end();
+	  })
+	}
+
+
+/***/ },
+/* 4 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var JPSM = {}
-	JPSM.Mailgun = __webpack_require__(14)
+	JPSM.Mailgun = __webpack_require__(15)
 	JPSM.mg_api_key = process.env.MAILGUN_API_KEY || 'key-4230707292ae718f00a8274d41beb7f3';
 	JPSM.mg_domain = 'sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
 	JPSM.mg_from_who = 'postmaster@sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
@@ -475,7 +496,7 @@ module.exports =
 
 
 /***/ },
-/* 4 */
+/* 5 */
 /***/ function(module, exports) {
 
 	exports.setApp = function(JPS) {
@@ -558,7 +579,7 @@ module.exports =
 
 
 /***/ },
-/* 5 */
+/* 6 */
 /***/ function(module, exports) {
 
 	exports.setApp = function(JPS) {
@@ -662,7 +683,7 @@ module.exports =
 
 
 /***/ },
-/* 6 */
+/* 7 */
 /***/ function(module, exports) {
 
 	exports.setApp = function(JPS) {
@@ -816,7 +837,7 @@ module.exports =
 	}
 
 /***/ },
-/* 7 */
+/* 8 */
 /***/ function(module, exports) {
 
 	exports.setApp = function(JPS) {
@@ -972,7 +993,7 @@ module.exports =
 
 
 /***/ },
-/* 8 */
+/* 9 */
 /***/ function(module, exports) {
 
 	
@@ -1129,7 +1150,7 @@ module.exports =
 
 
 /***/ },
-/* 9 */
+/* 10 */
 /***/ function(module, exports) {
 
 	
@@ -1153,7 +1174,7 @@ module.exports =
 
 
 /***/ },
-/* 10 */
+/* 11 */
 /***/ function(module, exports) {
 
 	var JHLP = {}
@@ -1183,25 +1204,25 @@ module.exports =
 	}
 
 /***/ },
-/* 11 */
+/* 12 */
 /***/ function(module, exports) {
 
 	module.exports = require("braintree");
 
 /***/ },
-/* 12 */
+/* 13 */
 /***/ function(module, exports) {
 
 	module.exports = require("express");
 
 /***/ },
-/* 13 */
+/* 14 */
 /***/ function(module, exports) {
 
 	module.exports = require("firebase");
 
 /***/ },
-/* 14 */
+/* 15 */
 /***/ function(module, exports) {
 
 	module.exports = require("mailgun-js");
