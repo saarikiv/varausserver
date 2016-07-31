@@ -62,9 +62,10 @@ exports.setApp = function(JPS) {
                                 shopItem: JPS.shopItem,
                                 user: JPS.user.key,
                                 timestamp: JPS.now
-                            })
-                            .catch(err => {
-                                throw (new Error(err.message + " " + err.code));
+                            },err => {
+                                if(err){
+                                    throw (new Error(err.message + " " + err.code));
+                                }
                             });
                             console.log("Pending count transaction saved: ", JPS.ref);
                             res.status(200).jsonp(JPS.transaction).end();
@@ -88,9 +89,13 @@ exports.setApp = function(JPS) {
                                     shopItem: JPS.shopItem,
                                     user: JPS.user.key,
                                     timestamp: JPS.now
+                                }, err => {
+                                    if(err){
+                                        console.error(err.message + " " + err.code)
+                                        throw (new Error(err.message + " " + err.code));                                        
+                                    }
                                 })
-                            })
-                            .catch(err => {
+                            }, err => {
                                 console.error(err.message + " " + err.code)
                                 throw (new Error(err.message + " " + err.code));
                             });
@@ -100,13 +105,18 @@ exports.setApp = function(JPS) {
                     if(JPS.shopItem.type === "special"){
                         console.log("special course purchase....");
                         JPS.shopItem.expires = 0;
-                        JPS.firebase.database().ref('/pendingtransactions/' + JPS.user.key + '/' + JPS.now)
-                        .update(Object.assign(JPS.transaction, JPS.shopItem))
-                        .then(() => {
+                        JPS.ref = JPS.firebase.database().ref('/pendingtransactions/').push({
+                                    transaction: JPS.transaction,
+                                    shopItem: JPS.shopItem,
+                                    user: JPS.user.key,
+                                    timestamp: JPS.now
+                                }, err => {
+                                    if(err){
+                                        console.error(err.message + " " + err.code)
+                                        throw (new Error(err.message + " " + err.code));                                        
+                                    }
+                                })
                             res.status(200).jsonp(JPS.transaction).end();
-                        }).catch(err => {
-                            throw (new Error(err.message + " " + err.code));
-                        });
                     }
 
                     }).catch(err => {
