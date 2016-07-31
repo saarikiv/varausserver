@@ -59,6 +59,7 @@ process.on('uncaughtException', (err) => {
 
 console.log("PROCESS: ", process);
 
+
 //Get port primarily from Environment
 JPS.app.set('port', (process.env.PORT || JPS.listenport));
 
