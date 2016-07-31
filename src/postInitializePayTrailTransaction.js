@@ -31,13 +31,17 @@ exports.setApp = function(JPS) {
                     return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
                 })
                 .then(snapshot => {
-                    JPS.user = snapshot.val()
-                    JPS.user.key = snapshot.key;
-                    switch(JPS.itemType){
-                      case "special":
-                        return JPS.firebase.database().ref('/specialCourses/' + JPS.shopItemKey).once('value');
-                      default:
-                        return JPS.firebase.database().ref('/shopItems/' + JPS.shopItemKey).once('value');
+                    if(snapshot.val()){
+                        JPS.user = snapshot.val()
+                        JPS.user.key = snapshot.key;
+                        switch(JPS.itemType){
+                        case "special":
+                            return JPS.firebase.database().ref('/specialCourses/' + JPS.shopItemKey).once('value');
+                        default:
+                            return JPS.firebase.database().ref('/shopItems/' + JPS.shopItemKey).once('value');
+                        }
+                    } else {
+                        throw(new Error("User was not found in the database: ", JPS.currentUserUID))
                     }
 
                 })
@@ -65,23 +69,29 @@ exports.setApp = function(JPS) {
                                 timestamp: JPS.now
                             },err => {
                                 if(err){
-                                    throw (new Error(err.message + " " + err.code));
+                                    console.error("COUNT push failed: ", err)
+                                    throw (new Error("COUNT push failed" + err.message + " " + err.code));
+                                } else {
+                                    console.log("Pending count transaction saved: ", JPS.ref.key);
+                                    res.status(200).jsonp(JPS.ref.key).end();
                                 }
                             });
-                            console.log("Pending count transaction saved: ", JPS.ref.key);
-                            res.status(200).jsonp(JPS.ref.key).end();
                     }
                     if (JPS.shopItem.type === "time") {
                         console.log("time item process started.");
                         JPS.lastTimeUserHasValidUseTime = JPS.now;
                         JPS.firebase.database().ref('/transactions/' + JPS.user.key).once('value')
                             .then(snapshot => {
-                                var one;
-                                var all = snapshot.val();
-                                for (one in all) {
-                                    if (all[one].type === "time") {
-                                        if (all[one].expires > JPS.lastTimeUserHasValidUseTime) {
-                                            JPS.lastTimeUserHasValidUseTime = all[one].expires;
+                                if(snapshot.val()){ //User has previous transactions - find the latest expiry
+                                    console.log("Porcessing users previous transactions to find latest expiry.");
+                                    var one;
+                                    var all = snapshot.val();
+                                    for (one in all) {
+                                        if (all[one].type === "time") {
+                                            if (all[one].expires > JPS.lastTimeUserHasValidUseTime) {
+                                                JPS.lastTimeUserHasValidUseTime = all[one].expires;
+                                                console.log("Found later expiry than now: ", JPS.lastTimeUserHasValidUseTime);
+                                            }
                                         }
                                     }
                                 }
@@ -94,16 +104,17 @@ exports.setApp = function(JPS) {
                                     timestamp: JPS.now
                                 }, err => {
                                     if(err){
-                                        console.error(err.message + " " + err.code)
-                                        throw (new Error(err.message + " " + err.code));                                        
+                                        console.error("TIME push failed", err)
+                                        throw (new Error("TIME push failed" + err.message + " " + err.code));                                        
+                                    } else {
+                                        console.log("Pending time transaction saved: ",JPS.ref.key);
+                                        res.status(200).jsonp(JPS.ref.key).end();
                                     }
                                 })
                             }, err => {
                                 console.error(err.message + " " + err.code)
                                 throw (new Error(err.message + " " + err.code));
                             });
-                            console.log("Pending time transaction saved: ",JPS.ref.key);
-                            res.status(200).jsonp(JPS.ref.key).end();
                     }
                     if(JPS.shopItem.type === "special"){
                         console.log("special course purchase....");
