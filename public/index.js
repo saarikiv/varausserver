@@ -1056,6 +1056,7 @@ module.exports =
 	                })
 	                .then(snapshot => {
 	                    JPS.shopItem = snapshot.val();
+	                        console.log("shopitem: ",JPS.shopItem );
 	                    JPS.transaction = {
 	                            user: JPS.user.key,
 	                            shopItem: JPS.shopItem,
@@ -1080,8 +1081,8 @@ module.exports =
 	                                    throw (new Error(err.message + " " + err.code));
 	                                }
 	                            });
-	                            console.log("Pending count transaction saved: ", JPS.ref);
-	                            res.status(200).jsonp(JPS.transaction).end();
+	                            console.log("Pending count transaction saved: ", JPS.ref.key);
+	                            res.status(200).jsonp(JPS.transaction).end(JPS.ref.key);
 	                    }
 	                    if (JPS.shopItem.type === "time") {
 	                        JPS.lastTimeUserHasValidUseTime = JPS.now;
@@ -1112,8 +1113,8 @@ module.exports =
 	                                console.error(err.message + " " + err.code)
 	                                throw (new Error(err.message + " " + err.code));
 	                            });
-	                            console.log("Pending time transaction saved: ", JPS.transaction, JPS.shopItem);
-	                            res.status(200).jsonp(JPS.transaction).end();
+	                            console.log("Pending time transaction saved: ",JPS.ref.key);
+	                            res.status(200).jsonp(JPS.transaction).end(JPS.ref.key);
 	                    }
 	                    if(JPS.shopItem.type === "special"){
 	                        console.log("special course purchase....");
@@ -1129,7 +1130,7 @@ module.exports =
 	                                        throw (new Error(err.message + " " + err.code));                                        
 	                                    }
 	                                })
-	                            res.status(200).jsonp(JPS.transaction).end();
+	                            res.status(200).jsonp(JPS.transaction).end(JPS.ref.key);
 	                    }
 
 	                    }).catch(err => {
