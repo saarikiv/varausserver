@@ -48,7 +48,7 @@ exports.setApp = function(JPS) {
                             shopItem: JPS.shopItem,
                             shopItemKey: JPS.shopItemKey,
                             error: { code: 0 },
-                            details: result
+                            details: "pending"
                         }
                         //==================================
                         // Write the transaction to the database
