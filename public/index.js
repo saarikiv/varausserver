@@ -1124,13 +1124,13 @@ module.exports =
 	                        });
 	                    }
 
-	                    })
-	                }).catch(err => {
+	                    }).catch(err => {
 	                    console.error("Initialize Pay Trai transaction failed: ", err);
 	                    res.status(500).jsonp({
 	                        message: "Initialize Pay Trai transaction failde."
 	                    }).end(err);
 	                });
+	            })
 	        })
 	}
 
