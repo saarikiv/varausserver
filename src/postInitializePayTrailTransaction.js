@@ -69,7 +69,7 @@ exports.setApp = function(JPS) {
                                 }
                             });
                             console.log("Pending count transaction saved: ", JPS.ref.key);
-                            res.status(200).jsonp(JPS.transaction).end(JPS.ref.key);
+                            res.status(200).jsonp(JPS.ref.key).end();
                     }
                     if (JPS.shopItem.type === "time") {
                         JPS.lastTimeUserHasValidUseTime = JPS.now;
@@ -101,7 +101,7 @@ exports.setApp = function(JPS) {
                                 throw (new Error(err.message + " " + err.code));
                             });
                             console.log("Pending time transaction saved: ",JPS.ref.key);
-                            res.status(200).jsonp(JPS.transaction).end(JPS.ref.key);
+                            res.status(200).jsonp(JPS.ref.key).end();
                     }
                     if(JPS.shopItem.type === "special"){
                         console.log("special course purchase....");
@@ -117,7 +117,7 @@ exports.setApp = function(JPS) {
                                         throw (new Error(err.message + " " + err.code));                                        
                                     }
                                 })
-                            res.status(200).jsonp(JPS.transaction).end(JPS.ref.key);
+                            res.status(200).jsonp(JPS.ref.key).end();
                     }
 
                     }).catch(err => {
