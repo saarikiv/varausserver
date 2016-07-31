@@ -282,7 +282,7 @@ module.exports =
 	    JPS.paymentMethod = req.query.METHOD
 	    JPS.authorizationCode = req.query.RETURN_AUTHCODE;
 	    if(req.query.PAID){
-	      if(hash1 === req.query.RETURN_AUTHCODE){
+	      if(JPS.hashOK === req.query.RETURN_AUTHCODE){
 	////////////////
 	        JPS.firebase.database().ref('/pendingtransactions/'+JPS.orderNumber).once('value')
 	        .then(snapshot => {
