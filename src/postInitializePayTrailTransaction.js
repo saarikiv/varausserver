@@ -120,17 +120,19 @@ exports.setApp = function(JPS) {
                         console.log("special course purchase....");
                         JPS.shopItem.expires = 0;
                         JPS.ref = JPS.firebase.database().ref('/pendingtransactions/').push({
-                                    transaction: JPS.transaction,
-                                    shopItem: JPS.shopItem,
-                                    user: JPS.user.key,
-                                    timestamp: JPS.now
-                                }, err => {
-                                    if(err){
-                                        console.error(err.message + " " + err.code)
-                                        throw (new Error(err.message + " " + err.code));                                        
-                                    }
-                                })
-                            res.status(200).jsonp(JPS.ref.key).end();
+                            transaction: JPS.transaction,
+                            shopItem: JPS.shopItem,
+                            user: JPS.user.key,
+                            timestamp: JPS.now
+                        }, err => {
+                            if(err){
+                                console.error(err.message + " " + err.code)
+                                throw (new Error(err.message + " " + err.code));                                        
+                            } else {
+                                console.log("Pending special transaction saved: ",JPS.ref.key);
+                                res.status(200).jsonp(JPS.ref.key).end();
+                            }
+                        })
                     }
 
                     }).catch(err => {

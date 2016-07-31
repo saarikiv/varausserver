@@ -298,6 +298,7 @@ module.exports =
 	            details: {
 	              success: true,
 	              transaction: {
+	                pendingTransaction: JPS.orderNumber,
 	                amount: JPS.pendingTransaction.shopItem.price,
 	                currencyIsoCode: "EUR",
 	                id: JPS.paymentTransactionRef,
@@ -309,7 +310,10 @@ module.exports =
 	        })
 	        .then(() => {
 	          console.log("Pending transaction processed succesfully. Removing pending record.");
-	          JPS.firebase.database().ref('/pendingtransactions/'+JPS.orderNumber).remove();
+	          return JPS.firebase.database().ref('/pendingtransactions/'+JPS.orderNumber).remove();
+	        })
+	        .then(() => {
+	          console.log("Pending record removed successfully.");
 	        })
 	        .catch(error => {
 	          console.error("Processing pendingtransactions failed: ", JPS.orderNumber, error);
@@ -322,7 +326,12 @@ module.exports =
 	      }
 	    }
 	    else{
-	      JPS.firebase.database().ref('/pendingtransactions/'+JPS.orderNumber).remove().catch(error => {
+	      console.log("Payment did not clear or was cancelled. Remove the pending transaction: ", JPS.orderNumber);
+	      JPS.firebase.database().ref('/pendingtransactions/'+JPS.orderNumber).remove()
+	      .then(() => {
+	        console.log("Pending transaction for NOK payment removed: ", JPS.orderNumber);
+	      })
+	      .catch(error => {
 	        console.error("Removing pending transaction failed.");
 	        throw (new Error("Removing pending transaction failed." + error.message))
 	      })
@@ -1184,17 +1193,19 @@ module.exports =
 	                        console.log("special course purchase....");
 	                        JPS.shopItem.expires = 0;
 	                        JPS.ref = JPS.firebase.database().ref('/pendingtransactions/').push({
-	                                    transaction: JPS.transaction,
-	                                    shopItem: JPS.shopItem,
-	                                    user: JPS.user.key,
-	                                    timestamp: JPS.now
-	                                }, err => {
-	                                    if(err){
-	                                        console.error(err.message + " " + err.code)
-	                                        throw (new Error(err.message + " " + err.code));                                        
-	                                    }
-	                                })
-	                            res.status(200).jsonp(JPS.ref.key).end();
+	                            transaction: JPS.transaction,
+	                            shopItem: JPS.shopItem,
+	                            user: JPS.user.key,
+	                            timestamp: JPS.now
+	                        }, err => {
+	                            if(err){
+	                                console.error(err.message + " " + err.code)
+	                                throw (new Error(err.message + " " + err.code));                                        
+	                            } else {
+	                                console.log("Pending special transaction saved: ",JPS.ref.key);
+	                                res.status(200).jsonp(JPS.ref.key).end();
+	                            }
+	                        })
 	                    }
 
 	                    }).catch(err => {

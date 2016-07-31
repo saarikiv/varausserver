@@ -40,6 +40,7 @@ exports.setApp = function (JPS){
             details: {
               success: true,
               transaction: {
+                pendingTransaction: JPS.orderNumber,
                 amount: JPS.pendingTransaction.shopItem.price,
                 currencyIsoCode: "EUR",
                 id: JPS.paymentTransactionRef,
@@ -51,7 +52,10 @@ exports.setApp = function (JPS){
         })
         .then(() => {
           console.log("Pending transaction processed succesfully. Removing pending record.");
-          JPS.firebase.database().ref('/pendingtransactions/'+JPS.orderNumber).remove();
+          return JPS.firebase.database().ref('/pendingtransactions/'+JPS.orderNumber).remove();
+        })
+        .then(() => {
+          console.log("Pending record removed successfully.");
         })
         .catch(error => {
           console.error("Processing pendingtransactions failed: ", JPS.orderNumber, error);
@@ -64,7 +68,12 @@ exports.setApp = function (JPS){
       }
     }
     else{
-      JPS.firebase.database().ref('/pendingtransactions/'+JPS.orderNumber).remove().catch(error => {
+      console.log("Payment did not clear or was cancelled. Remove the pending transaction: ", JPS.orderNumber);
+      JPS.firebase.database().ref('/pendingtransactions/'+JPS.orderNumber).remove()
+      .then(() => {
+        console.log("Pending transaction for NOK payment removed: ", JPS.orderNumber);
+      })
+      .catch(error => {
         console.error("Removing pending transaction failed.");
         throw (new Error("Removing pending transaction failed." + error.message))
       })
