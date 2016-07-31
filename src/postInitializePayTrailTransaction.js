@@ -27,7 +27,7 @@ exports.setApp = function(JPS) {
             JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
                 .then(decodedToken => {
                     JPS.currentUserUID = decodedToken.sub;
-                    console.log("User: ", JPS.currentUserUID, " requested checkout.");
+                    console.log("User: ", JPS.currentUserUID, " requested initializepaytrailtransaction.");
                     return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
                 })
                 .then(snapshot => {
@@ -47,9 +47,7 @@ exports.setApp = function(JPS) {
                             user: JPS.user.key,
                             shopItem: JPS.shopItem,
                             shopItemKey: JPS.shopItemKey,
-                            error: err ? err : {
-                                code: 0
-                            },
+                            error: { code: 0 },
                             details: result
                         }
                         //==================================
