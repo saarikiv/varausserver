@@ -56,6 +56,21 @@ exports.setApp = function (JPS){
             })
             .then(() => {
               console.log("Pending record removed successfully.");
+              if(JPS.pendingTransaction.shopItem.type === "special"){
+                    JPS.firebase.database().ref('/scbookingsbycourse/' + JPS.pendingTransaction.shopItem.key + '/' + JPS.pendingTransaction.user)
+                    .update({transactionReference: JPS.paymentTransactionRef, shopItem: JPS.pendingTransaction.shopItem})
+                    .then(() => {
+                        return JPS.firebase.database().ref('/scbookingsbyuser/' + JPS.pendingTransaction.user + '/' + JPS.pendingTransaction.shopItem.key)
+                        .update({transactionReference: JPS.paymentTransactionRef, shopItem: JPS.pendingTransaction.shopItem})
+                    })
+                    .then(()=>{
+                        console.log("Updated SC-bookings succesfully");
+                    })
+                    .catch(error => {
+                      console.error("Processing SC-bookings failed: ", JPS.orderNumber, error);
+                      throw(new Error("Processing SC-bookings failed: " + JPS.orderNumber + error.message))
+                    })                        
+              }                 
             })
             .catch(error => {
               console.error("Processing pendingtransactions failed: ", JPS.orderNumber, error);

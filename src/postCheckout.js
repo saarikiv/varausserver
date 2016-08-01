@@ -32,14 +32,17 @@ exports.setApp = function(JPS) {
                     return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
                 })
                 .then(snapshot => {
-                    JPS.user = snapshot.val()
-                    JPS.user.key = snapshot.key;
-                    switch(JPS.itemType){
-                      case "special":
-                        return JPS.firebase.database().ref('/specialCourses/' + JPS.shopItemKey).once('value');
-                      default:
-                        return JPS.firebase.database().ref('/shopItems/' + JPS.shopItemKey).once('value');
+                    if(snapshot.val() != null){
+                        JPS.user = snapshot.val()
+                        JPS.user.key = snapshot.key;
+                        switch(JPS.itemType){
+                        case "special":
+                            return JPS.firebase.database().ref('/specialCourses/' + JPS.shopItemKey).once('value');
+                        default:
+                            return JPS.firebase.database().ref('/shopItems/' + JPS.shopItemKey).once('value');
+                        }
                     }
+                    throw( new Error("User was not found in db: " + JPS.currentUserUID) );
 
                 })
                 .then(snapshot => {
