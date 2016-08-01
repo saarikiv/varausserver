@@ -44,7 +44,7 @@ exports.setApp = function(JPS) {
                 })
                 .then(snapshot => {
                     JPS.shopItem = snapshot.val();
-                        console.log("shopitem: ",JPS.shopItem );
+                    console.log("shopitem: ",JPS.shopItem );
                     JPS.transaction = {
                             user: JPS.user.key,
                             shopItem: JPS.shopItem,
@@ -63,6 +63,7 @@ exports.setApp = function(JPS) {
                                 transaction: JPS.transaction,
                                 shopItem: JPS.shopItem,
                                 user: JPS.user.key,
+                                receiptEmail: JPS.user.email,
                                 timestamp: JPS.now
                             },err => {
                                 if(err){
@@ -97,6 +98,7 @@ exports.setApp = function(JPS) {
                                 JPS.ref = JPS.firebase.database().ref('/pendingtransactions/').push({
                                     transaction: JPS.transaction,
                                     shopItem: JPS.shopItem,
+                                    receiptEmail: JPS.user.email,
                                     user: JPS.user.key,
                                     timestamp: JPS.now
                                 }, err => {
@@ -120,6 +122,7 @@ exports.setApp = function(JPS) {
                             transaction: JPS.transaction,
                             shopItem: JPS.shopItem,
                             user: JPS.user.key,
+                            receiptEmail: JPS.user.email,
                             timestamp: JPS.now
                         }, err => {
                             if(err){

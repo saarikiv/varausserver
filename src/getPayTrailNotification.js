@@ -34,8 +34,7 @@ exports.setApp = function (JPS){
           if(snapshot.val() != null){
             JPS.pendingTransaction = snapshot.val()
             console.log("Processing pending transaction: ", JPS.pendingTransaction)
-            return JPS.firebase.database().ref('/transactions/'+JPS.pendingTransaction.user+'/'+JPS.pendingTransaction.timestamp)
-            .update(Object.assign(
+            JPS.dataToUpdate = Object.assign(
               JPS.pendingTransaction.transaction, 
               JPS.pendingTransaction.shopItem, {
               details: {
@@ -49,7 +48,9 @@ exports.setApp = function (JPS){
                   paymentMethod: JPS.paymentMethod 
                 }
               }
-            }))
+            });
+            return JPS.firebase.database().ref('/transactions/'+JPS.pendingTransaction.user+'/'+JPS.pendingTransaction.timestamp)
+            .update(JPS.dataToUpdate)
             .then(() => {
               console.log("Pending transaction processed succesfully. Removing pending record.");
               return JPS.firebase.database().ref('/pendingtransactions/'+JPS.orderNumber).remove();
@@ -65,12 +66,15 @@ exports.setApp = function (JPS){
                     })
                     .then(()=>{
                         console.log("Updated SC-bookings succesfully");
+                        JPS.mailer.sendReceipt(JPS.pendingTransaction.receiptEmail, JPS.dataToUpdate, JPS.pendingTransaction.timestamp);
                     })
                     .catch(error => {
                       console.error("Processing SC-bookings failed: ", JPS.orderNumber, error);
                       throw(new Error("Processing SC-bookings failed: " + JPS.orderNumber + error.message))
                     })                        
-              }                 
+              } else {
+                JPS.mailer.sendReceipt(JPS.pendingTransaction.receiptEmail, JPS.dataToUpdate, JPS.pendingTransaction.timestamp);
+              }                
             })
             .catch(error => {
               console.error("Processing pendingtransactions failed: ", JPS.orderNumber, error);

@@ -58,8 +58,7 @@ exports.setApp = function (JPS){
                   .then(snapshot => {
                     JPS.pendingTransaction = snapshot.val()
                     console.log("Processing pending transaction: ", JPS.pendingTransaction)
-                    return JPS.firebase.database().ref('/transactions/'+JPS.pendingTransaction.user+'/'+JPS.pendingTransaction.timestamp)
-                    .update(Object.assign(
+                    JPS.dataToUpdate = Object.assign(
                       JPS.pendingTransaction.transaction, 
                       JPS.pendingTransaction.shopItem, {
                       details: {
@@ -73,7 +72,9 @@ exports.setApp = function (JPS){
                           paymentMethod: JPS.paymentMethod 
                         }
                       }
-                    }))
+                    })
+                    return JPS.firebase.database().ref('/transactions/'+JPS.pendingTransaction.user+'/'+JPS.pendingTransaction.timestamp)
+                    .update(JPS.dataToUpdate)
                   })
                   .then(() => {
                     console.log("Pending transaction processed succesfully. Removing pending record.");
@@ -90,6 +91,7 @@ exports.setApp = function (JPS){
                           })
                           .then(()=>{
                               console.log("Updated SC-bookings succesfully");
+                              JPS.mailer.sendReceipt(JPS.pendingTransaction.receiptEmail, JPS.dataToUpdate, JPS.pendingTransaction.timestamp);
                               res.status(200).end();
                           })
                           .catch(error => {
@@ -97,6 +99,7 @@ exports.setApp = function (JPS){
                             throw(new Error("Processing SC-bookings failed: " + JPS.orderNumber + error.message))
                           })                        
                     } else {
+                      JPS.mailer.sendReceipt(JPS.pendingTransaction.receiptEmail, JPS.dataToUpdate, JPS.pendingTransaction.timestamp);
                       res.status(200).end();
                     }                  
                   })

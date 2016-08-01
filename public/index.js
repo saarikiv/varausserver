@@ -307,8 +307,7 @@ module.exports =
 	          if(snapshot.val() != null){
 	            JPS.pendingTransaction = snapshot.val()
 	            console.log("Processing pending transaction: ", JPS.pendingTransaction)
-	            return JPS.firebase.database().ref('/transactions/'+JPS.pendingTransaction.user+'/'+JPS.pendingTransaction.timestamp)
-	            .update(Object.assign(
+	            JPS.dataToUpdate = Object.assign(
 	              JPS.pendingTransaction.transaction, 
 	              JPS.pendingTransaction.shopItem, {
 	              details: {
@@ -322,7 +321,9 @@ module.exports =
 	                  paymentMethod: JPS.paymentMethod 
 	                }
 	              }
-	            }))
+	            });
+	            return JPS.firebase.database().ref('/transactions/'+JPS.pendingTransaction.user+'/'+JPS.pendingTransaction.timestamp)
+	            .update(JPS.dataToUpdate)
 	            .then(() => {
 	              console.log("Pending transaction processed succesfully. Removing pending record.");
 	              return JPS.firebase.database().ref('/pendingtransactions/'+JPS.orderNumber).remove();
@@ -338,12 +339,15 @@ module.exports =
 	                    })
 	                    .then(()=>{
 	                        console.log("Updated SC-bookings succesfully");
+	                        JPS.mailer.sendReceipt(JPS.pendingTransaction.receiptEmail, JPS.dataToUpdate, JPS.pendingTransaction.timestamp);
 	                    })
 	                    .catch(error => {
 	                      console.error("Processing SC-bookings failed: ", JPS.orderNumber, error);
 	                      throw(new Error("Processing SC-bookings failed: " + JPS.orderNumber + error.message))
 	                    })                        
-	              }                 
+	              } else {
+	                JPS.mailer.sendReceipt(JPS.pendingTransaction.receiptEmail, JPS.dataToUpdate, JPS.pendingTransaction.timestamp);
+	              }                
 	            })
 	            .catch(error => {
 	              console.error("Processing pendingtransactions failed: ", JPS.orderNumber, error);
@@ -1213,8 +1217,7 @@ module.exports =
 	                  .then(snapshot => {
 	                    JPS.pendingTransaction = snapshot.val()
 	                    console.log("Processing pending transaction: ", JPS.pendingTransaction)
-	                    return JPS.firebase.database().ref('/transactions/'+JPS.pendingTransaction.user+'/'+JPS.pendingTransaction.timestamp)
-	                    .update(Object.assign(
+	                    JPS.dataToUpdate = Object.assign(
 	                      JPS.pendingTransaction.transaction, 
 	                      JPS.pendingTransaction.shopItem, {
 	                      details: {
@@ -1228,7 +1231,9 @@ module.exports =
 	                          paymentMethod: JPS.paymentMethod 
 	                        }
 	                      }
-	                    }))
+	                    })
+	                    return JPS.firebase.database().ref('/transactions/'+JPS.pendingTransaction.user+'/'+JPS.pendingTransaction.timestamp)
+	                    .update(JPS.dataToUpdate)
 	                  })
 	                  .then(() => {
 	                    console.log("Pending transaction processed succesfully. Removing pending record.");
@@ -1245,6 +1250,7 @@ module.exports =
 	                          })
 	                          .then(()=>{
 	                              console.log("Updated SC-bookings succesfully");
+	                              JPS.mailer.sendReceipt(JPS.pendingTransaction.receiptEmail, JPS.dataToUpdate, JPS.pendingTransaction.timestamp);
 	                              res.status(200).end();
 	                          })
 	                          .catch(error => {
@@ -1252,6 +1258,7 @@ module.exports =
 	                            throw(new Error("Processing SC-bookings failed: " + JPS.orderNumber + error.message))
 	                          })                        
 	                    } else {
+	                      JPS.mailer.sendReceipt(JPS.pendingTransaction.receiptEmail, JPS.dataToUpdate, JPS.pendingTransaction.timestamp);
 	                      res.status(200).end();
 	                    }                  
 	                  })
@@ -1343,7 +1350,7 @@ module.exports =
 	                })
 	                .then(snapshot => {
 	                    JPS.shopItem = snapshot.val();
-	                        console.log("shopitem: ",JPS.shopItem );
+	                    console.log("shopitem: ",JPS.shopItem );
 	                    JPS.transaction = {
 	                            user: JPS.user.key,
 	                            shopItem: JPS.shopItem,
@@ -1362,6 +1369,7 @@ module.exports =
 	                                transaction: JPS.transaction,
 	                                shopItem: JPS.shopItem,
 	                                user: JPS.user.key,
+	                                receiptEmail: JPS.user.email,
 	                                timestamp: JPS.now
 	                            },err => {
 	                                if(err){
@@ -1396,6 +1404,7 @@ module.exports =
 	                                JPS.ref = JPS.firebase.database().ref('/pendingtransactions/').push({
 	                                    transaction: JPS.transaction,
 	                                    shopItem: JPS.shopItem,
+	                                    receiptEmail: JPS.user.email,
 	                                    user: JPS.user.key,
 	                                    timestamp: JPS.now
 	                                }, err => {
@@ -1419,6 +1428,7 @@ module.exports =
 	                            transaction: JPS.transaction,
 	                            shopItem: JPS.shopItem,
 	                            user: JPS.user.key,
+	                            receiptEmail: JPS.user.email,
 	                            timestamp: JPS.now
 	                        }, err => {
 	                            if(err){
