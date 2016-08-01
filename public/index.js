@@ -330,10 +330,10 @@ module.exports =
 	            .then(() => {
 	              console.log("Pending record removed successfully.");
 	              if(JPS.pendingTransaction.shopItem.type === "special"){
-	                    JPS.firebase.database().ref('/scbookingsbycourse/' + JPS.pendingTransaction.shopItem.key + '/' + JPS.pendingTransaction.user)
+	                    JPS.firebase.database().ref('/scbookingsbycourse/' + JPS.pendingTransaction.shopItemKey + '/' + JPS.pendingTransaction.user)
 	                    .update({transactionReference: JPS.paymentTransactionRef, shopItem: JPS.pendingTransaction.shopItem})
 	                    .then(() => {
-	                        return JPS.firebase.database().ref('/scbookingsbyuser/' + JPS.pendingTransaction.user + '/' + JPS.pendingTransaction.shopItem.key)
+	                        return JPS.firebase.database().ref('/scbookingsbyuser/' + JPS.pendingTransaction.user + '/' + JPS.pendingTransaction.shopItemKey)
 	                        .update({transactionReference: JPS.paymentTransactionRef, shopItem: JPS.pendingTransaction.shopItem})
 	                    })
 	                    .then(()=>{
@@ -1237,10 +1237,10 @@ module.exports =
 	                  .then(() => {
 	                    console.log("Pending record removed successfully.");
 	                    if(JPS.pendingTransaction.shopItem.type === "special"){
-	                          JPS.firebase.database().ref('/scbookingsbycourse/' + JPS.pendingTransaction.shopItem.key + '/' + JPS.pendingTransaction.user)
+	                          JPS.firebase.database().ref('/scbookingsbycourse/' + JPS.pendingTransaction.shopItemKey + '/' + JPS.pendingTransaction.user)
 	                          .update({transactionReference: JPS.paymentTransactionRef, shopItem: JPS.pendingTransaction.shopItem})
 	                          .then(() => {
-	                              return JPS.firebase.database().ref('/scbookingsbyuser/' + JPS.pendingTransaction.user + '/' + JPS.pendingTransaction.shopItem.key)
+	                              return JPS.firebase.database().ref('/scbookingsbyuser/' + JPS.pendingTransaction.user + '/' + JPS.pendingTransaction.shopItemKey)
 	                              .update({transactionReference: JPS.paymentTransactionRef, shopItem: JPS.pendingTransaction.shopItem})
 	                          })
 	                          .then(()=>{
