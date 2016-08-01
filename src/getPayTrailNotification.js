@@ -31,7 +31,7 @@ exports.setApp = function (JPS){
         console.log("start processing: ", JPS.orderNumber);
         JPS.firebase.database().ref('/pendingtransactions/'+JPS.orderNumber).once('value')
         .then(snapshot => {
-          if(snapshot.val()){
+          if(snapshot.val() != null){
             JPS.pendingTransaction = snapshot.val()
             console.log("Processing pending transaction: ", JPS.pendingTransaction)
             return JPS.firebase.database().ref('/transactions/'+JPS.pendingTransaction.user+'/'+JPS.pendingTransaction.timestamp)

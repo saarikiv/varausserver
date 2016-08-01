@@ -30,7 +30,7 @@ exports.setApp = function(JPS) {
                     return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
                 })
                 .then(snapshot => {
-                    if(snapshot.val()){
+                    if(snapshot.val() != null){
                       JPS.user = snapshot.val()
                       JPS.user.key = snapshot.key;
                       return JPS.firebase.database().ref('/specialUsers/' + JPS.currentUserUID).once('value');

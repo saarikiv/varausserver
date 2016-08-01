@@ -304,7 +304,7 @@ module.exports =
 	        console.log("start processing: ", JPS.orderNumber);
 	        JPS.firebase.database().ref('/pendingtransactions/'+JPS.orderNumber).once('value')
 	        .then(snapshot => {
-	          if(snapshot.val()){
+	          if(snapshot.val() != null){
 	            JPS.pendingTransaction = snapshot.val()
 	            console.log("Processing pending transaction: ", JPS.pendingTransaction)
 	            return JPS.firebase.database().ref('/transactions/'+JPS.pendingTransaction.user+'/'+JPS.pendingTransaction.timestamp)
@@ -625,7 +625,7 @@ module.exports =
 	                    return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
 	                })
 	                .then(snapshot => {
-	                    if(snapshot.val()){
+	                    if(snapshot.val() != null){
 	                      JPS.user = snapshot.val()
 	                      JPS.user.key = snapshot.key;
 	                      return JPS.firebase.database().ref('/specialUsers/' + JPS.currentUserUID).once('value');
@@ -1282,7 +1282,7 @@ module.exports =
 	                    return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
 	                })
 	                .then(snapshot => {
-	                    if(snapshot.val()){
+	                    if(snapshot.val() != null){
 	                        JPS.user = snapshot.val()
 	                        JPS.user.key = snapshot.key;
 	                        switch(JPS.itemType){
@@ -1333,7 +1333,7 @@ module.exports =
 	                        JPS.lastTimeUserHasValidUseTime = JPS.now;
 	                        JPS.firebase.database().ref('/transactions/' + JPS.user.key).once('value')
 	                            .then(snapshot => {
-	                                if(snapshot.val()){ //User has previous transactions - find the latest expiry
+	                                if(snapshot.val() != null){ //User has previous transactions - find the latest expiry
 	                                    console.log("Porcessing users previous transactions to find latest expiry.");
 	                                    var one;
 	                                    var all = snapshot.val();

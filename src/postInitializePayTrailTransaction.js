@@ -28,7 +28,7 @@ exports.setApp = function(JPS) {
                     return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
                 })
                 .then(snapshot => {
-                    if(snapshot.val()){
+                    if(snapshot.val() != null){
                         JPS.user = snapshot.val()
                         JPS.user.key = snapshot.key;
                         switch(JPS.itemType){
@@ -79,7 +79,7 @@ exports.setApp = function(JPS) {
                         JPS.lastTimeUserHasValidUseTime = JPS.now;
                         JPS.firebase.database().ref('/transactions/' + JPS.user.key).once('value')
                             .then(snapshot => {
-                                if(snapshot.val()){ //User has previous transactions - find the latest expiry
+                                if(snapshot.val() != null){ //User has previous transactions - find the latest expiry
                                     console.log("Porcessing users previous transactions to find latest expiry.");
                                     var one;
                                     var all = snapshot.val();
