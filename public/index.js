@@ -304,35 +304,39 @@ module.exports =
 	        console.log("start processing: ", JPS.orderNumber);
 	        JPS.firebase.database().ref('/pendingtransactions/'+JPS.orderNumber).once('value')
 	        .then(snapshot => {
-	          JPS.pendingTransaction = snapshot.val()
-	          console.log("Processing pending transaction: ", JPS.pendingTransaction)
-	          return JPS.firebase.database().ref('/transactions/'+JPS.pendingTransaction.user+'/'+JPS.pendingTransaction.timestamp)
-	          .update(Object.assign(
-	            JPS.pendingTransaction.transaction, 
-	            JPS.pendingTransaction.shopItem, {
-	            details: {
-	              success: true,
-	              transaction: {
-	                pendingTransaction: JPS.orderNumber,
-	                amount: JPS.pendingTransaction.shopItem.price,
-	                currencyIsoCode: "EUR",
-	                id: JPS.paymentTransactionRef,
-	                paymentInstrumentType: "PayTrail",
-	                paymentMethod: JPS.paymentMethod 
+	          if(snapshot.val()){
+	            JPS.pendingTransaction = snapshot.val()
+	            console.log("Processing pending transaction: ", JPS.pendingTransaction)
+	            return JPS.firebase.database().ref('/transactions/'+JPS.pendingTransaction.user+'/'+JPS.pendingTransaction.timestamp)
+	            .update(Object.assign(
+	              JPS.pendingTransaction.transaction, 
+	              JPS.pendingTransaction.shopItem, {
+	              details: {
+	                success: true,
+	                transaction: {
+	                  pendingTransaction: JPS.orderNumber,
+	                  amount: JPS.pendingTransaction.shopItem.price,
+	                  currencyIsoCode: "EUR",
+	                  id: JPS.paymentTransactionRef,
+	                  paymentInstrumentType: "PayTrail",
+	                  paymentMethod: JPS.paymentMethod 
+	                }
 	              }
-	            }
-	          }))
-	        })
-	        .then(() => {
-	          console.log("Pending transaction processed succesfully. Removing pending record.");
-	          return JPS.firebase.database().ref('/pendingtransactions/'+JPS.orderNumber).remove();
-	        })
-	        .then(() => {
-	          console.log("Pending record removed successfully.");
-	        })
-	        .catch(error => {
-	          console.error("Processing pendingtransactions failed: ", JPS.orderNumber, error);
-	          throw(new Error("Processing pendingtransactions failed: " + JPS.orderNumber + error.message))
+	            }))
+	            .then(() => {
+	              console.log("Pending transaction processed succesfully. Removing pending record.");
+	              return JPS.firebase.database().ref('/pendingtransactions/'+JPS.orderNumber).remove();
+	            })
+	            .then(() => {
+	              console.log("Pending record removed successfully.");
+	            })
+	            .catch(error => {
+	              console.error("Processing pendingtransactions failed: ", JPS.orderNumber, error);
+	              throw(new Error("Processing pendingtransactions failed: " + JPS.orderNumber + error.message))
+	            })
+	          } else {
+	            console.log("Pending transaction has already been cleared");
+	          }
 	        })
 	////////////////
 	      } else {
