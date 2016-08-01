@@ -49,12 +49,12 @@ module.exports =
 	// Server main faile
 	//------------------------------------------
 
-	var express = __webpack_require__(17)
+	var express = __webpack_require__(18)
 	var JPS = {} //The global.
-	JPS.timeHelper = __webpack_require__(15)
+	JPS.timeHelper = __webpack_require__(16)
 	JPS.cancelHelper = __webpack_require__(2)
 	JPS.mailer = __webpack_require__(5)
-	JPS.braintree = __webpack_require__(16);
+	JPS.braintree = __webpack_require__(17);
 
 	console.log("ENV: ", process.env.PWD);
 	if (process.env.NODE_ENV == "production") {
@@ -74,7 +74,7 @@ module.exports =
 	        }
 	    };
 	}
-	JPS.firebase = __webpack_require__(18)
+	JPS.firebase = __webpack_require__(19)
 	JPS.app = express();
 	JPS.date = new Date();
 	JPS.listenport = 3000
@@ -126,7 +126,7 @@ module.exports =
 	JPS.mailer.initializeMail(JPS);
 
 	// Add headers
-	__webpack_require__(14).setApp(JPS);
+	__webpack_require__(15).setApp(JPS);
 
 	// Get client token
 	__webpack_require__(3).setApp(JPS);
@@ -135,13 +135,16 @@ module.exports =
 	__webpack_require__(4).setApp(JPS);
 
 	// Get paytrail auth code
-	__webpack_require__(12).setApp(JPS);
+	__webpack_require__(13).setApp(JPS);
 
 	// POST checkout
 	__webpack_require__(10).setApp(JPS);
 
-	// POST init paytrail
+	// POST complete paytrail
 	__webpack_require__(11).setApp(JPS);
+
+	// POST init paytrail
+	__webpack_require__(12).setApp(JPS);
 
 	// POST cancel paytrail
 	__webpack_require__(7).setApp(JPS);
@@ -153,7 +156,7 @@ module.exports =
 	__webpack_require__(6).setApp(JPS);
 
 	// POST reserve slot
-	__webpack_require__(13).setApp(JPS);
+	__webpack_require__(14).setApp(JPS);
 
 	// POST reserve slot
 	__webpack_require__(8).setApp(JPS);
@@ -358,7 +361,7 @@ module.exports =
 /***/ function(module, exports, __webpack_require__) {
 
 	var JPSM = {}
-	JPSM.Mailgun = __webpack_require__(19)
+	JPSM.Mailgun = __webpack_require__(20)
 	JPSM.mg_api_key = process.env.MAILGUN_API_KEY || 'key-4230707292ae718f00a8274d41beb7f3';
 	JPSM.mg_domain = 'sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
 	JPSM.mg_from_who = 'postmaster@sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
@@ -1126,6 +1129,123 @@ module.exports =
 
 /***/ },
 /* 11 */
+/***/ function(module, exports, __webpack_require__) {
+
+	
+	var md5 = __webpack_require__ (1)
+
+	exports.setApp = function (JPS){
+
+	//######################################################
+	// GET: clienttoken, needed for the client to initiate payment method
+	//######################################################
+
+	  JPS.app.post('/completepaytrail', (req, res) => {
+	    
+	    
+	    JPS.now = Date.now();
+	    console.log("completepaytrail requested.", JPS.now);
+	    JPS.body = '';
+	    req.on('data', (data) => {
+	        JPS.body += data;
+	        // Too much POST data, kill the connection!
+	        // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
+	        if (JPS.body.length > 1e6) req.connection.destroy();
+	    });
+	    req.on('end', () => {
+	        JPS.post = JSON.parse(JPS.body);
+	        JPS.currentUserToken = JPS.post.current_user;
+	        console.log("POST:", JPS.post);
+	        JPS.merchantAuthenticationhash = "6pKF4jkv97zmqBJ3ZL8gUw5DfT2NMQ"
+	        console.log("ORDER_NUMBER", JPS.post.ORDER_NUMBER);
+	        console.log("TIMESTAMP", JPS.post.TIMESTAMP);
+	        console.log("PAID", JPS.post.PAID);
+	        console.log("METHOD", JPS.post.METHOD);
+	        console.log("RETURN_AUTHCODE", JPS.post.RETURN_AUTHCODE);
+	        JPS.hashOK = md5(JPS.post.ORDER_NUMBER + '|' + JPS.post.TIMESTAMP + '|' + JPS.post.PAID + '|' + JPS.post.METHOD + '|' + JPS.merchantAuthenticationhash).toUpperCase()
+	        JPS.hashNOK = md5(JPS.post.ORDER_NUMBER + '|' + JPS.post.TIMESTAMP + '|' + JPS.merchantAuthenticationhash).toUpperCase()
+	        console.log("HASH-OK", JPS.hashOK);
+	        console.log("HASH-NOK", JPS.hashNOK);
+	        JPS.orderNumber = JPS.post.ORDER_NUMBER;
+	        JPS.timeStamp = JPS.post.TIMESTAMP;
+	        JPS.paymentTransactionRef = JPS.post.PAID;
+	        JPS.paymentMethod = JPS.post.METHOD
+	        JPS.authorizationCode = JPS.post.RETURN_AUTHCODE;
+
+	        JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
+	        .then(decodedToken => {
+	            JPS.currentUserUID = decodedToken.sub;
+	            console.log("User: ", JPS.currentUserUID, " requested completepaytrail.");
+	            if(JPS.post.PAID){
+	              console.log("Transaction was paid OK");
+	              if(JPS.hashOK === JPS.post.RETURN_AUTHCODE){
+	                console.log("Authorization code matches!!", JPS.hashOK);
+	                console.log("start processing: ", JPS.orderNumber);
+	                JPS.firebase.database().ref('/pendingtransactions/'+JPS.orderNumber).once('value')
+	                .then(snapshot => {
+	                  JPS.pendingTransaction = snapshot.val()
+	                  console.log("Processing pending transaction: ", JPS.pendingTransaction)
+	                  return JPS.firebase.database().ref('/transactions/'+JPS.pendingTransaction.user+'/'+JPS.pendingTransaction.timestamp)
+	                  .update(Object.assign(
+	                    JPS.pendingTransaction.transaction, 
+	                    JPS.pendingTransaction.shopItem, {
+	                    details: {
+	                      success: true,
+	                      transaction: {
+	                        pendingTransaction: JPS.orderNumber,
+	                        amount: JPS.pendingTransaction.shopItem.price,
+	                        currencyIsoCode: "EUR",
+	                        id: JPS.paymentTransactionRef,
+	                        paymentInstrumentType: "PayTrail",
+	                        paymentMethod: JPS.paymentMethod 
+	                      }
+	                    }
+	                  }))
+	                })
+	                .then(() => {
+	                  console.log("Pending transaction processed succesfully. Removing pending record.");
+	                  return JPS.firebase.database().ref('/pendingtransactions/'+JPS.orderNumber).remove();
+	                })
+	                .then(() => {
+	                  console.log("Pending record removed successfully.");
+	                  res.status(200).end();
+	                })
+	                .catch(error => {
+	                  console.error("Processing pendingtransactions failed: ", JPS.orderNumber, error);
+	                  throw(new Error("Processing pendingtransactions failed: " + JPS.orderNumber + error.message))
+	                })
+	        ////////////////
+	              } else {
+	                console.error("Input authorization code did not match: " + JPS.hashOK + "!=" + JPS.authorizationCode + " --- " + JPS.hashNOK);
+	                throw (new Error("Input authorization code did not match: " + JPS.hashOK + "!=" + JPS.authorizationCode + " --- " + JPS.hashNOK))
+	              }
+	            }
+	            else{
+	              console.log("Payment did not clear or was cancelled. Remove the pending transaction: ", JPS.orderNumber);
+	              JPS.firebase.database().ref('/pendingtransactions/'+JPS.orderNumber).remove()
+	              .then(() => {
+	                console.log("Pending transaction for NOK payment removed: ", JPS.orderNumber);
+	                res.status(200).end();
+	              })
+	              .catch(error => {
+	                console.error("Removing pending transaction failed.");
+	                throw (new Error("Removing pending transaction failed." + error.message))
+	              })
+	            }
+	        })
+	        .catch(err => {
+	            console.error("Complete Pay Trai transaction failed: ", err);
+	            res.status(500).jsonp({
+	                message: "Complete Pay Trai transaction failde." + err.toString()
+	            }).end(err);
+	        })
+	    })
+	  })
+	}
+
+
+/***/ },
+/* 12 */
 /***/ function(module, exports) {
 
 	exports.setApp = function(JPS) {
@@ -1274,7 +1394,7 @@ module.exports =
 
 
 /***/ },
-/* 12 */
+/* 13 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -1323,7 +1443,7 @@ module.exports =
 
 
 /***/ },
-/* 13 */
+/* 14 */
 /***/ function(module, exports) {
 
 	
@@ -1480,7 +1600,7 @@ module.exports =
 
 
 /***/ },
-/* 14 */
+/* 15 */
 /***/ function(module, exports) {
 
 	
@@ -1504,7 +1624,7 @@ module.exports =
 
 
 /***/ },
-/* 15 */
+/* 16 */
 /***/ function(module, exports) {
 
 	var JHLP = {}
@@ -1534,25 +1654,25 @@ module.exports =
 	}
 
 /***/ },
-/* 16 */
+/* 17 */
 /***/ function(module, exports) {
 
 	module.exports = require("braintree");
 
 /***/ },
-/* 17 */
+/* 18 */
 /***/ function(module, exports) {
 
 	module.exports = require("express");
 
 /***/ },
-/* 18 */
+/* 19 */
 /***/ function(module, exports) {
 
 	module.exports = require("firebase");
 
 /***/ },
-/* 19 */
+/* 20 */
 /***/ function(module, exports) {
 
 	module.exports = require("mailgun-js");
