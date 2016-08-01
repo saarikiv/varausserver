@@ -634,13 +634,13 @@ module.exports =
 	        req.on('end', () => {
 	            JPS.post = JSON.parse(JPS.body);
 	            JPS.currentUserToken = JPS.post.current_user;
-	            JPS.pendingTransaction = JPS.post.pending_transaction_id;
+	            JPS.pendingTransactionKey = JPS.post.pending_transaction_id;
 	            console.log("POST:", JPS.post);
 
 	            JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
 	                .then(decodedToken => {
 	                    JPS.currentUserUID = decodedToken.sub;
-	                    console.log("User: ", JPS.currentUserUID, " requested approveincomplete for trx: ", JPS.pendingTransaction);
+	                    console.log("User: ", JPS.currentUserUID, " requested approveincomplete for trx: ", JPS.pendingTransactionKey);
 	                    return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
 	                })
 	                .then(snapshot => {
@@ -652,7 +652,7 @@ module.exports =
 	                    JPS.specialUser = snapshot.val()
 	                    if (JPS.specialUser.admin || JPS.specialUser.instructor) {
 	                        console.log("USER requesting cashpay is ADMIN or INSTRUCTOR");
-	                        return JPS.firebase.database().ref('/pendingtransactions/' + JPS.pendingTransaction).once('value');
+	                        return JPS.firebase.database().ref('/pendingtransactions/' + JPS.pendingTransactionKey).once('value');
 	                    }
 	                    throw (new Error("Non admin or instructor user requesting cashbuy."))
 	                })
@@ -665,12 +665,11 @@ module.exports =
 	                      details: {
 	                        success: true,
 	                        transaction: {
-	                          pendingTransaction: JPS.orderNumber,
+	                          pendingTransaction: JPS.pendingTransactionKey,
 	                          amount: JPS.pendingTransaction.shopItem.price,
 	                          currencyIsoCode: "EUR",
-	                          id: JPS.paymentTransactionRef,
-	                          paymentInstrumentType: "PayTrail",
-	                          paymentMethod: JPS.paymentMethod 
+	                          id: JPS.user.lastname,
+	                          paymentInstrumentType: "Admin" 
 	                        }
 	                      }
 	                    })
@@ -678,7 +677,7 @@ module.exports =
 	                    .update(JPS.dataToUpdate)                    
 	                }).then(() => {
 	                    console.log("Pending transaction processed succesfully. Removing pending record.");
-	                    return JPS.firebase.database().ref('/pendingtransactions/'+JPS.orderNumber).remove();
+	                    return JPS.firebase.database().ref('/pendingtransactions/'+JPS.pendingTransactionKey).remove();
 	                  })
 	                  .then(() => {
 	                    console.log("Pending record removed successfully.");
