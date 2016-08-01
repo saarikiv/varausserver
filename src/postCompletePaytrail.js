@@ -122,8 +122,9 @@ exports.setApp = function (JPS){
                   throw (new Error("Removing pending transaction failed." + error.message))
                 })
               }
+            } else{
+              throw( new Error("User was not found in db: " + JPS.currentUserUID) );
             }
-            throw( new Error("User was not found in db: " + JPS.currentUserUID) );
 
         })
         .catch(err => {
