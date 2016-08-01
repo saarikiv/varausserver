@@ -56,6 +56,8 @@ exports.setApp = function (JPS){
                   console.log("start processing: ", JPS.orderNumber);
                   JPS.firebase.database().ref('/pendingtransactions/'+JPS.orderNumber).once('value')
                   .then(snapshot => {
+
+                    
                     JPS.pendingTransaction = snapshot.val()
                     console.log("Processing pending transaction: ", JPS.pendingTransaction)
                     JPS.dataToUpdate = Object.assign(

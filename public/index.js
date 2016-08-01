@@ -49,12 +49,12 @@ module.exports =
 	// Server main faile
 	//------------------------------------------
 
-	var express = __webpack_require__(18)
+	var express = __webpack_require__(19)
 	var JPS = {} //The global.
-	JPS.timeHelper = __webpack_require__(16)
+	JPS.timeHelper = __webpack_require__(17)
 	JPS.cancelHelper = __webpack_require__(2)
 	JPS.mailer = __webpack_require__(5)
-	JPS.braintree = __webpack_require__(17);
+	JPS.braintree = __webpack_require__(18);
 
 	console.log("ENV: ", process.env.PWD);
 	if (process.env.NODE_ENV == "production") {
@@ -74,7 +74,7 @@ module.exports =
 	        }
 	    };
 	}
-	JPS.firebase = __webpack_require__(19)
+	JPS.firebase = __webpack_require__(20)
 	JPS.app = express();
 	JPS.date = new Date();
 	JPS.listenport = 3000
@@ -126,7 +126,7 @@ module.exports =
 	JPS.mailer.initializeMail(JPS);
 
 	// Add headers
-	__webpack_require__(15).setApp(JPS);
+	__webpack_require__(16).setApp(JPS);
 
 	// Get client token
 	__webpack_require__(3).setApp(JPS);
@@ -135,31 +135,34 @@ module.exports =
 	__webpack_require__(4).setApp(JPS);
 
 	// Get paytrail auth code
-	__webpack_require__(13).setApp(JPS);
-
-	// POST checkout
-	__webpack_require__(10).setApp(JPS);
-
-	// POST complete paytrail
-	__webpack_require__(11).setApp(JPS);
-
-	// POST init paytrail
-	__webpack_require__(12).setApp(JPS);
-
-	// POST cancel paytrail
-	__webpack_require__(7).setApp(JPS);
-
-	// POST CashBuy
-	__webpack_require__(9).setApp(JPS);
-
-	// POST CancelCourse
-	__webpack_require__(6).setApp(JPS);
-
-	// POST reserve slot
 	__webpack_require__(14).setApp(JPS);
 
-	// POST reserve slot
+	// POST checkout
+	__webpack_require__(11).setApp(JPS);
+
+	// POST checkout
+	__webpack_require__(6).setApp(JPS);
+
+	// POST complete paytrail
+	__webpack_require__(12).setApp(JPS);
+
+	// POST init paytrail
+	__webpack_require__(13).setApp(JPS);
+
+	// POST cancel paytrail
 	__webpack_require__(8).setApp(JPS);
+
+	// POST CashBuy
+	__webpack_require__(10).setApp(JPS);
+
+	// POST CancelCourse
+	__webpack_require__(7).setApp(JPS);
+
+	// POST reserve slot
+	__webpack_require__(15).setApp(JPS);
+
+	// POST reserve slot
+	__webpack_require__(9).setApp(JPS);
 	/* WEBPACK VAR INJECTION */}.call(exports, "/"))
 
 /***/ },
@@ -384,7 +387,7 @@ module.exports =
 /***/ function(module, exports, __webpack_require__) {
 
 	var JPSM = {}
-	JPSM.Mailgun = __webpack_require__(20)
+	JPSM.Mailgun = __webpack_require__(21)
 	JPSM.mg_api_key = process.env.MAILGUN_API_KEY || 'key-4230707292ae718f00a8274d41beb7f3';
 	JPSM.mg_domain = 'sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
 	JPSM.mg_from_who = 'postmaster@sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
@@ -615,6 +618,107 @@ module.exports =
 	exports.setApp = function(JPS) {
 
 	    //######################################################
+	    // POST: cashbuy, post the item being purchased
+	    //######################################################
+	    JPS.app.post('/approveincomplete', (req, res) => {
+
+	        JPS.now = Date.now();
+	        console.log("approveincomplete requested.", JPS.now);
+	        JPS.body = '';
+	        req.on('data', (data) => {
+	            JPS.body += data;
+	            // Too much POST data, kill the connection!
+	            // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
+	            if (JPS.body.length > 1e6) req.connection.destroy();
+	        });
+	        req.on('end', () => {
+	            JPS.post = JSON.parse(JPS.body);
+	            JPS.currentUserToken = JPS.post.current_user;
+	            JPS.pendingTransaction = JPS.post.pending_transaction_id;
+	            console.log("POST:", JPS.post);
+
+	            JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
+	                .then(decodedToken => {
+	                    JPS.currentUserUID = decodedToken.sub;
+	                    console.log("User: ", JPS.currentUserUID, " requested approveincomplete for trx: ", JPS.pendingTransaction);
+	                    return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
+	                })
+	                .then(snapshot => {
+	                    JPS.user = snapshot.val()
+	                    JPS.user.key = snapshot.key;
+	                    return JPS.firebase.database().ref('/specialUsers/' + JPS.currentUserUID).once('value');
+	                })
+	                .then(snapshot => {
+	                    JPS.specialUser = snapshot.val()
+	                    if (JPS.specialUser.admin || JPS.specialUser.instructor) {
+	                        console.log("USER requesting cashpay is ADMIN or INSTRUCTOR");
+	                        return JPS.firebase.database().ref('/pendingtransactions/' + JPS.pendingTransaction).once('value');
+	                    }
+	                    throw (new Error("Non admin or instructor user requesting cashbuy."))
+	                })
+	                .then(snapshot => {
+	                    JPS.pendingTransaction = snapshot.val()
+	                    console.log("Processing pending transaction: ", JPS.pendingTransaction)
+	                    JPS.dataToUpdate = Object.assign(
+	                      JPS.pendingTransaction.transaction, 
+	                      JPS.pendingTransaction.shopItem, {
+	                      details: {
+	                        success: true,
+	                        transaction: {
+	                          pendingTransaction: JPS.orderNumber,
+	                          amount: JPS.pendingTransaction.shopItem.price,
+	                          currencyIsoCode: "EUR",
+	                          id: JPS.paymentTransactionRef,
+	                          paymentInstrumentType: "PayTrail",
+	                          paymentMethod: JPS.paymentMethod 
+	                        }
+	                      }
+	                    })
+	                    return JPS.firebase.database().ref('/transactions/'+JPS.pendingTransaction.user+'/'+JPS.pendingTransaction.timestamp)
+	                    .update(JPS.dataToUpdate)                    
+	                }).then(() => {
+	                    console.log("Pending transaction processed succesfully. Removing pending record.");
+	                    return JPS.firebase.database().ref('/pendingtransactions/'+JPS.orderNumber).remove();
+	                  })
+	                  .then(() => {
+	                    console.log("Pending record removed successfully.");
+	                    if(JPS.pendingTransaction.shopItem.type === "special"){
+	                          JPS.firebase.database().ref('/scbookingsbycourse/' + JPS.pendingTransaction.transaction.shopItemKey + '/' + JPS.pendingTransaction.user)
+	                          .update({transactionReference: JPS.paymentTransactionRef, shopItem: JPS.pendingTransaction.shopItem})
+	                          .then(() => {
+	                              return JPS.firebase.database().ref('/scbookingsbyuser/' + JPS.pendingTransaction.user + '/' + JPS.pendingTransaction.transaction.shopItemKey)
+	                              .update({transactionReference: JPS.paymentTransactionRef, shopItem: JPS.pendingTransaction.shopItem})
+	                          })
+	                          .then(()=>{
+	                              console.log("Updated SC-bookings succesfully");
+	                              JPS.mailer.sendReceipt(JPS.pendingTransaction.receiptEmail, JPS.dataToUpdate, JPS.pendingTransaction.timestamp);
+	                              res.status(200).end();
+	                          })
+	                          .catch(error => {
+	                            console.error("Processing SC-bookings failed: ", JPS.orderNumber, error);
+	                            throw(new Error("Processing SC-bookings failed: " + JPS.orderNumber + error.message))
+	                          })                        
+	                    } else {
+	                      JPS.mailer.sendReceipt(JPS.pendingTransaction.receiptEmail, JPS.dataToUpdate, JPS.pendingTransaction.timestamp);
+	                      res.status(200).end();
+	                    }                  
+	                }).catch(err => {
+	                    console.error("approveincomplete failde: ", err);
+	                    res.status(500).jsonp({
+	                        message: "approveincomplete failde." + err.toString()
+	                    }).end(err);
+	                });
+	        })
+	    })
+	}
+
+/***/ },
+/* 7 */
+/***/ function(module, exports) {
+
+	exports.setApp = function(JPS) {
+
+	    //######################################################
 	    // POST: cancelcourse, post the item being purchased
 	    //######################################################
 	    JPS.app.post('/cancelcourse', (req, res) => {
@@ -692,7 +796,7 @@ module.exports =
 
 
 /***/ },
-/* 7 */
+/* 8 */
 /***/ function(module, exports) {
 
 	exports.setApp = function(JPS) {
@@ -737,7 +841,7 @@ module.exports =
 
 
 /***/ },
-/* 8 */
+/* 9 */
 /***/ function(module, exports) {
 
 	exports.setApp = function(JPS) {
@@ -841,7 +945,7 @@ module.exports =
 
 
 /***/ },
-/* 9 */
+/* 10 */
 /***/ function(module, exports) {
 
 	exports.setApp = function(JPS) {
@@ -995,7 +1099,7 @@ module.exports =
 	}
 
 /***/ },
-/* 10 */
+/* 11 */
 /***/ function(module, exports) {
 
 	exports.setApp = function(JPS) {
@@ -1154,7 +1258,7 @@ module.exports =
 
 
 /***/ },
-/* 11 */
+/* 12 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -1215,6 +1319,8 @@ module.exports =
 	                  console.log("start processing: ", JPS.orderNumber);
 	                  JPS.firebase.database().ref('/pendingtransactions/'+JPS.orderNumber).once('value')
 	                  .then(snapshot => {
+
+	                    
 	                    JPS.pendingTransaction = snapshot.val()
 	                    console.log("Processing pending transaction: ", JPS.pendingTransaction)
 	                    JPS.dataToUpdate = Object.assign(
@@ -1301,7 +1407,7 @@ module.exports =
 
 
 /***/ },
-/* 12 */
+/* 13 */
 /***/ function(module, exports) {
 
 	exports.setApp = function(JPS) {
@@ -1453,7 +1559,7 @@ module.exports =
 
 
 /***/ },
-/* 13 */
+/* 14 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -1502,7 +1608,7 @@ module.exports =
 
 
 /***/ },
-/* 14 */
+/* 15 */
 /***/ function(module, exports) {
 
 	
@@ -1659,7 +1765,7 @@ module.exports =
 
 
 /***/ },
-/* 15 */
+/* 16 */
 /***/ function(module, exports) {
 
 	
@@ -1683,7 +1789,7 @@ module.exports =
 
 
 /***/ },
-/* 16 */
+/* 17 */
 /***/ function(module, exports) {
 
 	var JHLP = {}
@@ -1733,25 +1839,25 @@ module.exports =
 	}
 
 /***/ },
-/* 17 */
+/* 18 */
 /***/ function(module, exports) {
 
 	module.exports = require("braintree");
 
 /***/ },
-/* 18 */
+/* 19 */
 /***/ function(module, exports) {
 
 	module.exports = require("express");
 
 /***/ },
-/* 19 */
+/* 20 */
 /***/ function(module, exports) {
 
 	module.exports = require("firebase");
 
 /***/ },
-/* 20 */
+/* 21 */
 /***/ function(module, exports) {
 
 	module.exports = require("mailgun-js");

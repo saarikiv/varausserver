@@ -93,6 +93,9 @@ require('./postPayTrailAuthCode.js').setApp(JPS);
 // POST checkout
 require('./postCheckout.js').setApp(JPS);
 
+// POST checkout
+require('./postApproveIncomplete.js').setApp(JPS);
+
 // POST complete paytrail
 require('./postCompletePaytrail.js').setApp(JPS);
 
