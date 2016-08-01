@@ -57,10 +57,10 @@ exports.setApp = function (JPS){
             .then(() => {
               console.log("Pending record removed successfully.");
               if(JPS.pendingTransaction.shopItem.type === "special"){
-                    JPS.firebase.database().ref('/scbookingsbycourse/' + JPS.pendingTransaction.shopItemKey + '/' + JPS.pendingTransaction.user)
+                    JPS.firebase.database().ref('/scbookingsbycourse/' + JPS.pendingTransaction.transaction.shopItemKey + '/' + JPS.pendingTransaction.user)
                     .update({transactionReference: JPS.paymentTransactionRef, shopItem: JPS.pendingTransaction.shopItem})
                     .then(() => {
-                        return JPS.firebase.database().ref('/scbookingsbyuser/' + JPS.pendingTransaction.user + '/' + JPS.pendingTransaction.shopItemKey)
+                        return JPS.firebase.database().ref('/scbookingsbyuser/' + JPS.pendingTransaction.user + '/' + JPS.pendingTransaction.transaction.shopItemKey)
                         .update({transactionReference: JPS.paymentTransactionRef, shopItem: JPS.pendingTransaction.shopItem})
                     })
                     .then(()=>{

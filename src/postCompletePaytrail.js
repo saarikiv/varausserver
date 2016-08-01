@@ -89,10 +89,10 @@ exports.setApp = function (JPS){
                       console.log("SHOPITEMKEY: ", JPS.pendingTransaction, JPS.pendingTransaction.shopItemKey);
                       console.log("SHOPITEMKEY: ", JPS.pendingTransaction, JPS.pendingTransaction.shopItemKey);
                       console.log("SHOPITEMKEY: ", JPS.pendingTransaction, JPS.pendingTransaction.shopItemKey);
-                          JPS.firebase.database().ref('/scbookingsbycourse/' + JPS.pendingTransaction.shopItemKey + '/' + JPS.pendingTransaction.user)
+                          JPS.firebase.database().ref('/scbookingsbycourse/' + JPS.pendingTransaction.transaction.shopItemKey + '/' + JPS.pendingTransaction.user)
                           .update({transactionReference: JPS.paymentTransactionRef, shopItem: JPS.pendingTransaction.shopItem})
                           .then(() => {
-                              return JPS.firebase.database().ref('/scbookingsbyuser/' + JPS.pendingTransaction.user + '/' + JPS.pendingTransaction.shopItemKey)
+                              return JPS.firebase.database().ref('/scbookingsbyuser/' + JPS.pendingTransaction.user + '/' + JPS.pendingTransaction.transaction.shopItemKey)
                               .update({transactionReference: JPS.paymentTransactionRef, shopItem: JPS.pendingTransaction.shopItem})
                           })
                           .then(()=>{
