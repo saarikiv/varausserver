@@ -919,7 +919,7 @@ module.exports =
 	                        //calculate the expiry moment if type is count
 
 	                    if (JPS.shopItem.type === "count") {
-	                        JPS.shopItem.expires = JPS.date.setTime(JPS.now + JPS.shopItem.expiresAfterDays * 24 * 60 * 60 * 1000);
+	                        JPS.shopItem.expires = JPS.timeHelper.shiftUntilEndOfDayMs(JPS.date.setTime(JPS.now + JPS.shopItem.expiresAfterDays * 24 * 60 * 60 * 1000));
 	                        JPS.shopItem.unusedtimes = JPS.shopItem.usetimes;
 	                        JPS.firebase.database().ref('/transactions/' + JPS.forUser.key + '/' + JPS.now)
 	                            .update(Object.assign(JPS.transaction, JPS.shopItem))
@@ -944,7 +944,7 @@ module.exports =
 	                                        }
 	                                    }
 	                                }
-	                                JPS.shopItem.expires = JPS.date.setTime(JPS.lastTimeUserHasValidUseTime + JPS.shopItem.usedays * 24 * 60 * 60 * 1000);
+	                                JPS.shopItem.expires = JPS.timeHelper.shiftUntilEndOfDayMs(JPS.date.setTime(JPS.lastTimeUserHasValidUseTime + JPS.shopItem.usedays * 24 * 60 * 60 * 1000));
 	                                return JPS.firebase.database().ref('/transactions/' + JPS.forUser.key + '/' + JPS.now)
 	                                    .update(Object.assign(JPS.transaction, JPS.shopItem))
 	                            })
@@ -1076,7 +1076,7 @@ module.exports =
 	                            //==================================
 	                            //calculate the expiry moment if type is count
 	                        if (JPS.shopItem.type === "count") {
-	                            JPS.shopItem.expires = JPS.date.setTime(JPS.now + JPS.shopItem.expiresAfterDays * 24 * 60 * 60 * 1000);
+	                            JPS.shopItem.expires = JPS.timeHelper.shiftUntilEndOfDayMs(JPS.date.setTime(JPS.now + JPS.shopItem.expiresAfterDays * 24 * 60 * 60 * 1000));
 	                            JPS.shopItem.unusedtimes = JPS.shopItem.usetimes;
 	                            JPS.firebase.database().ref('/transactions/' + JPS.user.key + '/' + JPS.now)
 	                                .update(Object.assign(JPS.transaction, JPS.shopItem))
@@ -1101,7 +1101,7 @@ module.exports =
 	                                            }
 	                                        }
 	                                    }
-	                                    JPS.shopItem.expires = JPS.date.setTime(JPS.lastTimeUserHasValidUseTime + JPS.shopItem.usedays * 24 * 60 * 60 * 1000);
+	                                    JPS.shopItem.expires = JPS.timeHelper.shiftUntilEndOfDayMs(JPS.date.setTime(JPS.lastTimeUserHasValidUseTime + JPS.shopItem.usedays * 24 * 60 * 60 * 1000));
 	                                    return JPS.firebase.database().ref('/transactions/' + JPS.user.key + '/' + JPS.now)
 	                                        .update(Object.assign(JPS.transaction, JPS.shopItem))
 	                                })
@@ -1237,13 +1237,6 @@ module.exports =
 	                  .then(() => {
 	                    console.log("Pending record removed successfully.");
 	                    if(JPS.pendingTransaction.shopItem.type === "special"){
-	                      console.log("SHOPITEMKEY: ", JPS.pendingTransaction, JPS.pendingTransaction.shopItemKey);
-	                      console.log("SHOPITEMKEY: ", JPS.pendingTransaction, JPS.pendingTransaction.shopItemKey);
-	                      console.log("SHOPITEMKEY: ", JPS.pendingTransaction, JPS.pendingTransaction.shopItemKey);
-	                      console.log("SHOPITEMKEY: ", JPS.pendingTransaction, JPS.pendingTransaction.shopItemKey);
-	                      console.log("SHOPITEMKEY: ", JPS.pendingTransaction, JPS.pendingTransaction.shopItemKey);
-	                      console.log("SHOPITEMKEY: ", JPS.pendingTransaction, JPS.pendingTransaction.shopItemKey);
-	                      console.log("SHOPITEMKEY: ", JPS.pendingTransaction, JPS.pendingTransaction.shopItemKey);
 	                          JPS.firebase.database().ref('/scbookingsbycourse/' + JPS.pendingTransaction.transaction.shopItemKey + '/' + JPS.pendingTransaction.user)
 	                          .update({transactionReference: JPS.paymentTransactionRef, shopItem: JPS.pendingTransaction.shopItem})
 	                          .then(() => {
@@ -1363,7 +1356,7 @@ module.exports =
 	                        //==================================
 	                        //calculate the expiry moment if type is count
 	                    if (JPS.shopItem.type === "count") {
-	                        JPS.shopItem.expires = JPS.date.setTime(JPS.now + JPS.shopItem.expiresAfterDays * 24 * 60 * 60 * 1000);
+	                        JPS.shopItem.expires = JPS.timeHelper.shiftUntilEndOfDayMs(JPS.date.setTime(JPS.now + JPS.shopItem.expiresAfterDays * 24 * 60 * 60 * 1000));
 	                        JPS.shopItem.unusedtimes = JPS.shopItem.usetimes;
 	                        JPS.ref = JPS.firebase.database().ref('/pendingtransactions/').push({
 	                                transaction: JPS.transaction,
@@ -1398,7 +1391,7 @@ module.exports =
 	                                        }
 	                                    }
 	                                }
-	                                JPS.shopItem.expires = JPS.date.setTime(JPS.lastTimeUserHasValidUseTime + JPS.shopItem.usedays * 24 * 60 * 60 * 1000);
+	                                JPS.shopItem.expires = JPS.timeHelper.shiftUntilEndOfDayMs(JPS.date.setTime(JPS.lastTimeUserHasValidUseTime + JPS.shopItem.usedays * 24 * 60 * 60 * 1000));
 	                                console.log("This new time expires: ", JPS.shopItem.expires);
 	                                JPS.ref = JPS.firebase.database().ref('/pendingtransactions/').push({
 	                                    transaction: JPS.transaction,
@@ -1706,7 +1699,27 @@ module.exports =
 	    },
 	    getTimeStr: (day) => {
 	        return day.toTimeString()
+	    },
+	    getUntilEndOfDayMsFromNow: (now) => {
+	        JHLP.nowTime = new Date();
+	        JHLP.nowTime.setTime(now);
+	        JHLP.nowTime.setHours(23);
+	        JHLP.nowTime.setMinutes(59);
+	        JHLP.nowTime.setSeconds(59);
+	        JHLP.nowTime.setMilliseconds(999);
+	        return (now - JHLP.nowTime.getTime())
+	    },
+	    shiftUntilEndOfDayMs: (now) => {
+	        JHLP.nowTime = new Date();
+	        JHLP.nowTime.setTime(now);
+	        JHLP.nowTime.setHours(23);
+	        JHLP.nowTime.setMinutes(59);
+	        JHLP.nowTime.setSeconds(59);
+	        JHLP.nowTime.setMilliseconds(999);
+	        console.log("TIME HELPER - shift time to EOD:", JHLP.nowTime, (now - JHLP.nowTime.getTime()));
+	        return JHLP.nowTime.getTime()
 	    }
+
 	}
 
 /***/ },

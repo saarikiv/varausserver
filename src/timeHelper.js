@@ -21,5 +21,25 @@ module.exports = {
     },
     getTimeStr: (day) => {
         return day.toTimeString()
+    },
+    getUntilEndOfDayMsFromNow: (now) => {
+        JHLP.nowTime = new Date();
+        JHLP.nowTime.setTime(now);
+        JHLP.nowTime.setHours(23);
+        JHLP.nowTime.setMinutes(59);
+        JHLP.nowTime.setSeconds(59);
+        JHLP.nowTime.setMilliseconds(999);
+        return (JHLP.nowTime.getTime() - now)
+    },
+    shiftUntilEndOfDayMs: (now) => {
+        JHLP.nowTime = new Date();
+        JHLP.nowTime.setTime(now);
+        JHLP.nowTime.setHours(23);
+        JHLP.nowTime.setMinutes(59);
+        JHLP.nowTime.setSeconds(59);
+        JHLP.nowTime.setMilliseconds(999);
+        console.log("TIME HELPER - shift time to EOD:", JHLP.nowTime, (now - JHLP.nowTime.getTime()));
+        return JHLP.nowTime.getTime()
     }
+
 }

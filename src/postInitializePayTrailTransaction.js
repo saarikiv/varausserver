@@ -57,7 +57,7 @@ exports.setApp = function(JPS) {
                         //==================================
                         //calculate the expiry moment if type is count
                     if (JPS.shopItem.type === "count") {
-                        JPS.shopItem.expires = JPS.date.setTime(JPS.now + JPS.shopItem.expiresAfterDays * 24 * 60 * 60 * 1000);
+                        JPS.shopItem.expires = JPS.timeHelper.shiftUntilEndOfDayMs(JPS.date.setTime(JPS.now + JPS.shopItem.expiresAfterDays * 24 * 60 * 60 * 1000));
                         JPS.shopItem.unusedtimes = JPS.shopItem.usetimes;
                         JPS.ref = JPS.firebase.database().ref('/pendingtransactions/').push({
                                 transaction: JPS.transaction,
@@ -92,7 +92,7 @@ exports.setApp = function(JPS) {
                                         }
                                     }
                                 }
-                                JPS.shopItem.expires = JPS.date.setTime(JPS.lastTimeUserHasValidUseTime + JPS.shopItem.usedays * 24 * 60 * 60 * 1000);
+                                JPS.shopItem.expires = JPS.timeHelper.shiftUntilEndOfDayMs(JPS.date.setTime(JPS.lastTimeUserHasValidUseTime + JPS.shopItem.usedays * 24 * 60 * 60 * 1000));
                                 console.log("This new time expires: ", JPS.shopItem.expires);
                                 JPS.ref = JPS.firebase.database().ref('/pendingtransactions/').push({
                                     transaction: JPS.transaction,

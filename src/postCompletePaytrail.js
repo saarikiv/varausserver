@@ -82,13 +82,6 @@ exports.setApp = function (JPS){
                   .then(() => {
                     console.log("Pending record removed successfully.");
                     if(JPS.pendingTransaction.shopItem.type === "special"){
-                      console.log("SHOPITEMKEY: ", JPS.pendingTransaction, JPS.pendingTransaction.shopItemKey);
-                      console.log("SHOPITEMKEY: ", JPS.pendingTransaction, JPS.pendingTransaction.shopItemKey);
-                      console.log("SHOPITEMKEY: ", JPS.pendingTransaction, JPS.pendingTransaction.shopItemKey);
-                      console.log("SHOPITEMKEY: ", JPS.pendingTransaction, JPS.pendingTransaction.shopItemKey);
-                      console.log("SHOPITEMKEY: ", JPS.pendingTransaction, JPS.pendingTransaction.shopItemKey);
-                      console.log("SHOPITEMKEY: ", JPS.pendingTransaction, JPS.pendingTransaction.shopItemKey);
-                      console.log("SHOPITEMKEY: ", JPS.pendingTransaction, JPS.pendingTransaction.shopItemKey);
                           JPS.firebase.database().ref('/scbookingsbycourse/' + JPS.pendingTransaction.transaction.shopItemKey + '/' + JPS.pendingTransaction.user)
                           .update({transactionReference: JPS.paymentTransactionRef, shopItem: JPS.pendingTransaction.shopItem})
                           .then(() => {
