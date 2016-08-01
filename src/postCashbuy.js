@@ -64,7 +64,7 @@ exports.setApp = function(JPS) {
                             details: {
                                 success: true,
                                 transaction: {
-                                    id: "myyjä: " + JPS.user.sukunimi,
+                                    id: "myyjä: " + JPS.user.lastname,
                                     amount: JPS.shopItem.price.toString(),
                                     paymentInstrumentType: "cash",
                                     currencyIsoCode: "EUR"

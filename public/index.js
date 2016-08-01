@@ -906,7 +906,7 @@ module.exports =
 	                            details: {
 	                                success: true,
 	                                transaction: {
-	                                    id: "myyjä: " + JPS.user.sukunimi,
+	                                    id: "myyjä: " + JPS.user.lastname,
 	                                    amount: JPS.shopItem.price.toString(),
 	                                    paymentInstrumentType: "cash",
 	                                    currencyIsoCode: "EUR"
@@ -1707,7 +1707,7 @@ module.exports =
 	        JHLP.nowTime.setMinutes(59);
 	        JHLP.nowTime.setSeconds(59);
 	        JHLP.nowTime.setMilliseconds(999);
-	        return (now - JHLP.nowTime.getTime())
+	        return (JHLP.nowTime.getTime() - now)
 	    },
 	    shiftUntilEndOfDayMs: (now) => {
 	        JHLP.nowTime = new Date();
