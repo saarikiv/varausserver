@@ -1,10 +1,7 @@
 exports.setApp = function(JPS) {
 
     //######################################################
-    // POST: checkout, post the item being purchased
-    // This post will read the shop item and find out the token + price associated with it
-    // It then creates payment transaction and inserts the payment data to the firebase
-    // Finally adds to the users entitlement new tokens to use.
+    // POST: 
     //######################################################
     JPS.app.post('/initializepaytrailtransaction', (req, res) => {
 

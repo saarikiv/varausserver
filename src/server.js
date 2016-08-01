@@ -87,11 +87,17 @@ require('./getClientToken.js').setApp(JPS);
 // Get paytrail notification
 require('./getPayTrailNotification.js').setApp(JPS);
 
+// Get paytrail auth code
+require('./postPayTrailAuthCode.js').setApp(JPS);
+
 // POST checkout
 require('./postCheckout.js').setApp(JPS);
 
-// POST checkout
+// POST init paytrail
 require('./postInitializePayTrailTransaction.js').setApp(JPS);
+
+// POST cancel paytrail
+require('./postCancelPayTrailTransaction.js').setApp(JPS);
 
 // POST CashBuy
 require('./postCashbuy.js').setApp(JPS);
