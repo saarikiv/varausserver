@@ -29,8 +29,7 @@ exports.setApp = function (JPS){
       if(JPS.hashOK === req.query.RETURN_AUTHCODE){
         console.log("Authorization code matches!!", JPS.hashOK);
         console.log("start processing: ", JPS.orderNumber);
-
-        JPS.result = JPS.pendingTransactionsHelper.completePendingTransaction(JPS, JPS.orderNumber, JPS.paymentTransactionRef, "PayTrail", JPS.paymentMethod, false)
+        JPS.pendingTransactionsHelper.completePendingTransaction(JPS, JPS.orderNumber, JPS.paymentTransactionRef, "PayTrail", JPS.paymentMethod, false)
       } else {
         console.error("Input authorization code did not match: " + JPS.hashOK + "!=" + JPS.authorizationCode + " --- " + JPS.hashNOK);
       }
