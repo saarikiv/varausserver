@@ -6,6 +6,7 @@ var express = require('express')
 var JPS = {} //The global.
 JPS.timeHelper = require('./timeHelper.js')
 JPS.cancelHelper = require('./cancelHelper.js')
+JPS.pendingTransactionsHelper = require('./pendingTransactionsHelper.js')
 JPS.mailer = require('./mailer.js')
 JPS.braintree = require("braintree");
 

@@ -35,55 +35,17 @@ exports.setApp = function(JPS) {
                     JPS.specialUser = snapshot.val()
                     if (JPS.specialUser.admin || JPS.specialUser.instructor) {
                         console.log("USER requesting cashpay is ADMIN or INSTRUCTOR");
-                        return JPS.firebase.database().ref('/pendingtransactions/' + JPS.pendingTransactionKey).once('value');
-                    }
-                    throw (new Error("Non admin or instructor user requesting cashbuy."))
-                })
-                .then(snapshot => {
-                    JPS.pendingTransaction = snapshot.val()
-                    console.log("Processing pending transaction: ", JPS.pendingTransaction)
-                    JPS.dataToUpdate = Object.assign(
-                      JPS.pendingTransaction.transaction, 
-                      JPS.pendingTransaction.shopItem, {
-                      details: {
-                        success: true,
-                        transaction: {
-                          pendingTransaction: JPS.pendingTransactionKey,
-                          amount: JPS.pendingTransaction.shopItem.price,
-                          currencyIsoCode: "EUR",
-                          id: JPS.user.lastname,
-                          paymentInstrumentType: "Admin" 
+                        JPS.result = JPS.pendingTransactionsHelper.completePendingTransaction(JPS, JPS.pendingTransactionKey, JPS.user.lastname, "Admin")
+                        switch(JPS.result.code){
+                            case 200:
+                                res.status(200).end();
+                                break;
+                            case 500:
+                                throw(new Error(JPS.result.message))
                         }
-                      }
-                    })
-                    return JPS.firebase.database().ref('/transactions/'+JPS.pendingTransaction.user+'/'+JPS.pendingTransaction.timestamp)
-                    .update(JPS.dataToUpdate)                    
-                }).then(() => {
-                    console.log("Pending transaction processed succesfully. Removing pending record.");
-                    return JPS.firebase.database().ref('/pendingtransactions/'+JPS.pendingTransactionKey).remove();
-                  })
-                  .then(() => {
-                    console.log("Pending record removed successfully.");
-                    if(JPS.pendingTransaction.shopItem.type === "special"){
-                          JPS.firebase.database().ref('/scbookingsbycourse/' + JPS.pendingTransaction.transaction.shopItemKey + '/' + JPS.pendingTransaction.user)
-                          .update({transactionReference: JPS.paymentTransactionRef, shopItem: JPS.pendingTransaction.shopItem})
-                          .then(() => {
-                              return JPS.firebase.database().ref('/scbookingsbyuser/' + JPS.pendingTransaction.user + '/' + JPS.pendingTransaction.transaction.shopItemKey)
-                              .update({transactionReference: JPS.paymentTransactionRef, shopItem: JPS.pendingTransaction.shopItem})
-                          })
-                          .then(()=>{
-                              console.log("Updated SC-bookings succesfully");
-                              JPS.mailer.sendReceipt(JPS.pendingTransaction.receiptEmail, JPS.dataToUpdate, JPS.pendingTransaction.timestamp);
-                              res.status(200).end();
-                          })
-                          .catch(error => {
-                            console.error("Processing SC-bookings failed: ", JPS.orderNumber, error);
-                            throw(new Error("Processing SC-bookings failed: " + JPS.orderNumber + error.message))
-                          })                        
-                    } else {
-                      JPS.mailer.sendReceipt(JPS.pendingTransaction.receiptEmail, JPS.dataToUpdate, JPS.pendingTransaction.timestamp);
-                      res.status(200).end();
-                    }                  
+                    } else{
+                        throw (new Error("Non admin or instructor user requesting cashbuy."))
+                    }
                 }).catch(err => {
                     console.error("approveincomplete failde: ", err);
                     res.status(500).jsonp({
