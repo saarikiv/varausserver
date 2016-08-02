@@ -15,7 +15,7 @@ module.exports = {
                     details: {
                         success: true,
                         transaction: {
-                            pendingTransaction: JPS.pendingTransactionKey,
+                            pendingTransaction: pendingTransactionKey,
                             amount: JPS.pendingTransaction.shopItem.price,
                             currencyIsoCode: "EUR",
                             id: externalReference,
@@ -27,10 +27,10 @@ module.exports = {
                 return JPS.firebase.database().ref('/transactions/'+JPS.pendingTransaction.user+'/'+JPS.pendingTransaction.timestamp)
                 .update(JPS.dataToUpdate)                    
             }
-            throw( new Error("PendingTransactionHelper: Pending transaction was not found: " + JPS.pendingTransactionKey))
+            throw( new Error("PendingTransactionHelper: Pending transaction was not found: " + pendingTransactionKey))
         }).then(() => {
             console.log("Pending transaction processed succesfully. Removing pending record.");
-            return JPS.firebase.database().ref('/pendingtransactions/'+JPS.pendingTransactionKey).remove();
+            return JPS.firebase.database().ref('/pendingtransactions/'+pendingTransactionKey).remove();
         }).then(() => {
             console.log("Pending record removed successfully.");
             if(JPS.pendingTransaction.shopItem.type === "special"){
