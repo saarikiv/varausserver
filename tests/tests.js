@@ -5,11 +5,9 @@ module.exports = {
         var promise = new Promise( (resolve, reject) => {
             switch(testCase){
             case "firebase_error_log":
-            console.log("HERE");
                 JPS.tests.testFirebaseLogging(JPS)
                 .then(() => {resolve()})
                 .catch(error => {
-                    console.error("FAIL:", error);
                     reject(error)})
                 break;
             default:

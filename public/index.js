@@ -321,13 +321,6 @@ module.exports =
 	
 	module.exports = {
 	    logErrorToFirebase: (JPS, error) => {
-	        console.log("******************");
-	        console.log("******************");
-	        console.log("******************");
-	        console.log(JPS.firebase);
-	        console.log("******************");
-	        console.log("******************");
-	        console.log("******************");
 	        JPS.firebase.database().ref('/serverError/' + Date.now()).update({
 	            error
 	        }, err => {
@@ -1843,11 +1836,9 @@ module.exports =
 	        var promise = new Promise( (resolve, reject) => {
 	            switch(testCase){
 	            case "firebase_error_log":
-	            console.log("HERE");
 	                JPS.tests.testFirebaseLogging(JPS)
 	                .then(() => {resolve()})
 	                .catch(error => {
-	                    console.error("FAIL:", error);
 	                    reject(error)})
 	                break;
 	            default:
