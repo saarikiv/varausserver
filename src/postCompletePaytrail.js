@@ -54,62 +54,17 @@ exports.setApp = function (JPS){
                 if(JPS.hashOK === JPS.post.RETURN_AUTHCODE){
                   console.log("Authorization code matches!!", JPS.hashOK);
                   console.log("start processing: ", JPS.orderNumber);
-                  JPS.firebase.database().ref('/pendingtransactions/'+JPS.orderNumber).once('value')
-                  .then(snapshot => {
 
-                    
-                    JPS.pendingTransaction = snapshot.val()
-                    console.log("Processing pending transaction: ", JPS.pendingTransaction)
-                    JPS.dataToUpdate = Object.assign(
-                      JPS.pendingTransaction.transaction, 
-                      JPS.pendingTransaction.shopItem, {
-                      details: {
-                        success: true,
-                        transaction: {
-                          pendingTransaction: JPS.orderNumber,
-                          amount: JPS.pendingTransaction.shopItem.price,
-                          currencyIsoCode: "EUR",
-                          id: JPS.paymentTransactionRef,
-                          paymentInstrumentType: "PayTrail",
-                          paymentMethod: JPS.paymentMethod 
-                        }
-                      }
-                    })
-                    return JPS.firebase.database().ref('/transactions/'+JPS.pendingTransaction.user+'/'+JPS.pendingTransaction.timestamp)
-                    .update(JPS.dataToUpdate)
-                  })
-                  .then(() => {
-                    console.log("Pending transaction processed succesfully. Removing pending record.");
-                    return JPS.firebase.database().ref('/pendingtransactions/'+JPS.orderNumber).remove();
-                  })
-                  .then(() => {
-                    console.log("Pending record removed successfully.");
-                    if(JPS.pendingTransaction.shopItem.type === "special"){
-                          JPS.firebase.database().ref('/scbookingsbycourse/' + JPS.pendingTransaction.transaction.shopItemKey + '/' + JPS.pendingTransaction.user)
-                          .update({transactionReference: JPS.paymentTransactionRef, shopItem: JPS.pendingTransaction.shopItem})
-                          .then(() => {
-                              return JPS.firebase.database().ref('/scbookingsbyuser/' + JPS.pendingTransaction.user + '/' + JPS.pendingTransaction.transaction.shopItemKey)
-                              .update({transactionReference: JPS.paymentTransactionRef, shopItem: JPS.pendingTransaction.shopItem})
-                          })
-                          .then(()=>{
-                              console.log("Updated SC-bookings succesfully");
-                              JPS.mailer.sendReceipt(JPS.pendingTransaction.receiptEmail, JPS.dataToUpdate, JPS.pendingTransaction.timestamp);
-                              res.status(200).end();
-                          })
-                          .catch(error => {
-                            console.error("Processing SC-bookings failed: ", JPS.orderNumber, error);
-                            throw(new Error("Processing SC-bookings failed: " + JPS.orderNumber + error.message))
-                          })                        
-                    } else {
-                      JPS.mailer.sendReceipt(JPS.pendingTransaction.receiptEmail, JPS.dataToUpdate, JPS.pendingTransaction.timestamp);
+                  JPS.pendingTransactionsHelper.completePendingTransaction(JPS, JPS.orderNumber, JPS.paymentTransactionRef, "PayTrail", JPS.paymentMethod)
+                  .then( status => {
+                      console.log("Status from completing pending transaction: ", status);
                       res.status(200).end();
-                    }                  
                   })
-                  .catch(error => {
-                    console.error("Processing pendingtransactions failed: ", JPS.orderNumber, error);
-                    throw(new Error("Processing pendingtransactions failed: " + JPS.orderNumber + error.message))
+                  .catch((error) => {
+                      console.error("Complete pending transaction request failed: ", error);
+                      throw( new Error("Complete pending transaction request failed: " + error.message))
                   })
-          ////////////////
+
                 } else {
                   console.error("Input authorization code did not match: " + JPS.hashOK + "!=" + JPS.authorizationCode + " --- " + JPS.hashNOK);
                   throw (new Error("Input authorization code did not match: " + JPS.hashOK + "!=" + JPS.authorizationCode + " --- " + JPS.hashNOK))
@@ -135,7 +90,7 @@ exports.setApp = function (JPS){
         .catch(err => {
             console.error("Complete Pay Trai transaction failed: ", err);
             res.status(500).jsonp({
-                message: "Complete Pay Trai transaction failde." + err.toString()
+                message: "Complete Pay Trai transaction failde." + err
             }).end(err);
         })
     })

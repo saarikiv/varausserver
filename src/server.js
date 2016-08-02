@@ -5,6 +5,7 @@
 var express = require('express')
 var JPS = {} //The global.
 JPS.timeHelper = require('./timeHelper.js')
+JPS.errorHelper = require('./errorHelper.js')
 JPS.cancelHelper = require('./cancelHelper.js')
 JPS.pendingTransactionsHelper = require('./pendingTransactionsHelper.js')
 JPS.mailer = require('./mailer.js')
@@ -49,13 +50,7 @@ process.on('exit', (code) => {
 
 process.on('uncaughtException', (err) => {
     console.error("Caught exception:", err);
-    JPS.firebase.database().ref('/serverError/' + Date.now()).update({
-        error: err.toString()
-    }, err => {
-        if (err) {
-            console.error("Writing error to firebase failed: ", err);
-        }
-    })
+    JPS.errorHelper.logErrorToFirebase(JPS, err);
 })
 
 console.log("PROCESS: ", process);

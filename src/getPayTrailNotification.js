@@ -30,6 +30,16 @@ exports.setApp = function (JPS){
         console.log("Authorization code matches!!", JPS.hashOK);
         console.log("start processing: ", JPS.orderNumber);
         JPS.pendingTransactionsHelper.completePendingTransaction(JPS, JPS.orderNumber, JPS.paymentTransactionRef, "PayTrail", JPS.paymentMethod)
+        .then(status => {
+          console.log("Pending transaction processed OK.");
+        })
+        .catch(error => {
+          JPS.errorHelper.logErrorToFirebase({
+            message: "(getPayTrailNotification) Pending transaction processing failed",
+            pending: JPS.orderNumber,
+            externalRef: JPS.paymentTransactionRef
+          })
+        })
       } else {
         console.error("Input authorization code did not match: " + JPS.hashOK + "!=" + JPS.authorizationCode + " --- " + JPS.hashNOK);
       }

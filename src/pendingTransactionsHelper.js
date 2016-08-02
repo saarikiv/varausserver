@@ -3,6 +3,10 @@ module.exports = {
 
 
     completePendingTransaction: (JPS, pendingTransactionKey, externalReference, paymentInstrumentType, paymentMethod) => {
+
+        var promise = new Promise( (resolve, reject) => {
+//Promise/////////////////////////////////////////////////
+
         // Let's get the transaction at hand.
         JPS.firebase.database().ref('/pendingtransactions/' + pendingTransactionKey).once('value')
         .then(snapshot => {
@@ -35,10 +39,10 @@ module.exports = {
             console.log("Pending record removed successfully.");
             if(JPS.pendingTransaction.shopItem.type === "special"){
                 JPS.firebase.database().ref('/scbookingsbycourse/' + JPS.pendingTransaction.transaction.shopItemKey + '/' + JPS.pendingTransaction.user)
-                .update({transactionReference: JPS.paymentTransactionRef, shopItem: JPS.pendingTransaction.shopItem})
+                .update({transactionReference: JPS.pendingTransaction.timestamp, shopItem: JPS.pendingTransaction.shopItem})
                 .then(() => {
                     return JPS.firebase.database().ref('/scbookingsbyuser/' + JPS.pendingTransaction.user + '/' + JPS.pendingTransaction.transaction.shopItemKey)
-                    .update({transactionReference: JPS.paymentTransactionRef, shopItem: JPS.pendingTransaction.shopItem})
+                    .update({transactionReference: JPS.pendingTransaction.timestamp, shopItem: JPS.pendingTransaction.shopItem})
                 }).then(()=>{
                     console.log("Updated SC-bookings succesfully");
                     JPS.mailer.sendReceipt(JPS.pendingTransaction.receiptEmail, JPS.dataToUpdate, JPS.pendingTransaction.timestamp);
@@ -47,14 +51,18 @@ module.exports = {
                     console.error("Processing SC-bookings failed: ", pendingTransactionKey, error);
                     throw(new Error("Processing SC-bookings failed: " + pendingTransactionKey + error.message))
                 })
-                return {code: 200, message: "OK"};                    
+                resolve({code: 200, message: "OK"});                    
             } else {
                 JPS.mailer.sendReceipt(JPS.pendingTransaction.receiptEmail, JPS.dataToUpdate, JPS.pendingTransaction.timestamp);
-                return {code: 200, message: "OK"};
+                resolve({code: 200, message: "OK"});                    
             }                  
         }).catch(err => {
             console.error("completePendingTransaction failde: ", err, JPS.pendingTransaction);
-            return {code: 500, message: "completePendingTransaction failde: " + err.mesage, err};
+            reject({code: 500, message: "completePendingTransaction failde: " + err, err});
         });
+
+//Promise/////////////////////////////////////////////////
+        })
+        return promise;
     }
 }

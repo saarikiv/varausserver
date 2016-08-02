@@ -36,7 +36,14 @@ exports.setApp = function(JPS) {
                     if (JPS.specialUser.admin || JPS.specialUser.instructor) {
                         console.log("USER requesting approveincomplete is ADMIN or INSTRUCTOR");
                         JPS.pendingTransactionsHelper.completePendingTransaction(JPS, JPS.pendingTransactionKey, JPS.user.lastname, "Admin", null)
-                        res.status(200).end();
+                        .then( status => {
+                            console.log("Status from completing pending transaction: ", status);
+                            res.status(200).end();
+                        })
+                        .catch((error) => {
+                            console.error("Complete pending transaction request failed: ", error);
+                            throw( new Error("Complete pending transaction request failed: " + error.message))
+                        })
                     } else{
                         throw (new Error("Non admin or instructor user requesting cashbuy."))
                     }
