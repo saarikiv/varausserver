@@ -54,23 +54,23 @@ exports.setApp = function(JPS) {
                     console.log("Process participants: ", JPS.participants);
                     JPS.participants.forEach((item) => {
                       console.log("Processing: ", item);
-                        JPS.error = JPS.cancelHelper.cancelSlot(JPS, item.key, JPS.courseInfo, JPS.courseInstance, item.transactionReference)
-                        console.log("CANCELSLOT: ", JPS.error);
-                        if (JPS.error.code !== "OK") {
-                            console.error("One slot cancel failed: ", item.key, JPS.courseInfo, JPS.courseInstance, item.transactionReference)
+                        JPS.cancelHelper.cancelSlot(JPS, item.key, JPS.courseInfo, JPS.courseInstance, item.transactionReference)
+                        .then(() => {
+                            console.log("Course cancellation OK for user: " + item.key);
+                        })
+                        .catch(error => {
+                            console.error("One slot cancel failed: ", error, item.key, JPS.courseInfo, JPS.courseInstance, item.transactionReference)
                             JPS.firebase.database().ref('/cancelledCourses/' + JPS.courseInfo.key + '/' + JPS.courseInstance + '/failures/' + item.key).update({
-                                error: JPS.error.message,
+                                error: error,
                                 transactionReference: item.transactionReference,
                                 uid: item.key
                             })
-                        }
+                        })
                     })
-                    res.status(200).jsonp({ message: "Course cancelled succesfully." }).end();
+                    res.status(200).jsonp("Course cancelled succesfully.").end();
                 }).catch(err => {
                     console.error("cancelcourse failde: ", err);
-                    res.status(500).jsonp({
-                        message: "cancelcourse failde." + err.toString()
-                    }).end(err);
+                    res.status(500).jsonp("cancelcourse failde." + err.toString()).end(err);
                 });
         })
     })

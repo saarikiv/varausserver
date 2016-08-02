@@ -256,60 +256,59 @@ module.exports =
 	module.exports = {
 	    cancelSlot: (JPS, user, courseInfo, courseInstance, transactionReference) => {
 
-	      JPS.courseInfo = courseInfo;
-	      JPS.cancelItem = courseInstance;
-	      JPS.txRef = transactionReference;
-	      JPS.timezoneOffset = 0;
+	        var promise = new Promise((resolve, reject) => {
 
-	      console.log("USER:", user);
-	      JPS.firebase.database().ref('/bookingsbycourse/' + JPS.courseInfo.key + '/' + JPS.cancelItem + '/' + user).once('value')
-	      .then(snapshot => {
-	          if (snapshot.val() == null) {
-	              throw (new Error("Booking by-COURSE does not exist in the database."))
-	          }
-	          return JPS.firebase.database().ref('/bookingsbyuser/' + user + '/' + JPS.courseInfo.key + '/' + JPS.cancelItem).once('value');
-	      })
-	      .then(snapshot => {
-	          if (snapshot.val() == null) {
-	              throw (new Error("Booking by-USER does not exist in the database."))
-	          }
-	          return JPS.firebase.database().ref('/bookingsbyuser/' + user + '/' + JPS.courseInfo.key + '/' + JPS.cancelItem).remove();
-	      })
-	      .then(() => {
-	          return JPS.firebase.database().ref('/bookingsbycourse/' + JPS.courseInfo.key + '/' + JPS.cancelItem + '/' + user).remove();
-	      })
-	      .then(() => {
-	          console.log("Transaction reference: ", JPS.txRef)
-	          if (JPS.txRef != 0) {
-	              //Give back one use time for the user
-	              JPS.firebase.database().ref('/transactions/' + user + '/' + JPS.txRef).once('value')
-	                  .then(snapshot => {
-	                      if (snapshot.val() == null) {
-	                          throw (new Error("Transaction not found in the DB: TX:" + user + "/" + JPS.txRef));
-	                      }
-	                      JPS.unusedtimes = snapshot.val().unusedtimes;
-	                      JPS.unusedtimes++;
-	                      return JPS.firebase.database().ref('/transactions/' + user + '/' + JPS.txRef).update({
-	                          unusedtimes: JPS.unusedtimes
-	                      })
-	                  })
-	                  .then(err => {
-	                      if (err) {
-	                          throw (new Error(err.message + " " + err.code));
-	                      }
-	                      JPS.mailer.sendCourseCancellationCount(JPS.user.email, JPS.courseInfo, JPS.cancelItem); //Send confirmation email
-	                  }).catch(err => {
-	                      throw (new Error(err.message + " " + err.code));
-	                  })
-	          } else {
-	              JPS.mailer.sendCourseCancellationTime(JPS.user.email, JPS.courseInfo, JPS.cancelItem); //Send confirmation email
-	          }
-	      })
-	      .catch(err => {
-	          console.error("Cancel Slot failed: ", err);
-	          return {code: "NOK", message: "cancel slot failed: " + err.toString()}
-	      });
-	      return {code: "OK", message: "cancel ok"}
+	            console.log("USER:", user);
+	            JPS.firebase.database().ref('/bookingsbycourse/' + courseInfo.key + '/' + courseInstance + '/' + user).once('value')
+	            .then(snapshot => {
+	                if (snapshot.val() == null) {
+	                    throw (new Error("Booking by-COURSE does not exist in the database."))
+	                }
+	                return JPS.firebase.database().ref('/bookingsbyuser/' + user + '/' + courseInfo.key + '/' + courseInstance).once('value');
+	            })
+	            .then(snapshot => {
+	                if (snapshot.val() == null) {
+	                    throw (new Error("Booking by-USER does not exist in the database."))
+	                }
+	                return JPS.firebase.database().ref('/bookingsbyuser/' + user + '/' + courseInfo.key + '/' + courseInstance).remove();
+	            })
+	            .then(() => {
+	                return JPS.firebase.database().ref('/bookingsbycourse/' + courseInfo.key + '/' + courseInstance + '/' + user).remove();
+	            })
+	            .then(() => {
+	                console.log("Transaction reference: ", transactionReference)
+	                if (transactionReference != 0) {
+	                    //Give back one use time for the user
+	                    JPS.firebase.database().ref('/transactions/' + user + '/' + transactionReference).once('value')
+	                        .then(snapshot => {
+	                            if (snapshot.val() == null) {
+	                                throw (new Error("Transaction not found in the DB: TX:" + user + "/" + transactionReference));
+	                            }
+	                            JPS.unusedtimes = snapshot.val().unusedtimes;
+	                            JPS.unusedtimes++;
+	                            return JPS.firebase.database().ref('/transactions/' + user + '/' + transactionReference).update({
+	                                unusedtimes: JPS.unusedtimes
+	                            })
+	                        })
+	                        .then(err => {
+	                            if (err) {
+	                                throw (new Error(err.message + " " + err.code));
+	                            }
+	                            JPS.mailer.sendCourseCancellationCount(JPS.user.email, courseInfo, courseInstance); //Send confirmation email
+	                        }).catch(err => {
+	                            throw (new Error(err.message + " " + err.code));
+	                        })
+	                } else {
+	                    JPS.mailer.sendCourseCancellationTime(JPS.user.email, courseInfo, courseInstance); //Send confirmation email
+	                }
+	            })
+	            .catch(err => {
+	                console.error("Cancel Slot failed: ", err);
+	                reject( "cancel slot failed: " + err.toString() );
+	            });
+	            resolve()
+	        })
+	        return promise;
 	    }
 	}
 
@@ -807,23 +806,23 @@ module.exports =
 	                    console.log("Process participants: ", JPS.participants);
 	                    JPS.participants.forEach((item) => {
 	                      console.log("Processing: ", item);
-	                        JPS.error = JPS.cancelHelper.cancelSlot(JPS, item.key, JPS.courseInfo, JPS.courseInstance, item.transactionReference)
-	                        console.log("CANCELSLOT: ", JPS.error);
-	                        if (JPS.error.code !== "OK") {
-	                            console.error("One slot cancel failed: ", item.key, JPS.courseInfo, JPS.courseInstance, item.transactionReference)
+	                        JPS.cancelHelper.cancelSlot(JPS, item.key, JPS.courseInfo, JPS.courseInstance, item.transactionReference)
+	                        .then(() => {
+	                            console.log("Course cancellation OK for user: " + item.key);
+	                        })
+	                        .catch(error => {
+	                            console.error("One slot cancel failed: ", error, item.key, JPS.courseInfo, JPS.courseInstance, item.transactionReference)
 	                            JPS.firebase.database().ref('/cancelledCourses/' + JPS.courseInfo.key + '/' + JPS.courseInstance + '/failures/' + item.key).update({
-	                                error: JPS.error.message,
+	                                error: error,
 	                                transactionReference: item.transactionReference,
 	                                uid: item.key
 	                            })
-	                        }
+	                        })
 	                    })
-	                    res.status(200).jsonp({ message: "Course cancelled succesfully." }).end();
+	                    res.status(200).jsonp("Course cancelled succesfully.").end();
 	                }).catch(err => {
 	                    console.error("cancelcourse failde: ", err);
-	                    res.status(500).jsonp({
-	                        message: "cancelcourse failde." + err.toString()
-	                    }).end(err);
+	                    res.status(500).jsonp("cancelcourse failde." + err.toString()).end(err);
 	                });
 	        })
 	    })
