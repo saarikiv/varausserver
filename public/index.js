@@ -591,7 +591,7 @@ module.exports =
 	            if(throwOnNotFound){
 	                throw( new Error("PendingTransactionHelper: Pending transaction was not found: " + JPS.pendingTransactionKey))
 	            } else {
-	                console.Error("PendingTransactionHelper: (noThrow) Pending transaction was not found: " + JPS.pendingTransactionKey);
+	                console.error("PendingTransactionHelper: (noThrow) Pending transaction was not found: " + JPS.pendingTransactionKey);
 	                return {code: 200, message: "OK"};
 	            }
 	        }).then(() => {
