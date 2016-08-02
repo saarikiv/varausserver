@@ -308,13 +308,6 @@ module.exports =
 	        console.log("start processing: ", JPS.orderNumber);
 
 	        JPS.result = JPS.pendingTransactionsHelper.completePendingTransaction(JPS, JPS.orderNumber, JPS.paymentTransactionRef, "PayTrail", JPS.paymentMethod, false)
-	        switch(JPS.result.code){
-	            case 200:
-	                console.log("Pending transaction processed OK.");
-	                break;
-	            case 500:
-	                console.error("getPayTrailNotification failed:", JPS.result.message);  
-	        }
 	      } else {
 	        console.error("Input authorization code did not match: " + JPS.hashOK + "!=" + JPS.authorizationCode + " --- " + JPS.hashNOK);
 	      }
@@ -616,12 +609,12 @@ module.exports =
 	                }).then(()=>{
 	                    console.log("Updated SC-bookings succesfully");
 	                    JPS.mailer.sendReceipt(JPS.pendingTransaction.receiptEmail, JPS.dataToUpdate, JPS.pendingTransaction.timestamp);
-	                    return {code: 200, message: "OK"};
 	                })
 	                .catch(error => {
 	                    console.error("Processing SC-bookings failed: ", pendingTransactionKeyr, error);
 	                    throw(new Error("Processing SC-bookings failed: " + pendingTransactionKey + error.message))
-	                })                        
+	                })
+	                return {code: 200, message: "OK"};                    
 	            } else {
 	                JPS.mailer.sendReceipt(JPS.pendingTransaction.receiptEmail, JPS.dataToUpdate, JPS.pendingTransaction.timestamp);
 	                return {code: 200, message: "OK"};
@@ -674,15 +667,9 @@ module.exports =
 	                .then(snapshot => {
 	                    JPS.specialUser = snapshot.val()
 	                    if (JPS.specialUser.admin || JPS.specialUser.instructor) {
-	                        console.log("USER requesting cashpay is ADMIN or INSTRUCTOR");
+	                        console.log("USER requesting approveincomplete is ADMIN or INSTRUCTOR");
 	                        JPS.result = JPS.pendingTransactionsHelper.completePendingTransaction(JPS, JPS.pendingTransactionKey, JPS.user.lastname, "Admin")
-	                        switch(JPS.result.code){
-	                            case 200:
-	                                res.status(200).end();
-	                                break;
-	                            case 500:
-	                                throw(new Error(JPS.result.message))
-	                        }
+	                        res.status(200).end();
 	                    } else{
 	                        throw (new Error("Non admin or instructor user requesting cashbuy."))
 	                    }

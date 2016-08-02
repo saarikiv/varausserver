@@ -47,12 +47,12 @@ module.exports = {
                 }).then(()=>{
                     console.log("Updated SC-bookings succesfully");
                     JPS.mailer.sendReceipt(JPS.pendingTransaction.receiptEmail, JPS.dataToUpdate, JPS.pendingTransaction.timestamp);
-                    return {code: 200, message: "OK"};
                 })
                 .catch(error => {
                     console.error("Processing SC-bookings failed: ", pendingTransactionKeyr, error);
                     throw(new Error("Processing SC-bookings failed: " + pendingTransactionKey + error.message))
-                })                        
+                })
+                return {code: 200, message: "OK"};                    
             } else {
                 JPS.mailer.sendReceipt(JPS.pendingTransaction.receiptEmail, JPS.dataToUpdate, JPS.pendingTransaction.timestamp);
                 return {code: 200, message: "OK"};

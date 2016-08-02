@@ -31,13 +31,6 @@ exports.setApp = function (JPS){
         console.log("start processing: ", JPS.orderNumber);
 
         JPS.result = JPS.pendingTransactionsHelper.completePendingTransaction(JPS, JPS.orderNumber, JPS.paymentTransactionRef, "PayTrail", JPS.paymentMethod, false)
-        switch(JPS.result.code){
-            case 200:
-                console.log("Pending transaction processed OK.");
-                break;
-            case 500:
-                console.error("getPayTrailNotification failed:", JPS.result.message);  
-        }
       } else {
         console.error("Input authorization code did not match: " + JPS.hashOK + "!=" + JPS.authorizationCode + " --- " + JPS.hashNOK);
       }

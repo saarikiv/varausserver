@@ -34,15 +34,9 @@ exports.setApp = function(JPS) {
                 .then(snapshot => {
                     JPS.specialUser = snapshot.val()
                     if (JPS.specialUser.admin || JPS.specialUser.instructor) {
-                        console.log("USER requesting cashpay is ADMIN or INSTRUCTOR");
+                        console.log("USER requesting approveincomplete is ADMIN or INSTRUCTOR");
                         JPS.result = JPS.pendingTransactionsHelper.completePendingTransaction(JPS, JPS.pendingTransactionKey, JPS.user.lastname, "Admin")
-                        switch(JPS.result.code){
-                            case 200:
-                                res.status(200).end();
-                                break;
-                            case 500:
-                                throw(new Error(JPS.result.message))
-                        }
+                        res.status(200).end();
                     } else{
                         throw (new Error("Non admin or instructor user requesting cashbuy."))
                     }
