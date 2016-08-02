@@ -2,7 +2,7 @@
 module.exports = {
 
 
-    completePendingTransaction: (JPS, pendingTransactionKey, externalReference, paymentInstrumentType, paymentMethod = null, throwOnNotFound = true) => {
+    completePendingTransaction: (JPS, pendingTransactionKey, externalReference, paymentInstrumentType, paymentMethod, throwOnNotFound) => {
         // Let's get the transaction at hand.
         JPS.firebase.database().ref('/pendingtransactions/' + JPS.pendingTransactionKey).once('value')
         .then(snapshot => {

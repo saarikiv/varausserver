@@ -563,7 +563,7 @@ module.exports =
 	module.exports = {
 
 
-	    completePendingTransaction: (JPS, pendingTransactionKey, externalReference, paymentInstrumentType, paymentMethod = null, throwOnNotFound = true) => {
+	    completePendingTransaction: (JPS, pendingTransactionKey, externalReference, paymentInstrumentType, paymentMethod, throwOnNotFound) => {
 	        // Let's get the transaction at hand.
 	        JPS.firebase.database().ref('/pendingtransactions/' + JPS.pendingTransactionKey).once('value')
 	        .then(snapshot => {
@@ -667,7 +667,7 @@ module.exports =
 	                    JPS.specialUser = snapshot.val()
 	                    if (JPS.specialUser.admin || JPS.specialUser.instructor) {
 	                        console.log("USER requesting approveincomplete is ADMIN or INSTRUCTOR");
-	                        JPS.result = JPS.pendingTransactionsHelper.completePendingTransaction(JPS, JPS.pendingTransactionKey, JPS.user.lastname, "Admin")
+	                        JPS.pendingTransactionsHelper.completePendingTransaction(JPS, JPS.pendingTransactionKey, JPS.user.lastname, "Admin", null, true)
 	                        res.status(200).end();
 	                    } else{
 	                        throw (new Error("Non admin or instructor user requesting cashbuy."))
