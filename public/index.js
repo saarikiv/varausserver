@@ -306,7 +306,7 @@ module.exports =
 	      if(JPS.hashOK === req.query.RETURN_AUTHCODE){
 	        console.log("Authorization code matches!!", JPS.hashOK);
 	        console.log("start processing: ", JPS.orderNumber);
-	        JPS.pendingTransactionsHelper.completePendingTransaction(JPS, JPS.orderNumber, JPS.paymentTransactionRef, "PayTrail", JPS.paymentMethod, false)
+	        JPS.pendingTransactionsHelper.completePendingTransaction(JPS, JPS.orderNumber, JPS.paymentTransactionRef, "PayTrail", JPS.paymentMethod)
 	      } else {
 	        console.error("Input authorization code did not match: " + JPS.hashOK + "!=" + JPS.authorizationCode + " --- " + JPS.hashNOK);
 	      }
@@ -563,7 +563,7 @@ module.exports =
 	module.exports = {
 
 
-	    completePendingTransaction: (JPS, pendingTransactionKey, externalReference, paymentInstrumentType, paymentMethod, throwOnNotFound) => {
+	    completePendingTransaction: (JPS, pendingTransactionKey, externalReference, paymentInstrumentType, paymentMethod) => {
 	        // Let's get the transaction at hand.
 	        JPS.firebase.database().ref('/pendingtransactions/' + JPS.pendingTransactionKey).once('value')
 	        .then(snapshot => {
@@ -588,12 +588,7 @@ module.exports =
 	                return JPS.firebase.database().ref('/transactions/'+JPS.pendingTransaction.user+'/'+JPS.pendingTransaction.timestamp)
 	                .update(JPS.dataToUpdate)                    
 	            }
-	            if(throwOnNotFound){
-	                throw( new Error("PendingTransactionHelper: Pending transaction was not found: " + JPS.pendingTransactionKey))
-	            } else {
-	                console.error("PendingTransactionHelper: (noThrow) Pending transaction was not found: " + JPS.pendingTransactionKey);
-	                return {code: 200, message: "OK"};
-	            }
+	            throw( new Error("PendingTransactionHelper: Pending transaction was not found: " + JPS.pendingTransactionKey))
 	        }).then(() => {
 	            console.log("Pending transaction processed succesfully. Removing pending record.");
 	            return JPS.firebase.database().ref('/pendingtransactions/'+JPS.pendingTransactionKey).remove();
@@ -610,7 +605,7 @@ module.exports =
 	                    JPS.mailer.sendReceipt(JPS.pendingTransaction.receiptEmail, JPS.dataToUpdate, JPS.pendingTransaction.timestamp);
 	                })
 	                .catch(error => {
-	                    console.error("Processing SC-bookings failed: ", pendingTransactionKeyr, error);
+	                    console.error("Processing SC-bookings failed: ", pendingTransactionKey, error);
 	                    throw(new Error("Processing SC-bookings failed: " + pendingTransactionKey + error.message))
 	                })
 	                return {code: 200, message: "OK"};                    
@@ -619,7 +614,7 @@ module.exports =
 	                return {code: 200, message: "OK"};
 	            }                  
 	        }).catch(err => {
-	            console.error("completePendingTransaction failde: ", err);
+	            console.error("completePendingTransaction failde: ", err, JPS.pendingTransaction);
 	            return {code: 500, message: "completePendingTransaction failde: " + err.mesage, err};
 	        });
 	    }
@@ -667,7 +662,7 @@ module.exports =
 	                    JPS.specialUser = snapshot.val()
 	                    if (JPS.specialUser.admin || JPS.specialUser.instructor) {
 	                        console.log("USER requesting approveincomplete is ADMIN or INSTRUCTOR");
-	                        JPS.pendingTransactionsHelper.completePendingTransaction(JPS, JPS.pendingTransactionKey, JPS.user.lastname, "Admin", null, true)
+	                        JPS.pendingTransactionsHelper.completePendingTransaction(JPS, JPS.pendingTransactionKey, JPS.user.lastname, "Admin", null)
 	                        res.status(200).end();
 	                    } else{
 	                        throw (new Error("Non admin or instructor user requesting cashbuy."))
