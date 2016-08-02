@@ -49,14 +49,15 @@ module.exports =
 	// Server main faile
 	//------------------------------------------
 
-	var express = __webpack_require__(21)
+	var express = __webpack_require__(23)
 	var JPS = {} //The global.
-	JPS.timeHelper = __webpack_require__(19)
-	JPS.errorHelper = __webpack_require__(3)
-	JPS.cancelHelper = __webpack_require__(2)
+	JPS.tests = __webpack_require__(21)
+	JPS.timeHelper = __webpack_require__(8)
+	JPS.errorHelper = __webpack_require__(5)
+	JPS.cancelHelper = __webpack_require__(4)
 	JPS.pendingTransactionsHelper = __webpack_require__(7)
 	JPS.mailer = __webpack_require__(6)
-	JPS.braintree = __webpack_require__(20);
+	JPS.braintree = __webpack_require__(22);
 
 	console.log("ENV: ", process.env.PWD);
 	if (process.env.NODE_ENV == "production") {
@@ -76,7 +77,7 @@ module.exports =
 	        }
 	    };
 	}
-	JPS.firebase = __webpack_require__(22)
+	JPS.firebase = __webpack_require__(24)
 	JPS.app = express();
 	JPS.date = new Date();
 	JPS.listenport = 3000
@@ -121,44 +122,26 @@ module.exports =
 
 	JPS.mailer.initializeMail(JPS);
 
-	// Add headers
-	__webpack_require__(18).setApp(JPS);
+	// HEADERS
+	__webpack_require__(19).setApp(JPS);
 
-	// Get client token
-	__webpack_require__(4).setApp(JPS);
+	// GET
+	__webpack_require__(2).setApp(JPS);
+	__webpack_require__(3).setApp(JPS);
 
-	// Get paytrail notification
-	__webpack_require__(5).setApp(JPS);
-
-	// Get paytrail auth code
-	__webpack_require__(16).setApp(JPS);
-
-	// POST checkout
-	__webpack_require__(13).setApp(JPS);
-
-	// POST checkout
-	__webpack_require__(8).setApp(JPS);
-
-	// POST complete paytrail
-	__webpack_require__(14).setApp(JPS);
-
-	// POST init paytrail
-	__webpack_require__(15).setApp(JPS);
-
-	// POST cancel paytrail
-	__webpack_require__(10).setApp(JPS);
-
-	// POST CashBuy
-	__webpack_require__(12).setApp(JPS);
-
-	// POST CancelCourse
-	__webpack_require__(9).setApp(JPS);
-
-	// POST reserve slot
+	// POST
 	__webpack_require__(17).setApp(JPS);
-
-	// POST reserve slot
+	__webpack_require__(14).setApp(JPS);
+	__webpack_require__(9).setApp(JPS);
+	__webpack_require__(15).setApp(JPS);
+	__webpack_require__(16).setApp(JPS);
 	__webpack_require__(11).setApp(JPS);
+	__webpack_require__(13).setApp(JPS);
+	__webpack_require__(10).setApp(JPS);
+	__webpack_require__(18).setApp(JPS);
+	__webpack_require__(12).setApp(JPS);
+	__webpack_require__(20).setApp(JPS);
+
 	/* WEBPACK VAR INJECTION */}.call(exports, "/"))
 
 /***/ },
@@ -169,6 +152,105 @@ module.exports =
 
 /***/ },
 /* 2 */
+/***/ function(module, exports) {
+
+	
+	exports.setApp = function (JPS){
+	//######################################################
+	// GET: clienttoken, needed for the client to initiate payment method
+	//######################################################
+	JPS.app.get('/clientToken', (req, res) => {
+	  console.log("ClientToken requested");
+	  JPS.firebase.auth().verifyIdToken(req.query.token)
+	  .then( decodedToken => {
+	    var uid = decodedToken.sub;
+	    console.log("User: ", uid, " requested client token.");
+	    JPS.gateway.clientToken.generate({}, (err, response) => {
+	      if (err) {
+	        console.error("Client token generation failed:", err);
+	        throw(new Error("Token request to braintree gateway failed: err=" + err.toString()))
+	      }
+	      else {
+	        console.log("Sending client token: ", response.clientToken);
+	        res.status(200).end(response.clientToken);
+	      }
+	    })
+	  })
+	  .catch( err => {
+	    console.error("Get client token failed: ", err);
+	    res.status(500).jsonp({message: "Get client token failed."}).end(err);
+	  });
+	})
+	}
+
+
+/***/ },
+/* 3 */
+/***/ function(module, exports, __webpack_require__) {
+
+	
+	var md5 = __webpack_require__ (1)
+
+	exports.setApp = function (JPS){
+
+	//######################################################
+	// GET: clienttoken, needed for the client to initiate payment method
+	//######################################################
+
+	  JPS.app.get('/paytrailnotification', (req, res) => {
+	    JPS.merchantAuthenticationhash = "6pKF4jkv97zmqBJ3ZL8gUw5DfT2NMQ"
+	    console.log("paytrailnotification requested");
+	    console.log("ORDER_NUMBER", req.query.ORDER_NUMBER);
+	    console.log("TIMESTAMP", req.query.TIMESTAMP);
+	    console.log("PAID", req.query.PAID);
+	    console.log("METHOD", req.query.METHOD);
+	    console.log("RETURN_AUTHCODE", req.query.RETURN_AUTHCODE);
+	    JPS.hashOK = md5(req.query.ORDER_NUMBER + '|' + req.query.TIMESTAMP + '|' + req.query.PAID + '|' + req.query.METHOD + '|' + JPS.merchantAuthenticationhash).toUpperCase()
+	    JPS.hashNOK = md5(req.query.ORDER_NUMBER + '|' + req.query.TIMESTAMP + '|' + JPS.merchantAuthenticationhash).toUpperCase()
+	    console.log("HASH-OK", JPS.hashOK);
+	    console.log("HASH-NOK", JPS.hashNOK);
+	    JPS.orderNumber = req.query.ORDER_NUMBER;
+	    JPS.timeStamp = req.query.TIMESTAMP;
+	    JPS.paymentTransactionRef = req.query.PAID;
+	    JPS.paymentMethod = req.query.METHOD
+	    JPS.authorizationCode = req.query.RETURN_AUTHCODE;
+	    if(req.query.PAID){
+	      console.log("Transaction was paid OK");
+	      if(JPS.hashOK === req.query.RETURN_AUTHCODE){
+	        console.log("Authorization code matches!!", JPS.hashOK);
+	        console.log("start processing: ", JPS.orderNumber);
+	        JPS.pendingTransactionsHelper.completePendingTransaction(JPS, JPS.orderNumber, JPS.paymentTransactionRef, "PayTrail", JPS.paymentMethod)
+	        .then(status => {
+	          console.log("Pending transaction processed OK.");
+	        })
+	        .catch(error => {
+	          JPS.errorHelper.logErrorToFirebase(JPS,{
+	            message: "(getPayTrailNotification) Pending transaction processing failed",
+	            pending: JPS.orderNumber,
+	            externalRef: JPS.paymentTransactionRef
+	          })
+	        })
+	      } else {
+	        console.error("Input authorization code did not match: " + JPS.hashOK + "!=" + JPS.authorizationCode + " --- " + JPS.hashNOK);
+	      }
+	    }
+	    else{
+	      console.log("Payment did not clear or was cancelled. Remove the pending transaction: ", JPS.orderNumber);
+	      JPS.firebase.database().ref('/pendingtransactions/'+JPS.orderNumber).remove()
+	      .then(() => {
+	        console.log("Pending transaction for NOK payment removed: ", JPS.orderNumber);
+	      })
+	      .catch(error => {
+	        console.error("Removing pending transaction failed.");
+	      })
+	    }
+	    res.status(200).end();
+	  })
+	}
+
+
+/***/ },
+/* 4 */
 /***/ function(module, exports) {
 
 	module.exports = {
@@ -233,12 +315,19 @@ module.exports =
 
 
 /***/ },
-/* 3 */
+/* 5 */
 /***/ function(module, exports) {
 
 	
 	module.exports = {
 	    logErrorToFirebase: (JPS, error) => {
+	        console.log("******************");
+	        console.log("******************");
+	        console.log("******************");
+	        console.log(JPS.firebase);
+	        console.log("******************");
+	        console.log("******************");
+	        console.log("******************");
 	        JPS.firebase.database().ref('/serverError/' + Date.now()).update({
 	            error
 	        }, err => {
@@ -250,110 +339,11 @@ module.exports =
 	}
 
 /***/ },
-/* 4 */
-/***/ function(module, exports) {
-
-	
-	exports.setApp = function (JPS){
-	//######################################################
-	// GET: clienttoken, needed for the client to initiate payment method
-	//######################################################
-	JPS.app.get('/clientToken', (req, res) => {
-	  console.log("ClientToken requested");
-	  JPS.firebase.auth().verifyIdToken(req.query.token)
-	  .then( decodedToken => {
-	    var uid = decodedToken.sub;
-	    console.log("User: ", uid, " requested client token.");
-	    JPS.gateway.clientToken.generate({}, (err, response) => {
-	      if (err) {
-	        console.error("Client token generation failed:", err);
-	        throw(new Error("Token request to braintree gateway failed: err=" + err.toString()))
-	      }
-	      else {
-	        console.log("Sending client token: ", response.clientToken);
-	        res.status(200).end(response.clientToken);
-	      }
-	    })
-	  })
-	  .catch( err => {
-	    console.error("Get client token failed: ", err);
-	    res.status(500).jsonp({message: "Get client token failed."}).end(err);
-	  });
-	})
-	}
-
-
-/***/ },
-/* 5 */
-/***/ function(module, exports, __webpack_require__) {
-
-	
-	var md5 = __webpack_require__ (1)
-
-	exports.setApp = function (JPS){
-
-	//######################################################
-	// GET: clienttoken, needed for the client to initiate payment method
-	//######################################################
-
-	  JPS.app.get('/paytrailnotification', (req, res) => {
-	    JPS.merchantAuthenticationhash = "6pKF4jkv97zmqBJ3ZL8gUw5DfT2NMQ"
-	    console.log("paytrailnotification requested");
-	    console.log("ORDER_NUMBER", req.query.ORDER_NUMBER);
-	    console.log("TIMESTAMP", req.query.TIMESTAMP);
-	    console.log("PAID", req.query.PAID);
-	    console.log("METHOD", req.query.METHOD);
-	    console.log("RETURN_AUTHCODE", req.query.RETURN_AUTHCODE);
-	    JPS.hashOK = md5(req.query.ORDER_NUMBER + '|' + req.query.TIMESTAMP + '|' + req.query.PAID + '|' + req.query.METHOD + '|' + JPS.merchantAuthenticationhash).toUpperCase()
-	    JPS.hashNOK = md5(req.query.ORDER_NUMBER + '|' + req.query.TIMESTAMP + '|' + JPS.merchantAuthenticationhash).toUpperCase()
-	    console.log("HASH-OK", JPS.hashOK);
-	    console.log("HASH-NOK", JPS.hashNOK);
-	    JPS.orderNumber = req.query.ORDER_NUMBER;
-	    JPS.timeStamp = req.query.TIMESTAMP;
-	    JPS.paymentTransactionRef = req.query.PAID;
-	    JPS.paymentMethod = req.query.METHOD
-	    JPS.authorizationCode = req.query.RETURN_AUTHCODE;
-	    if(req.query.PAID){
-	      console.log("Transaction was paid OK");
-	      if(JPS.hashOK === req.query.RETURN_AUTHCODE){
-	        console.log("Authorization code matches!!", JPS.hashOK);
-	        console.log("start processing: ", JPS.orderNumber);
-	        JPS.pendingTransactionsHelper.completePendingTransaction(JPS, JPS.orderNumber, JPS.paymentTransactionRef, "PayTrail", JPS.paymentMethod)
-	        .then(status => {
-	          console.log("Pending transaction processed OK.");
-	        })
-	        .catch(error => {
-	          JPS.errorHelper.logErrorToFirebase({
-	            message: "(getPayTrailNotification) Pending transaction processing failed",
-	            pending: JPS.orderNumber,
-	            externalRef: JPS.paymentTransactionRef
-	          })
-	        })
-	      } else {
-	        console.error("Input authorization code did not match: " + JPS.hashOK + "!=" + JPS.authorizationCode + " --- " + JPS.hashNOK);
-	      }
-	    }
-	    else{
-	      console.log("Payment did not clear or was cancelled. Remove the pending transaction: ", JPS.orderNumber);
-	      JPS.firebase.database().ref('/pendingtransactions/'+JPS.orderNumber).remove()
-	      .then(() => {
-	        console.log("Pending transaction for NOK payment removed: ", JPS.orderNumber);
-	      })
-	      .catch(error => {
-	        console.error("Removing pending transaction failed.");
-	      })
-	    }
-	    res.status(200).end();
-	  })
-	}
-
-
-/***/ },
 /* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var JPSM = {}
-	JPSM.Mailgun = __webpack_require__(23)
+	JPSM.Mailgun = __webpack_require__(25)
 	JPSM.mg_api_key = process.env.MAILGUN_API_KEY || 'key-4230707292ae718f00a8274d41beb7f3';
 	JPSM.mg_domain = 'sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
 	JPSM.mg_from_who = 'postmaster@sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
@@ -655,6 +645,56 @@ module.exports =
 /* 8 */
 /***/ function(module, exports) {
 
+	var JHLP = {}
+
+	module.exports = {
+	    getCourseTimeLocal: (weeksForward, timeOfStart, dayNumber) => {
+
+	        JHLP.courseTime = new Date();
+	        JHLP.dayNumber = JHLP.courseTime.getDay()
+	        JHLP.dayNumber = (JHLP.dayNumber == 0) ? 7 : JHLP.dayNumber;
+	        JHLP.daysToAdd = weeksForward * 7 + dayNumber - JHLP.dayNumber;
+
+	        JHLP.courseTime.setHours(0);
+	        JHLP.courseTime.setMinutes(0);
+	        JHLP.courseTime.setSeconds(0);
+	        JHLP.courseTime.setMilliseconds(0);
+	        JHLP.courseTime.setTime(JHLP.courseTime.getTime() + JHLP.daysToAdd * 24 * 60 * 60 * 1000 + timeOfStart);
+
+	        return JHLP.courseTime;
+	    },
+	    getDayStr: (day) => {
+	        return day.getDate() + "." + day.getMonth() + "." + day.getFullYear()
+	    },
+	    getTimeStr: (day) => {
+	        return day.toTimeString()
+	    },
+	    getUntilEndOfDayMsFromNow: (now) => {
+	        JHLP.nowTime = new Date();
+	        JHLP.nowTime.setTime(now);
+	        JHLP.nowTime.setHours(23);
+	        JHLP.nowTime.setMinutes(59);
+	        JHLP.nowTime.setSeconds(59);
+	        JHLP.nowTime.setMilliseconds(999);
+	        return (JHLP.nowTime.getTime() - now)
+	    },
+	    shiftUntilEndOfDayMs: (now) => {
+	        JHLP.nowTime = new Date();
+	        JHLP.nowTime.setTime(now);
+	        JHLP.nowTime.setHours(23);
+	        JHLP.nowTime.setMinutes(59);
+	        JHLP.nowTime.setSeconds(59);
+	        JHLP.nowTime.setMilliseconds(999);
+	        console.log("TIME HELPER - shift time to EOD:", JHLP.nowTime, (now - JHLP.nowTime.getTime()));
+	        return JHLP.nowTime.getTime()
+	    }
+
+	}
+
+/***/ },
+/* 9 */
+/***/ function(module, exports) {
+
 	exports.setApp = function(JPS) {
 
 	    //######################################################
@@ -715,7 +755,7 @@ module.exports =
 	}
 
 /***/ },
-/* 9 */
+/* 10 */
 /***/ function(module, exports) {
 
 	exports.setApp = function(JPS) {
@@ -798,7 +838,7 @@ module.exports =
 
 
 /***/ },
-/* 10 */
+/* 11 */
 /***/ function(module, exports) {
 
 	exports.setApp = function(JPS) {
@@ -843,7 +883,7 @@ module.exports =
 
 
 /***/ },
-/* 11 */
+/* 12 */
 /***/ function(module, exports) {
 
 	exports.setApp = function(JPS) {
@@ -947,7 +987,7 @@ module.exports =
 
 
 /***/ },
-/* 12 */
+/* 13 */
 /***/ function(module, exports) {
 
 	exports.setApp = function(JPS) {
@@ -1101,7 +1141,7 @@ module.exports =
 	}
 
 /***/ },
-/* 13 */
+/* 14 */
 /***/ function(module, exports) {
 
 	exports.setApp = function(JPS) {
@@ -1260,7 +1300,7 @@ module.exports =
 
 
 /***/ },
-/* 14 */
+/* 15 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -1364,7 +1404,7 @@ module.exports =
 
 
 /***/ },
-/* 15 */
+/* 16 */
 /***/ function(module, exports) {
 
 	exports.setApp = function(JPS) {
@@ -1516,7 +1556,7 @@ module.exports =
 
 
 /***/ },
-/* 16 */
+/* 17 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -1565,7 +1605,7 @@ module.exports =
 
 
 /***/ },
-/* 17 */
+/* 18 */
 /***/ function(module, exports) {
 
 	
@@ -1722,7 +1762,7 @@ module.exports =
 
 
 /***/ },
-/* 18 */
+/* 19 */
 /***/ function(module, exports) {
 
 	
@@ -1746,75 +1786,122 @@ module.exports =
 
 
 /***/ },
-/* 19 */
-/***/ function(module, exports) {
-
-	var JHLP = {}
-
-	module.exports = {
-	    getCourseTimeLocal: (weeksForward, timeOfStart, dayNumber) => {
-
-	        JHLP.courseTime = new Date();
-	        JHLP.dayNumber = JHLP.courseTime.getDay()
-	        JHLP.dayNumber = (JHLP.dayNumber == 0) ? 7 : JHLP.dayNumber;
-	        JHLP.daysToAdd = weeksForward * 7 + dayNumber - JHLP.dayNumber;
-
-	        JHLP.courseTime.setHours(0);
-	        JHLP.courseTime.setMinutes(0);
-	        JHLP.courseTime.setSeconds(0);
-	        JHLP.courseTime.setMilliseconds(0);
-	        JHLP.courseTime.setTime(JHLP.courseTime.getTime() + JHLP.daysToAdd * 24 * 60 * 60 * 1000 + timeOfStart);
-
-	        return JHLP.courseTime;
-	    },
-	    getDayStr: (day) => {
-	        return day.getDate() + "." + day.getMonth() + "." + day.getFullYear()
-	    },
-	    getTimeStr: (day) => {
-	        return day.toTimeString()
-	    },
-	    getUntilEndOfDayMsFromNow: (now) => {
-	        JHLP.nowTime = new Date();
-	        JHLP.nowTime.setTime(now);
-	        JHLP.nowTime.setHours(23);
-	        JHLP.nowTime.setMinutes(59);
-	        JHLP.nowTime.setSeconds(59);
-	        JHLP.nowTime.setMilliseconds(999);
-	        return (JHLP.nowTime.getTime() - now)
-	    },
-	    shiftUntilEndOfDayMs: (now) => {
-	        JHLP.nowTime = new Date();
-	        JHLP.nowTime.setTime(now);
-	        JHLP.nowTime.setHours(23);
-	        JHLP.nowTime.setMinutes(59);
-	        JHLP.nowTime.setSeconds(59);
-	        JHLP.nowTime.setMilliseconds(999);
-	        console.log("TIME HELPER - shift time to EOD:", JHLP.nowTime, (now - JHLP.nowTime.getTime()));
-	        return JHLP.nowTime.getTime()
-	    }
-
-	}
-
-/***/ },
 /* 20 */
 /***/ function(module, exports) {
 
-	module.exports = require("braintree");
+	
+	exports.setApp = function (JPS){
+
+	  //######################################################
+	  // POST: reserveSlot
+	  // Reduces from the user needed tokens and assigns the user to the slot.
+	  // Caller must check that the user is entitled to the reservation.
+	  //######################################################
+
+	  JPS.app.post('/test', (req, res) => {
+	    JPS.now = Date.now();
+	    console.log("POST: test", JPS.now);
+	    JPS.body = '';
+	    req.on('data', (data) => {
+	      JPS.body += data;
+	      // Too much POST data, kill the connection!
+	      // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
+	      if (JPS.body.length > 1e6) req.connection.destroy();
+	    });
+
+	    req.on('end', () => {
+	      JPS.post = JSON.parse(JPS.body);
+	      console.log("POST:", JPS.post);
+	      JPS.currentUserToken = JPS.post.current_user;
+	      JPS.testCase = JPS.post.test_case;
+
+	      JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
+	      .then( decodedToken => {
+	        JPS.currentUserUID = decodedToken.sub;
+	        console.log("User: ", JPS.currentUserUID, " requested test - case: ", JPS.testCase);
+	        JPS.tests.executeTestCase(JPS, JPS.testCase)
+	        .then(() => {res.status(200).end();})
+	        .catch(error => {res.status(500).jsonp(error.toString()).end(error);})
+	      })
+	      .catch( err => {
+	        console.error("Test failed: ", err);
+	        res.status(500).jsonp({context: "Test failed", err}).end(err);
+	      })
+	    })
+	  })
+	}
+
 
 /***/ },
 /* 21 */
 /***/ function(module, exports) {
 
-	module.exports = require("express");
+	
+	module.exports = {
+
+	    executeTestCase: (JPS, testCase) => {
+	        var promise = new Promise( (resolve, reject) => {
+	            switch(testCase){
+	            case "firebase_error_log":
+	            console.log("HERE");
+	                JPS.tests.testFirebaseLogging(JPS)
+	                .then(() => {resolve()})
+	                .catch(error => {
+	                    console.error("FAIL:", error);
+	                    reject(error)})
+	                break;
+	            default:
+	                console.error("Test case was not known");
+	                reject("Unknown test case: " + testCase)
+	            }
+	        })
+	        return promise;
+	    },
+
+	    testFirebaseLogging: (JPS) => {
+	        var promise = new Promise( (resolve, reject) => {
+	            try{
+	                console.log("Test case: testFirebaseLogging");
+	                JPS.errorHelper.logErrorToFirebase(JPS,{
+	                    error: "testivirhe",
+	                    details: "jotain meni tosi pieleen",
+	                    context: {
+	                        id: 56,
+	                        runner: "iskari"
+	                    }
+	                })
+	            } 
+	            catch(e){
+	                console.error("Test case: testFirebaseLogging failed:", e);
+	                reject(e);
+	            }
+	            console.log("Test case: testFirebaseLogging passed");
+	            resolve();
+	        })
+	        return promise;
+	    }
+	}
 
 /***/ },
 /* 22 */
 /***/ function(module, exports) {
 
-	module.exports = require("firebase");
+	module.exports = require("braintree");
 
 /***/ },
 /* 23 */
+/***/ function(module, exports) {
+
+	module.exports = require("express");
+
+/***/ },
+/* 24 */
+/***/ function(module, exports) {
+
+	module.exports = require("firebase");
+
+/***/ },
+/* 25 */
 /***/ function(module, exports) {
 
 	module.exports = require("mailgun-js");

@@ -34,7 +34,7 @@ exports.setApp = function (JPS){
           console.log("Pending transaction processed OK.");
         })
         .catch(error => {
-          JPS.errorHelper.logErrorToFirebase({
+          JPS.errorHelper.logErrorToFirebase(JPS,{
             message: "(getPayTrailNotification) Pending transaction processing failed",
             pending: JPS.orderNumber,
             externalRef: JPS.paymentTransactionRef
