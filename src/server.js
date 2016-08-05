@@ -4,9 +4,12 @@
 
 var express = require('express')
 var JPS = {} //The global.
-JPS.timeHelper = require('./timeHelper.js')
-JPS.cancelHelper = require('./cancelHelper.js')
-JPS.mailer = require('./mailer.js')
+JPS.tests = require('../tests/tests.js')
+JPS.timeHelper = require('./helpers/timeHelper.js')
+JPS.errorHelper = require('./helpers/errorHelper.js')
+JPS.cancelHelper = require('./helpers/cancelHelper.js')
+JPS.pendingTransactionsHelper = require('./helpers/pendingTransactionsHelper.js')
+JPS.mailer = require('./helpers/mailer.js')
 JPS.braintree = require("braintree");
 
 console.log("ENV: ", process.env.PWD);
@@ -48,16 +51,11 @@ process.on('exit', (code) => {
 
 process.on('uncaughtException', (err) => {
     console.error("Caught exception:", err);
-    JPS.firebase.database().ref('/serverError/' + Date.now()).update({
-        error: err.toString()
-    }, err => {
-        if (err) {
-            console.error("Writing error to firebase failed: ", err);
-        }
-    })
+    JPS.errorHelper.logErrorToFirebase(JPS, err);
 })
 
 console.log("PROCESS: ", process);
+
 
 //Get port primarily from Environment
 JPS.app.set('port', (process.env.PORT || JPS.listenport));
@@ -77,26 +75,22 @@ JPS.app.listen(JPS.app.get('port'), function() {
 
 JPS.mailer.initializeMail(JPS);
 
-// Add headers
+// HEADERS
 require('./setHeaders.js').setApp(JPS);
 
-// Get client token
-require('./getClientToken.js').setApp(JPS);
+// GET
+require('./get/getClientToken.js').setApp(JPS);
+require('./get/getPayTrailNotification.js').setApp(JPS);
 
-// Get paytrail notification
-require('./getPayTrailNotification.js').setApp(JPS);
-
-// POST checkout
-require('./postCheckout.js').setApp(JPS);
-
-// POST CashBuy
-require('./postCashbuy.js').setApp(JPS);
-
-// POST CancelCourse
-require('./postCancelCourse.js').setApp(JPS);
-
-// POST reserve slot
-require('./postReserveSlot.js').setApp(JPS);
-
-// POST reserve slot
-require('./postCancelSlot.js').setApp(JPS);
+// POST
+require('./post/postPayTrailAuthCode.js').setApp(JPS);
+require('./post/postCheckout.js').setApp(JPS);
+require('./post/postApproveIncomplete.js').setApp(JPS);
+require('./post/postCompletePaytrail.js').setApp(JPS);
+require('./post/postInitializePayTrailTransaction.js').setApp(JPS);
+require('./post/postCancelPayTrailTransaction.js').setApp(JPS);
+require('./post/postCashbuy.js').setApp(JPS);
+require('./post/postCancelCourse.js').setApp(JPS);
+require('./post/postReserveSlot.js').setApp(JPS);
+require('./post/postCancelSlot.js').setApp(JPS);
+require('../tests/postTest.js').setApp(JPS);

@@ -64,7 +64,7 @@ exports.setApp = function(JPS) {
                             details: {
                                 success: true,
                                 transaction: {
-                                    id: "myyjä: " + JPS.user.sukunimi,
+                                    id: "myyjä: " + JPS.user.lastname,
                                     amount: JPS.shopItem.price.toString(),
                                     paymentInstrumentType: "cash",
                                     currencyIsoCode: "EUR"
@@ -77,7 +77,7 @@ exports.setApp = function(JPS) {
                         //calculate the expiry moment if type is count
 
                     if (JPS.shopItem.type === "count") {
-                        JPS.shopItem.expires = JPS.date.setTime(JPS.now + JPS.shopItem.expiresAfterDays * 24 * 60 * 60 * 1000);
+                        JPS.shopItem.expires = JPS.timeHelper.shiftUntilEndOfDayMs(JPS.date.setTime(JPS.now + JPS.shopItem.expiresAfterDays * 24 * 60 * 60 * 1000));
                         JPS.shopItem.unusedtimes = JPS.shopItem.usetimes;
                         JPS.firebase.database().ref('/transactions/' + JPS.forUser.key + '/' + JPS.now)
                             .update(Object.assign(JPS.transaction, JPS.shopItem))
@@ -102,7 +102,7 @@ exports.setApp = function(JPS) {
                                         }
                                     }
                                 }
-                                JPS.shopItem.expires = JPS.date.setTime(JPS.lastTimeUserHasValidUseTime + JPS.shopItem.usedays * 24 * 60 * 60 * 1000);
+                                JPS.shopItem.expires = JPS.timeHelper.shiftUntilEndOfDayMs(JPS.date.setTime(JPS.lastTimeUserHasValidUseTime + JPS.shopItem.usedays * 24 * 60 * 60 * 1000));
                                 return JPS.firebase.database().ref('/transactions/' + JPS.forUser.key + '/' + JPS.now)
                                     .update(Object.assign(JPS.transaction, JPS.shopItem))
                             })

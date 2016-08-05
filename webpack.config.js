@@ -26,8 +26,8 @@ module.exports = [
 	new webpack.optimize.OccurenceOrderPlugin(),
 	//new webpack.optimize.UglifyJsPlugin({ mangle: false, sourcemap: false }),
 	new CopyWebpackPlugin([
-		{ from: 'joogakoulusilta.json', to: '../public/joogakoulusilta.json'},
-		{ from: 'joogakoulusilta-projekti.json', to: '../public/joogakoulusilta-projekti.json'}
+		{ from: './keys/joogakoulusilta.json', to: '../public/joogakoulusilta.json'},
+		{ from: './keys/joogakoulusilta-projekti.json', to: '../public/joogakoulusilta-projekti.json'}
 	])],
 	externals: /^[a-z\-0-9]+$/,
 	module: {
