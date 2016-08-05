@@ -355,6 +355,38 @@ module.exports =
 	        JPSM.initialized = true;
 	    },
 
+	    sendThankyouForFeedback: (user) => {
+	        if (!JPSM.initialized) return;
+
+	        console.log("sendThankyouForFeedback")
+	        console.log(user)
+
+	        JPSM.html =
+	            "<h1>Kiitos palautteesta!</h1>" +
+	            "<p>Olemme vastaanottaneet palautteenne.</p>" +
+	            "<p>Arvostamme sitä, että käytit aikaasi antaaksesi meille palautetta.</p>" +
+	            "<p>Lähetämme teille tietoa toimenpiteistä, joihin palautteenne johtaa.</p>" +
+	            "<br>" +
+	            "<p>Ystävällisin terveisin,</p>" +
+	            "<p>Joogakoulu Silta</p>"
+	        console.log("Thankyou: ", JPSM.html)
+
+	        JPSM.data = {
+	            from: JPSM.mg_from_who,
+	            to: user.email,
+	            subject: 'Kitos palautteesta!',
+	            html: JPSM.html
+	        }
+	        JPSM.mailgun.messages().send(JPSM.data, (err, body) => {
+	            if (err) {
+	                console.error("MAILGUN-error: ", err);
+	            } else {
+	                console.log("MAIL-SENT: ", body);
+	            }
+	        });
+	    },
+
+
 	    sendFeedback: (user, feedback) => {
 	        if (!JPSM.initialized) return;
 
@@ -363,7 +395,7 @@ module.exports =
 	        console.log(feedback)
 
 	        JPSM.html =
-	            "<h1>Varauksen vahvistus</h1>" +
+	            "<h1>Palaute:</h1>" +
 	            "<p>"+ feedback +"</p>" +
 	            "<br>" +
 	            "<p> Terveisin " + user.email + "</p>"
@@ -371,7 +403,7 @@ module.exports =
 
 	        JPSM.data = {
 	            from: JPSM.mg_from_who,
-	            to: "tuomo.saarikivi@outlook.com",
+	            to: "tero.saarikivi@outlook.com",
 	            subject: 'Joogakoulu Silta palaute',
 	            html: JPSM.html
 	        }
@@ -1461,6 +1493,7 @@ module.exports =
 	                .then(snapshot => {
 	                    JPS.user = snapshot.val()
 	                    JPS.mailer.sendFeedback(JPS.user, JPS.feedbackMessage)
+	                    JPS.mailer.sendThankyouForFeedback(JPS.user)
 	                    res.status(200).jsonp("Feedback sent ok.").end()
 	                }).catch(err => {
 	                    console.error("Feedback failde: ", err);
