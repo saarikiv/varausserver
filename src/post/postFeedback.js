@@ -29,6 +29,7 @@ exports.setApp = function(JPS) {
                 .then(snapshot => {
                     JPS.user = snapshot.val()
                     JPS.mailer.sendFeedback(JPS.user, JPS.feedbackMessage)
+                    JPS.mailer.sendThankyouForFeedback(JPS.user)
                     res.status(200).jsonp("Feedback sent ok.").end()
                 }).catch(err => {
                     console.error("Feedback failde: ", err);
