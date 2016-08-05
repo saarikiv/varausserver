@@ -35,7 +35,7 @@ module.exports =
 /******/ 	__webpack_require__.c = installedModules;
 
 /******/ 	// __webpack_public_path__
-/******/ 	__webpack_require__.p = "/home/tsa/repo/joogaserver/public/";
+/******/ 	__webpack_require__.p = "/home/saarikiv/joogaserver/public/";
 
 /******/ 	// Load entry module and return exports
 /******/ 	return __webpack_require__(0);
@@ -49,15 +49,15 @@ module.exports =
 	// Server main faile
 	//------------------------------------------
 
-	var express = __webpack_require__(23)
+	var express = __webpack_require__(24)
 	var JPS = {} //The global.
-	JPS.tests = __webpack_require__(21)
+	JPS.tests = __webpack_require__(22)
 	JPS.timeHelper = __webpack_require__(8)
 	JPS.errorHelper = __webpack_require__(5)
 	JPS.cancelHelper = __webpack_require__(4)
 	JPS.pendingTransactionsHelper = __webpack_require__(7)
 	JPS.mailer = __webpack_require__(6)
-	JPS.braintree = __webpack_require__(22);
+	JPS.braintree = __webpack_require__(23);
 
 	console.log("ENV: ", process.env.PWD);
 	if (process.env.NODE_ENV == "production") {
@@ -77,7 +77,7 @@ module.exports =
 	        }
 	    };
 	}
-	JPS.firebase = __webpack_require__(24)
+	JPS.firebase = __webpack_require__(25)
 	JPS.app = express();
 	JPS.date = new Date();
 	JPS.listenport = 3000
@@ -123,24 +123,25 @@ module.exports =
 	JPS.mailer.initializeMail(JPS);
 
 	// HEADERS
-	__webpack_require__(19).setApp(JPS);
+	__webpack_require__(20).setApp(JPS);
 
 	// GET
 	__webpack_require__(2).setApp(JPS);
 	__webpack_require__(3).setApp(JPS);
 
 	// POST
-	__webpack_require__(17).setApp(JPS);
+	__webpack_require__(16).setApp(JPS);
+	__webpack_require__(18).setApp(JPS);
 	__webpack_require__(14).setApp(JPS);
 	__webpack_require__(9).setApp(JPS);
 	__webpack_require__(15).setApp(JPS);
-	__webpack_require__(16).setApp(JPS);
+	__webpack_require__(17).setApp(JPS);
 	__webpack_require__(11).setApp(JPS);
 	__webpack_require__(13).setApp(JPS);
 	__webpack_require__(10).setApp(JPS);
-	__webpack_require__(18).setApp(JPS);
+	__webpack_require__(19).setApp(JPS);
 	__webpack_require__(12).setApp(JPS);
-	__webpack_require__(20).setApp(JPS);
+	__webpack_require__(21).setApp(JPS);
 
 	/* WEBPACK VAR INJECTION */}.call(exports, "/"))
 
@@ -335,7 +336,7 @@ module.exports =
 /***/ function(module, exports, __webpack_require__) {
 
 	var JPSM = {}
-	JPSM.Mailgun = __webpack_require__(25)
+	JPSM.Mailgun = __webpack_require__(26)
 	JPSM.mg_api_key = process.env.MAILGUN_API_KEY || 'key-4230707292ae718f00a8274d41beb7f3';
 	JPSM.mg_domain = 'sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
 	JPSM.mg_from_who = 'postmaster@sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
@@ -354,6 +355,35 @@ module.exports =
 	        JPSM.initialized = true;
 	    },
 
+	    sendFeedback: (user, feedback) => {
+	        if (!JPSM.initialized) return;
+
+	        console.log("sendFeedback")
+	        console.log(user)
+	        console.log(feedback)
+
+	        JPSM.html =
+	            "<h1>Varauksen vahvistus</h1>" +
+	            "<p>"+ feedback +"</p>" +
+	            "<br>" +
+	            "<p> Terveisin " + user.email + "</p>"
+	        console.log("Feedback: ", JPSM.html)
+
+	        JPSM.data = {
+	            from: JPSM.mg_from_who,
+	            to: "tuomo.saarikivi@outlook.com",
+	            subject: 'Joogakoulu Silta palaute',
+	            html: JPSM.html
+	        }
+	        JPSM.mailgun.messages().send(JPSM.data, (err, body) => {
+	            if (err) {
+	                console.error("MAILGUN-error: ", err);
+	            } else {
+	                console.log("MAIL-SENT: ", body);
+	            }
+	        });
+	    },
+
 	    sendConfirmation: (sendTo, courseInfo, courseTime) => {
 	        if (!JPSM.initialized) return;
 
@@ -362,7 +392,7 @@ module.exports =
 	        console.log(courseInfo)
 	        console.log(courseTime)
 
-	        JPSM.html = 
+	        JPSM.html =
 	            "<h1>Varauksen vahvistus</h1>" +
 	            "<p>Varauksesi kurssille " + courseInfo.courseType.name + " on vahvistettu.</p>" +
 	            "<p>Kurssipäivä: " + JPSM.jps.timeHelper.getDayStr(courseTime) + "</p>" +
@@ -1100,26 +1130,26 @@ module.exports =
 	                                throw (new Error(err.message + " " + err.code));
 	                            });
 	                    }
-	                    if (JPS.shopItem.type === "special") {
-	                        console.log("special course purchase ok....");
-	                        JPS.shopItem.expires = 0;
-	                        JPS.firebase.database().ref('/transactions/' + JPS.forUser.key + '/' + JPS.now)
-	                            .update(Object.assign(JPS.transaction, JPS.shopItem))
-	                            .then(() => {
-	                                return JPS.firebase.database().ref('/scbookingsbycourse/' + JPS.shopItemKey + '/' + JPS.forUser.key)
-	                                    .update({ transactionReference: JPS.now, shopItem: JPS.shopItem })
-	                            })
-	                            .then(() => {
-	                                return JPS.firebase.database().ref('/scbookingsbyuser/' + JPS.forUser.key + '/' + JPS.shopItemKey)
-	                                    .update({ transactionReference: JPS.now, shopItem: JPS.shopItem })
-	                            })
-	                            .then(() => {
-	                                console.log("Transaction saved: ", JPS.transaction, JPS.shopItem);
-	                                res.status(200).jsonp(JPS.transaction).end();
-	                                JPS.mailer.sendReceipt(JPS.forUser.email, JPS.transaction, JPS.now); //Send confirmation email
-	                            }).catch(err => {
-	                                throw (new Error(err.message + " " + err.code));
-	                            });
+	                    if(JPS.shopItem.type === "special"){
+	                      console.log("special course purchase ok....");
+	                      JPS.shopItem.expires = 0;
+	                      JPS.firebase.database().ref('/transactions/' + JPS.forUser.key + '/' + JPS.now)
+	                          .update(Object.assign(JPS.transaction, JPS.shopItem))
+	                          .then(() => {
+	                            return JPS.firebase.database().ref('/scbookingsbycourse/' + JPS.shopItemKey + '/' + JPS.forUser.key)
+	                            .update({transactionReference: JPS.now})
+	                          })
+	                          .then(() => {
+	                            return JPS.firebase.database().ref('/scbookingsbyuser/' + JPS.forUser.key + '/' + JPS.shopItemKey)
+	                            .update({transactionReference: JPS.now, shopItem: JPS.shopItem})
+	                          })
+	                          .then(() => {
+	                              console.log("Transaction saved: ", JPS.transaction, JPS.shopItem);
+	                              res.status(200).jsonp(JPS.transaction).end();
+	                              JPS.mailer.sendReceipt(JPS.forUser.email, JPS.transaction, JPS.now); //Send confirmation email
+	                          }).catch(err => {
+	                              throw (new Error(err.message + " " + err.code));
+	                          });
 	                    }
 
 	                }).catch(err => {
@@ -1131,6 +1161,7 @@ module.exports =
 	        })
 	    })
 	}
+
 
 /***/ },
 /* 14 */
@@ -1264,7 +1295,7 @@ module.exports =
 	                              .update(Object.assign(JPS.transaction, JPS.shopItem))
 	                              .then(() => {
 	                                return JPS.firebase.database().ref('/scbookingsbycourse/' + JPS.shopItemKey + '/' + JPS.user.key)
-	                                .update({transactionReference: JPS.now, shopItem: JPS.shopItem})
+	                                .update({transactionReference: JPS.now})
 	                              })
 	                              .then(() => {
 	                                return JPS.firebase.database().ref('/scbookingsbyuser/' + JPS.forUser.key + '/' + JPS.shopItemKey)
@@ -1397,6 +1428,53 @@ module.exports =
 
 /***/ },
 /* 16 */
+/***/ function(module, exports) {
+
+	exports.setApp = function(JPS) {
+
+	    //######################################################
+	    // POST: cashbuy, post the item being purchased
+	    //######################################################
+	    JPS.app.post('/feedback', (req, res) => {
+
+	        JPS.now = Date.now();
+	        console.log("Feedback requested.", JPS.now);
+	        JPS.body = '';
+	        req.on('data', (data) => {
+	            JPS.body += data;
+	            // Too much POST data, kill the connection!
+	            // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
+	            if (JPS.body.length > 1e6) req.connection.destroy();
+	        });
+	        req.on('end', () => {
+	            JPS.post = JSON.parse(JPS.body);
+	            JPS.currentUserToken = JPS.post.current_user;
+	            JPS.feedbackMessage = JPS.post.feedback_message;
+	            console.log("POST:", JPS.post);
+
+	            JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
+	                .then(decodedToken => {
+	                    JPS.currentUserUID = decodedToken.sub;
+	                    console.log("User: ", JPS.currentUserUID, " requested cashbuy for user: ", JPS.forUserId);
+	                    return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
+	                })
+	                .then(snapshot => {
+	                    JPS.user = snapshot.val()
+	                    JPS.mailer.sendFeedback(JPS.user, JPS.feedbackMessage)
+	                    res.status(200).jsonp("Feedback sent ok.").end()
+	                }).catch(err => {
+	                    console.error("Feedback failde: ", err);
+	                    res.status(500).jsonp({
+	                        message: "Feedback failde." + err.toString()
+	                    }).end(err);
+	                });
+	        })
+	    })
+	}
+
+
+/***/ },
+/* 17 */
 /***/ function(module, exports) {
 
 	exports.setApp = function(JPS) {
@@ -1548,7 +1626,7 @@ module.exports =
 
 
 /***/ },
-/* 17 */
+/* 18 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -1597,7 +1675,7 @@ module.exports =
 
 
 /***/ },
-/* 18 */
+/* 19 */
 /***/ function(module, exports) {
 
 	
@@ -1754,7 +1832,7 @@ module.exports =
 
 
 /***/ },
-/* 19 */
+/* 20 */
 /***/ function(module, exports) {
 
 	
@@ -1778,7 +1856,7 @@ module.exports =
 
 
 /***/ },
-/* 20 */
+/* 21 */
 /***/ function(module, exports) {
 
 	
@@ -1825,7 +1903,7 @@ module.exports =
 
 
 /***/ },
-/* 21 */
+/* 22 */
 /***/ function(module, exports) {
 
 	
@@ -1873,25 +1951,25 @@ module.exports =
 	}
 
 /***/ },
-/* 22 */
+/* 23 */
 /***/ function(module, exports) {
 
 	module.exports = require("braintree");
 
 /***/ },
-/* 23 */
+/* 24 */
 /***/ function(module, exports) {
 
 	module.exports = require("express");
 
 /***/ },
-/* 24 */
+/* 25 */
 /***/ function(module, exports) {
 
 	module.exports = require("firebase");
 
 /***/ },
-/* 25 */
+/* 26 */
 /***/ function(module, exports) {
 
 	module.exports = require("mailgun-js");
