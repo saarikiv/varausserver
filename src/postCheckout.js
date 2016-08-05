@@ -123,7 +123,7 @@ exports.setApp = function(JPS) {
                               .update(Object.assign(JPS.transaction, JPS.shopItem))
                               .then(() => {
                                 return JPS.firebase.database().ref('/scbookingsbycourse/' + JPS.shopItemKey + '/' + JPS.user.key)
-                                .update({transactionReference: JPS.now, shopItem: JPS.shopItem})
+                                .update({transactionReference: JPS.now})
                               })
                               .then(() => {
                                 return JPS.firebase.database().ref('/scbookingsbyuser/' + JPS.forUser.key + '/' + JPS.shopItemKey)
