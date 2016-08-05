@@ -1,7 +1,7 @@
 var JHLP = {}
 
 module.exports = {
-    getCourseTimeGMT: (weeksForward, timeOfStart, dayNumber) => {
+    getCourseTimeLocal: (weeksForward, timeOfStart, dayNumber) => {
 
         JHLP.courseTime = new Date();
         JHLP.dayNumber = JHLP.courseTime.getDay()

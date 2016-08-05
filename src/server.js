@@ -5,6 +5,7 @@
 var express = require('express')
 var JPS = {} //The global.
 JPS.timeHelper = require('./timeHelper.js')
+JPS.cancelHelper = require('./cancelHelper.js')
 JPS.mailer = require('./mailer.js')
 JPS.braintree = require("braintree");
 
@@ -82,11 +83,17 @@ require('./setHeaders.js').setApp(JPS);
 // Get client token
 require('./getClientToken.js').setApp(JPS);
 
+// Get paytrail notification
+require('./getPayTrailNotification.js').setApp(JPS);
+
 // POST checkout
 require('./postCheckout.js').setApp(JPS);
 
-// POST checkout
+// POST CashBuy
 require('./postCashbuy.js').setApp(JPS);
+
+// POST CancelCourse
+require('./postCancelCourse.js').setApp(JPS);
 
 // POST reserve slot
 require('./postReserveSlot.js').setApp(JPS);

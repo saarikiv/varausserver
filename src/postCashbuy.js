@@ -1,10 +1,7 @@
 exports.setApp = function(JPS) {
 
     //######################################################
-    // POST: checkout, post the item being purchased
-    // This post will read the shop item and find out the token + price associated with it
-    // It then creates payment transaction and inserts the payment data to the firebase
-    // Finally adds to the users entitlement new tokens to use.
+    // POST: cashbuy, post the item being purchased
     //######################################################
     JPS.app.post('/cashbuy', (req, res) => {
 
@@ -38,20 +35,20 @@ exports.setApp = function(JPS) {
                 })
                 .then(snapshot => {
                     JPS.specialUser = snapshot.val()
-                    if (JPS.specialUser.admin) {
-                        console.log("USER requesting cashpay is ADMIN");
+                    if (JPS.specialUser.admin || JPS.specialUser.instructor) {
+                        console.log("USER requesting cashpay is ADMIN or INSTRUCTOR");
                         return JPS.firebase.database().ref('/users/' + JPS.forUserId).once('value');
                     }
-                    throw (new Error("Non admin user requesting cashbuy."))
+                    throw (new Error("Non admin or instructor user requesting cashbuy."))
                 })
                 .then(snapshot => {
                     JPS.forUser = snapshot.val()
                     JPS.forUser.key = snapshot.key;
-                    switch(JPS.itemType){
-                      case "special":
-                        return JPS.firebase.database().ref('/specialCourses/' + JPS.shopItemKey).once('value');
-                      default:
-                        return JPS.firebase.database().ref('/shopItems/' + JPS.shopItemKey).once('value');
+                    switch (JPS.itemType) {
+                        case "special":
+                            return JPS.firebase.database().ref('/specialCourses/' + JPS.shopItemKey).once('value');
+                        default:
+                            return JPS.firebase.database().ref('/shopItems/' + JPS.shopItemKey).once('value');
                     }
                 })
                 .then(snapshot => {
