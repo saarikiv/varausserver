@@ -18,6 +18,35 @@ module.exports = {
         JPSM.initialized = true;
     },
 
+    sendFeedback: (user, feedback) => {
+        if (!JPSM.initialized) return;
+
+        console.log("sendFeedback")
+        console.log(user)
+        console.log(feedback)
+
+        JPSM.html =
+            "<h1>Varauksen vahvistus</h1>" +
+            "<p>"+ feedback +"</p>" +
+            "<br>" +
+            "<p> Terveisin " + user.email + "</p>"
+        console.log("Feedback: ", JPSM.html)
+
+        JPSM.data = {
+            from: JPSM.mg_from_who,
+            to: "tero.saarikivi@outlook.com",
+            subject: 'Joogakoulu Silta palaute',
+            html: JPSM.html
+        }
+        JPSM.mailgun.messages().send(JPSM.data, (err, body) => {
+            if (err) {
+                console.error("MAILGUN-error: ", err);
+            } else {
+                console.log("MAIL-SENT: ", body);
+            }
+        });
+    },
+
     sendConfirmation: (sendTo, courseInfo, courseTime) => {
         if (!JPSM.initialized) return;
 
@@ -26,7 +55,7 @@ module.exports = {
         console.log(courseInfo)
         console.log(courseTime)
 
-        JPSM.html = 
+        JPSM.html =
             "<h1>Varauksen vahvistus</h1>" +
             "<p>Varauksesi kurssille " + courseInfo.courseType.name + " on vahvistettu.</p>" +
             "<p>Kurssipäivä: " + JPSM.jps.timeHelper.getDayStr(courseTime) + "</p>" +

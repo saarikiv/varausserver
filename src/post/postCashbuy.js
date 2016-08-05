@@ -116,26 +116,26 @@ exports.setApp = function(JPS) {
                                 throw (new Error(err.message + " " + err.code));
                             });
                     }
-                    if (JPS.shopItem.type === "special") {
-                        console.log("special course purchase ok....");
-                        JPS.shopItem.expires = 0;
-                        JPS.firebase.database().ref('/transactions/' + JPS.forUser.key + '/' + JPS.now)
-                            .update(Object.assign(JPS.transaction, JPS.shopItem))
-                            .then(() => {
-                                return JPS.firebase.database().ref('/scbookingsbycourse/' + JPS.shopItemKey + '/' + JPS.forUser.key)
-                                    .update({ transactionReference: JPS.now, shopItem: JPS.shopItem })
-                            })
-                            .then(() => {
-                                return JPS.firebase.database().ref('/scbookingsbyuser/' + JPS.forUser.key + '/' + JPS.shopItemKey)
-                                    .update({ transactionReference: JPS.now, shopItem: JPS.shopItem })
-                            })
-                            .then(() => {
-                                console.log("Transaction saved: ", JPS.transaction, JPS.shopItem);
-                                res.status(200).jsonp(JPS.transaction).end();
-                                JPS.mailer.sendReceipt(JPS.forUser.email, JPS.transaction, JPS.now); //Send confirmation email
-                            }).catch(err => {
-                                throw (new Error(err.message + " " + err.code));
-                            });
+                    if(JPS.shopItem.type === "special"){
+                      console.log("special course purchase ok....");
+                      JPS.shopItem.expires = 0;
+                      JPS.firebase.database().ref('/transactions/' + JPS.forUser.key + '/' + JPS.now)
+                          .update(Object.assign(JPS.transaction, JPS.shopItem))
+                          .then(() => {
+                            return JPS.firebase.database().ref('/scbookingsbycourse/' + JPS.shopItemKey + '/' + JPS.forUser.key)
+                            .update({transactionReference: JPS.now})
+                          })
+                          .then(() => {
+                            return JPS.firebase.database().ref('/scbookingsbyuser/' + JPS.forUser.key + '/' + JPS.shopItemKey)
+                            .update({transactionReference: JPS.now, shopItem: JPS.shopItem})
+                          })
+                          .then(() => {
+                              console.log("Transaction saved: ", JPS.transaction, JPS.shopItem);
+                              res.status(200).jsonp(JPS.transaction).end();
+                              JPS.mailer.sendReceipt(JPS.forUser.email, JPS.transaction, JPS.now); //Send confirmation email
+                          }).catch(err => {
+                              throw (new Error(err.message + " " + err.code));
+                          });
                     }
 
                 }).catch(err => {
