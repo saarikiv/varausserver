@@ -34,7 +34,7 @@ module.exports = {
 
         JPSM.data = {
             from: JPSM.mg_from_who,
-            to: "tuomo.saarikivi@outlook.com",
+            to: "tero.saarikivi@outlook.com",
             subject: 'Joogakoulu Silta palaute',
             html: JPSM.html
         }
