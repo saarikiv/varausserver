@@ -340,6 +340,7 @@ module.exports =
 	JPSM.mg_api_key = process.env.MAILGUN_API_KEY || 'key-4230707292ae718f00a8274d41beb7f3';
 	JPSM.mg_domain = process.env.MAILGUN_DOMAIN || 'sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
 	JPSM.mg_from_who = process.env.MAILGUN_FROM_WHO || 'postmaster@sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
+	JPSM.feedbackMail = process.env.FEEDBACK_ADDRESS || 'tuomo.saarikivi@outlook.com'
 	JPSM.initialized = false;
 
 	module.exports = {
@@ -403,7 +404,7 @@ module.exports =
 
 	        JPSM.data = {
 	            from: JPSM.mg_from_who,
-	            to: "tero.saarikivi@outlook.com",
+	            to: JPSM.feedbackMail,
 	            subject: 'Joogakoulu Silta palaute',
 	            html: JPSM.html
 	        }
