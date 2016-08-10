@@ -35,7 +35,7 @@ module.exports =
 /******/ 	__webpack_require__.c = installedModules;
 
 /******/ 	// __webpack_public_path__
-/******/ 	__webpack_require__.p = "/home/saarikiv/joogaserver/public/";
+/******/ 	__webpack_require__.p = "/home/tsa/repo/joogaserver/public/";
 
 /******/ 	// Load entry module and return exports
 /******/ 	return __webpack_require__(0);
@@ -338,8 +338,8 @@ module.exports =
 	var JPSM = {}
 	JPSM.Mailgun = __webpack_require__(26)
 	JPSM.mg_api_key = process.env.MAILGUN_API_KEY || 'key-4230707292ae718f00a8274d41beb7f3';
-	JPSM.mg_domain = 'sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
-	JPSM.mg_from_who = 'postmaster@sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
+	JPSM.mg_domain = process.env.MAILGUN_DOMAIN || 'sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
+	JPSM.mg_from_who = process.env.MAILGUN_FROM_WHO || 'postmaster@sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
 	JPSM.initialized = false;
 
 	module.exports = {
@@ -599,7 +599,7 @@ module.exports =
 	            "<p>Maksupalvelutunniste: " + trx.details.transaction.id + "</p>" +
 	            "<p>Maksutapa: " + trx.details.transaction.paymentInstrumentType + "</p>" +
 	            "<br></br>" +
-	            "<p>Y-tunnus: Y-32487984</p>" +
+	            "<p>Y-tunnus: 2736475-2  ALV-numero: FI27364752</p>" +
 	            "<footer><a href=\"https: //joogakoulusilta-projekti.firebaseapp.com\">Joogakoulu Silta</a>, jooga(at)joogasilta.com</footer>"
 
 	        JPSM.data = {
