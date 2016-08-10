@@ -262,7 +262,7 @@ module.exports = {
             "<p>Maksupalvelutunniste: " + trx.details.transaction.id + "</p>" +
             "<p>Maksutapa: " + trx.details.transaction.paymentInstrumentType + "</p>" +
             "<br></br>" +
-            "<p>Y-tunnus: Y-32487984</p>" +
+            "<p>Y-tunnus: 2736475-2  ALV-numero: FI27364752</p>" +
             "<footer><a href=\"https: //joogakoulusilta-projekti.firebaseapp.com\">Joogakoulu Silta</a>, jooga(at)joogasilta.com</footer>"
 
         JPSM.data = {
