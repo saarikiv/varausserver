@@ -27,9 +27,8 @@ module.exports = {
 
         JPSM.html =
             "<h1>Kiitos palautteesta!</h1>" +
-            "<p>Olemme vastaanottaneet palautteenne.</p>" +
-            "<p>Arvostamme sitä, että käytit aikaasi antaaksesi meille palautetta.</p>" +
-            "<p>Lähetämme teille tietoa toimenpiteistä, joihin palautteenne johtaa.</p>" +
+            "<p>Olemme vastaanottaneet palautteesi ja arvostamme sitä, että käytit aikaasi antaaksesi meille palautetta.</p>" +
+            "<p>Teemme kaikkemme, jotta voimme palvella Sinua paremmin tulevaisuudessa.</p>" +
             "<br>" +
             "<p>Ystävällisin terveisin,</p>" +
             "<p>Joogakoulu Silta</p>"
@@ -38,7 +37,7 @@ module.exports = {
         JPSM.data = {
             from: JPSM.mg_from_who,
             to: user.email,
-            subject: 'Kitos palautteesta!',
+            subject: 'Kiitos palautteesta!',
             html: JPSM.html
         }
         JPSM.mailgun.messages().send(JPSM.data, (err, body) => {
@@ -90,11 +89,11 @@ module.exports = {
 
         JPSM.html =
             "<h1>Varauksen vahvistus</h1>" +
-            "<p>Varauksesi kurssille " + courseInfo.courseType.name + " on vahvistettu.</p>" +
-            "<p>Kurssipäivä: " + JPSM.jps.timeHelper.getDayStr(courseTime) + "</p>" +
-            "<p>Kurssiaika: " + JPSM.jps.timeHelper.getTimeStr(courseTime) + "</p>" +
+            "<p>Varauksesi tunnille " + courseInfo.courseType.name + " on vahvistettu.</p>" +
+            "<p>Päivä: " + JPSM.jps.timeHelper.getDayStr(courseTime) + "</p>" +
+            "<p>Aika: " + JPSM.jps.timeHelper.getTimeStr(courseTime) + "</p>" +
             "<br></br>" +
-            "<p>Mikäli et pääse osallistumaan kurssille voit perua ilmoittautumisesi vielä edellisenä päivänä.</p>" +
+            "<p>Mikäli et pääse osallistumaan tunnille voit perua ilmoittautumisesi vielä vähintään 3 h ennen tunnin alkamista.</p>" +
             "<footer><a href=\"https: //joogakoulusilta-projekti.firebaseapp.com\">Joogakoulu Silta</a>, jooga(at)joogasilta.com</footer>"
 
         console.log("CONFIRMATION: ", JPSM.html)
@@ -122,19 +121,19 @@ module.exports = {
         console.log(courseTimeMs)
 
         JPSM.html =
-            "<h1>Kurssi jolle olet ilmoittautunut on peruttu!</h1>" +
-            "<p>Kurssi " + courseInfo.courseType.name + " on peruttu.</p>" +
-            "<p>Kurssipäivä: " + JPSM.jps.timeHelper.getDayStr(day) + "</p>" +
-            "<p>Kurssiaika: " + JPSM.jps.timeHelper.getTimeStr(day) + "</p>" +
+            "<h1>Tunti jolle olet ilmoittautunut on peruttu!</h1>" +
+            "<p>Tunti " + courseInfo.courseType.name + " on peruttu.</p>" +
+            "<p>Päivä: " + JPSM.jps.timeHelper.getDayStr(day) + "</p>" +
+            "<p>Aika: " + JPSM.jps.timeHelper.getTimeStr(day) + "</p>" +
             "<br></br>" +
             "<p>Kertalippusi on palautettu tilillesi.</p>" +
-            "<p>Terve tuloa jonain toisena ajankohtana.</p>" +
+            "<p>Tervetuloa jonain toisena ajankohtana!</p>" +
             "<footer><a href=\"https: //joogakoulusilta-projekti.firebaseapp.com\">Joogakoulu Silta</a>, jooga(at)joogasilta.com</footer>"
 
         JPSM.data = {
             from: JPSM.mg_from_who,
             to: sendTo,
-            subject: 'Kurssin peruutusilmoitus:' + day.toString() + ' - Joogakoulu Silta',
+            subject: 'Tunnin peruutusilmoitus:' + day.toString() + ' - Joogakoulu Silta',
             html: JPSM.html
         }
         JPSM.mailgun.messages().send(JPSM.data, (err, body) => {
@@ -154,18 +153,18 @@ module.exports = {
         console.log(courseTimeMs)
 
         JPSM.html =
-            "<h1>Kurssi jolle olet ilmoittautunut on peruttu!</h1>" +
-            "<p>Kurssi " + courseInfo.courseType.name + " on peruttu.</p>" +
-            "<p>Kurssipäivä: " + JPSM.jps.timeHelper.getDayStr(day) + "</p>" +
-            "<p>Kurssiaika: " + JPSM.jps.timeHelper.getTimeStr(day) + "</p>" +
+            "<h1>Tunti jolle olet ilmoittautunut on peruttu!</h1>" +
+            "<p>Tunti " + courseInfo.courseType.name + " on peruttu.</p>" +
+            "<p>Päivä: " + JPSM.jps.timeHelper.getDayStr(day) + "</p>" +
+            "<p>Aika: " + JPSM.jps.timeHelper.getTimeStr(day) + "</p>" +
             "<br></br>" +
-            "<p>Terve tuloa jonain toisena ajankohtana.</p>" +
+            "<p>Tervetuloa jonain toisena ajankohtana!</p>" +
             "<footer><a href=\"https: //joogakoulusilta-projekti.firebaseapp.com\">Joogakoulu Silta</a>, jooga(at)joogasilta.com</footer>"
 
         JPSM.data = {
             from: JPSM.mg_from_who,
             to: sendTo,
-            subject: 'Kurssin peruutusilmoitus:' + day.toString() + ' - Joogakoulu Silta',
+            subject: 'Tunnin peruutusilmoitus:' + day.toString() + ' - Joogakoulu Silta',
             html: JPSM.html
         }
         JPSM.mailgun.messages().send(JPSM.data, (err, body) => {
@@ -187,12 +186,12 @@ module.exports = {
 
         JPSM.html =
             "<h1>Peruutuksen vahvistus</h1>" +
-            "<p>Peruutuksesi kurssille " + courseInfo.courseType.name + " on vahvistettu.</p>" +
-            "<p>Kurssipäivä: " + JPSM.jps.timeHelper.getDayStr(day) + "</p>" +
-            "<p>Kurssiaika: " + JPSM.jps.timeHelper.getTimeStr(day) + "</p>" +
+            "<p>Peruutuksesi tunnille " + courseInfo.courseType.name + " on vahvistettu.</p>" +
+            "<p>Päivä: " + JPSM.jps.timeHelper.getDayStr(day) + "</p>" +
+            "<p>Aika: " + JPSM.jps.timeHelper.getTimeStr(day) + "</p>" +
             "<br></br>" +
             "<p>Kertalippusi on palautettu tilillesi.</p>" +
-            "<p>Terve tuloa jonain toisena ajankohtana.</p>" +
+            "<p>Tervetuloa jonain toisena ajankohtana!</p>" +
             "<footer><a href=\"https: //joogakoulusilta-projekti.firebaseapp.com\">Joogakoulu Silta</a>, jooga(at)joogasilta.com</footer>"
 
         JPSM.data = {
@@ -219,11 +218,11 @@ module.exports = {
 
         JPSM.html =
             "<h1>Peruutuksen vahvistus</h1>" +
-            "<p>Peruutuksesi kurssille " + courseInfo.courseType.name + " on vahvistettu.</p>" +
-            "<p>Kurssipäivä: " + JPSM.jps.timeHelper.getDayStr(day) + "</p>" +
-            "<p>Kurssiaika: " + JPSM.jps.timeHelper.getTimeStr(day) + "</p>" +
+            "<p>Peruutuksesi tunnille " + courseInfo.courseType.name + " on vahvistettu.</p>" +
+            "<p>Päivä: " + JPSM.jps.timeHelper.getDayStr(day) + "</p>" +
+            "<p>Aika: " + JPSM.jps.timeHelper.getTimeStr(day) + "</p>" +
             "<br></br>" +
-            "<p>Terve tuloa jonain toisena ajankohtana.</p>" +
+            "<p>Tervetuloa jonain toisena ajankohtana!</p>" +
             "<footer><a href=\"https: //joogakoulusilta-projekti.firebaseapp.com\">Joogakoulu Silta</a>, jooga(at)joogasilta.com</footer>"
 
         JPSM.data = {
