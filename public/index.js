@@ -35,7 +35,7 @@ module.exports =
 /******/ 	__webpack_require__.c = installedModules;
 
 /******/ 	// __webpack_public_path__
-/******/ 	__webpack_require__.p = "/home/saarikiv/joogaserver/public/";
+/******/ 	__webpack_require__.p = "/home/tsa/repo/joogaserver/public/";
 
 /******/ 	// Load entry module and return exports
 /******/ 	return __webpack_require__(0);
@@ -49,15 +49,15 @@ module.exports =
 	// Server main faile
 	//------------------------------------------
 
-	var express = __webpack_require__(24)
+	var express = __webpack_require__(25)
 	var JPS = {} //The global.
-	JPS.tests = __webpack_require__(22)
+	JPS.tests = __webpack_require__(23)
 	JPS.timeHelper = __webpack_require__(8)
 	JPS.errorHelper = __webpack_require__(5)
 	JPS.cancelHelper = __webpack_require__(4)
 	JPS.pendingTransactionsHelper = __webpack_require__(7)
 	JPS.mailer = __webpack_require__(6)
-	JPS.braintree = __webpack_require__(23);
+	JPS.braintree = __webpack_require__(24);
 
 	console.log("ENV: ", process.env.PWD);
 	if (process.env.NODE_ENV == "production") {
@@ -77,7 +77,7 @@ module.exports =
 	        }
 	    };
 	}
-	JPS.firebase = __webpack_require__(25)
+	JPS.firebase = __webpack_require__(26)
 	JPS.app = express();
 	JPS.date = new Date();
 	JPS.listenport = 3000
@@ -123,7 +123,7 @@ module.exports =
 	JPS.mailer.initializeMail(JPS);
 
 	// HEADERS
-	__webpack_require__(20).setApp(JPS);
+	__webpack_require__(21).setApp(JPS);
 
 	// GET
 	__webpack_require__(2).setApp(JPS);
@@ -139,9 +139,10 @@ module.exports =
 	__webpack_require__(11).setApp(JPS);
 	__webpack_require__(13).setApp(JPS);
 	__webpack_require__(10).setApp(JPS);
+	__webpack_require__(20).setApp(JPS);
 	__webpack_require__(19).setApp(JPS);
 	__webpack_require__(12).setApp(JPS);
-	__webpack_require__(21).setApp(JPS);
+	__webpack_require__(22).setApp(JPS);
 
 	/* WEBPACK VAR INJECTION */}.call(exports, "/"))
 
@@ -336,7 +337,7 @@ module.exports =
 /***/ function(module, exports, __webpack_require__) {
 
 	var JPSM = {}
-	JPSM.Mailgun = __webpack_require__(26)
+	JPSM.Mailgun = __webpack_require__(27)
 	JPSM.mg_api_key = process.env.MAILGUN_API_KEY || 'key-4230707292ae718f00a8274d41beb7f3';
 	JPSM.mg_domain = process.env.MAILGUN_DOMAIN || 'sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
 	JPSM.mg_from_who = process.env.MAILGUN_FROM_WHO || 'postmaster@sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
@@ -718,7 +719,7 @@ module.exports =
 	        return JHLP.courseTime;
 	    },
 	    getDayStr: (day) => {
-	        return day.getDate() + "." + day.getMonth() + "." + day.getFullYear()
+	        return day.getDate() + "." + day.getMonth()+1 + "." + day.getFullYear()
 	    },
 	    getTimeStr: (day) => {
 	        return day.toTimeString()
@@ -1717,7 +1718,176 @@ module.exports =
 	  //######################################################
 	  // POST: reserveSlot
 	  // Reduces from the user needed tokens and assigns the user to the slot.
-	  // Caller must check that the user is entitled to the reservation.
+	  //######################################################
+
+	  JPS.app.post('/reserveLateSlot', (req, res) => {
+	    JPS.now = Date.now();
+	    console.log("POST: reserveLateSlot", JPS.now);
+	    JPS.body = '';
+	    req.on('data', (data) => {
+	      JPS.body += data;
+	      // Too much POST data, kill the connection!
+	      // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
+	      if (JPS.body.length > 1e6) req.connection.destroy();
+	    });
+
+	    req.on('end', () => {
+	      JPS.post = JSON.parse(JPS.body);
+	      console.log("POST:", JPS.post);
+	      JPS.currentUserToken = JPS.post.user;
+	      JPS.forUser = JPS.post.forUser
+	      JPS.courseInfo = JPS.post.courseInfo;
+	      JPS.weeksBehind = JPS.post.weeksBehind;
+	      JPS.timezoneOffset = JPS.post.timezoneOffset;
+	      JPS.courseTime = JPS.timeHelper.getCourseTimeLocal(-1*JPS.weeksBehind, JPS.courseInfo.start, JPS.courseInfo.day)
+
+	      JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
+	      .then( decodedToken => {
+	        JPS.currentUserUID = decodedToken.sub;
+	        console.log("User: ", JPS.currentUserUID, " requested checkout.");
+	        return JPS.firebase.database().ref('/users/'+JPS.currentUserUID).once('value')
+	      })
+	      .then(snapshot => {
+	          JPS.requestor = snapshot.val()
+	          JPS.requestor.key = snapshot.key;
+	          return JPS.firebase.database().ref('/specialUsers/' + JPS.currentUserUID).once('value');
+	      })
+	      .then(snapshot => {
+	          JPS.specialUser = snapshot.val()
+	          if (JPS.specialUser.admin || JPS.specialUser.instructor) {
+	              console.log("USER requesting reserveLateSlot is ADMIN or INSTRUCTOR");
+	              return JPS.firebase.database().ref('/users/' + JPS.forUser).once('value');
+	          }
+	          throw (new Error("Non admin or instructor user requesting cashbuy."))
+	      })
+	      .then ( snapshot => {
+	        if(snapshot.val() == null){
+	          throw(new Error("User record does not exist in the database: " + JPS.forUser))
+	        }
+	        JPS.user = snapshot.val();
+	        JPS.user.key = snapshot.key;
+	        console.log("USER:",JPS.user);
+	        console.log("courseINFO:",JPS.courseInfo);
+	        JPS.userHasTime = false;
+	        JPS.userHasCount = false;
+	        JPS.earliestToExpire = 0;
+	        JPS.expiryTime = 9999999999999;
+	        JPS.recordToUpdate = {};
+	        JPS.unusedtimes = 0;
+	        console.log("Starting to process user transactions");
+	        return JPS.firebase.database().ref('/transactions/'+JPS.forUser).once('value')
+	      })
+	      .then( snapshot => {
+	        JPS.allTx = snapshot.val();
+	        for (JPS.one in JPS.allTx){
+	          switch(JPS.allTx[JPS.one].type){
+	            case "time":
+	              if(JPS.allTx[JPS.one].expires > JPS.courseTime.getTime()){
+	                    JPS.userHasTime = true;
+	              }
+	              break;
+	            case "count":
+	              if((JPS.allTx[JPS.one].expires > JPS.now) && (JPS.allTx[JPS.one].unusedtimes > 0)){
+	                JPS.userHasCount = true;
+	                    //Find the earliest to expire record
+	                if(JPS.allTx[JPS.one].expires < JPS.expiryTime){
+	                  JPS.earliestToExpire = JPS.one;
+	                  JPS.expiryTime = JPS.allTx[JPS.one].expires;
+	                  JPS.recordToUpdate = JPS.allTx[JPS.one];
+	                  JPS.unusedtimes = JPS.allTx[JPS.one].unusedtimes;
+	                }
+	              }
+	              break;
+	            default:
+	              console.error("Unrecognized transaction type: ", JPS.allTx[JPS.one].type);
+	              break;
+	          }
+	        } // for - looping through transactions
+	        JPS.transactionReference = 0; //Leave it 0 if bookign is based on time-token.
+	        if(!JPS.userHasTime){
+	          console.log("User does not have time.");
+	          if(!JPS.userHasCount){
+	            console.log("User does not have count");
+	            throw( new Error("User is not entitled to book this slot"));
+	          }
+	          else { //Process user has count option
+	            JPS.transactionReference = JPS.earliestToExpire;
+	            //TODO: Check tahat user has not already booked in to the course before reducing count.
+	            JPS.recordToUpdate.unusedtimes = JPS.recordToUpdate.unusedtimes - 1;
+	            JPS.unusedtimes = JPS.unusedtimes - 1;
+	            JPS.firebase.database()
+	              .ref('/transactions/'+JPS.forUser+'/'+JPS.earliestToExpire)
+	              .update({unusedtimes: JPS.unusedtimes})
+	              .then( err => {
+	                if(err){
+	                  throw(new Error(err.message + " " + err.code));
+	                } else {
+	                  console.log("Updated transaction date for user: ", JPS.forUser);
+	                }
+	              })
+	              .catch(err => {throw(err)})
+	            }
+	          } else {
+	          console.log("User has time.");
+	          }
+	          //If user is entitled, write the bookings in to the database
+	          if(JPS.userHasTime || JPS.userHasCount){
+	            JPS.bookingTime = JPS.courseTime.getTime();
+	            JPS.firebase.database().ref('/bookingsbycourse/'+JPS.courseInfo.key+'/'+JPS.bookingTime+'/'+JPS.user.key)
+	            .update({
+	              user: (JPS.user.alias)? JPS.user.alias : JPS.user.firstname + " " + JPS.user.lastname,
+	              transactionReference: JPS.transactionReference,
+	              courseName: JPS.courseInfo.courseType.name,
+	              courseTime: JPS.bookingTime
+	            })
+	            .then( err => {
+	              if(err){
+	                console.error("Booking by COURSE write to firabase failed: ", err);
+	                throw(new Error("Booking by COURSE write to firabase failed: " + err.toString()))
+	              }
+	              return JPS.firebase.database().ref('/bookingsbyuser/'+JPS.user.key+'/'+JPS.courseInfo.key+'/'+JPS.bookingTime)
+	              .update({
+	                transactionReference: JPS.transactionReference,
+	                courseName: JPS.courseInfo.courseType.name,
+	                courseTime: JPS.bookingTime
+	              })
+	            })
+	            .then( err => {
+	              if(err){
+	                console.error("Booking by USER write to firabase failed: ", err);
+	                throw(new Error("Booking by USER write to firabase failed: " + err.toString()))
+	              }
+	              else{
+	                //======================================
+	                res.status(200).jsonp({context: "Booking done succesfully" }).end();
+	                JPS.mailer.sendConfirmation(JPS.user.email, JPS.courseInfo, JPS.courseTime); //Send confirmation email
+	                //======================================
+	              }
+	            })
+	            .catch( err => {
+	              throw(err)
+	            })
+	          }
+	      })
+	      .catch( err => {
+	        console.error("Reserve slot failed: ", err);
+	        res.status(500).jsonp("Reserve slot failed: " + String(err)).end();
+	      })
+	    })
+	  })
+	}
+
+
+/***/ },
+/* 20 */
+/***/ function(module, exports) {
+
+	
+	exports.setApp = function (JPS){
+
+	  //######################################################
+	  // POST: reserveSlot
+	  // Reduces from the user needed tokens and assigns the user to the slot.
 	  //######################################################
 
 	  JPS.app.post('/reserveSlot', (req, res) => {
@@ -1845,7 +2015,7 @@ module.exports =
 	              }
 	              else{
 	                //======================================
-	                res.status(200).jsonp({context: "Booking done succesfully" }).end();
+	                res.status(200).jsonp("Booking done succesfully").end();
 	                JPS.mailer.sendConfirmation(JPS.user.email, JPS.courseInfo, JPS.courseTime); //Send confirmation email
 	                //======================================
 	              }
@@ -1857,7 +2027,7 @@ module.exports =
 	      })
 	      .catch( err => {
 	        console.error("Reserve slot failed: ", err);
-	        res.status(500).jsonp({context: "Reserve slot failed"}).end(err);
+	        res.status(500).jsonp("Reserve slot failed" + String(err)).end();
 	      })
 	    })
 	  })
@@ -1865,7 +2035,7 @@ module.exports =
 
 
 /***/ },
-/* 20 */
+/* 21 */
 /***/ function(module, exports) {
 
 	
@@ -1889,7 +2059,7 @@ module.exports =
 
 
 /***/ },
-/* 21 */
+/* 22 */
 /***/ function(module, exports) {
 
 	
@@ -1936,7 +2106,7 @@ module.exports =
 
 
 /***/ },
-/* 22 */
+/* 23 */
 /***/ function(module, exports) {
 
 	
@@ -1984,25 +2154,25 @@ module.exports =
 	}
 
 /***/ },
-/* 23 */
+/* 24 */
 /***/ function(module, exports) {
 
 	module.exports = require("braintree");
 
 /***/ },
-/* 24 */
+/* 25 */
 /***/ function(module, exports) {
 
 	module.exports = require("express");
 
 /***/ },
-/* 25 */
+/* 26 */
 /***/ function(module, exports) {
 
 	module.exports = require("firebase");
 
 /***/ },
-/* 26 */
+/* 27 */
 /***/ function(module, exports) {
 
 	module.exports = require("mailgun-js");

@@ -17,7 +17,7 @@ module.exports = {
         return JHLP.courseTime;
     },
     getDayStr: (day) => {
-        return day.getDate() + "." + day.getMonth() + "." + day.getFullYear()
+        return day.getDate() + "." + day.getMonth()+1 + "." + day.getFullYear()
     },
     getTimeStr: (day) => {
         return day.toTimeString()

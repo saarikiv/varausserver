@@ -93,5 +93,6 @@ require('./post/postCancelPayTrailTransaction.js').setApp(JPS);
 require('./post/postCashbuy.js').setApp(JPS);
 require('./post/postCancelCourse.js').setApp(JPS);
 require('./post/postReserveSlot.js').setApp(JPS);
+require('./post/postReserveLateSlot.js').setApp(JPS);
 require('./post/postCancelSlot.js').setApp(JPS);
 require('../tests/postTest.js').setApp(JPS);
