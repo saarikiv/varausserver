@@ -6,9 +6,9 @@ exports.setApp = function (JPS){
   // Reduces from the user needed tokens and assigns the user to the slot.
   //######################################################
 
-  JPS.app.post('/reserveSlot', (req, res) => {
+  JPS.app.post('/reserveLateSlot', (req, res) => {
     JPS.now = Date.now();
-    console.log("POST: reserveslot", JPS.now);
+    console.log("POST: reserveLateSlot", JPS.now);
     JPS.body = '';
     req.on('data', (data) => {
       JPS.body += data;
@@ -21,10 +21,11 @@ exports.setApp = function (JPS){
       JPS.post = JSON.parse(JPS.body);
       console.log("POST:", JPS.post);
       JPS.currentUserToken = JPS.post.user;
+      JPS.forUser = JPS.post.forUser
       JPS.courseInfo = JPS.post.courseInfo;
-      JPS.weeksForward = JPS.post.weeksForward;
+      JPS.weeksBehind = JPS.post.weeksBehind;
       JPS.timezoneOffset = JPS.post.timezoneOffset;
-      JPS.courseTime = JPS.timeHelper.getCourseTimeLocal(JPS.weeksForward, JPS.courseInfo.start, JPS.courseInfo.day)
+      JPS.courseTime = JPS.timeHelper.getCourseTimeLocal(-1*JPS.weeksBehind, JPS.courseInfo.start, JPS.courseInfo.day)
 
       JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
       .then( decodedToken => {
@@ -32,9 +33,22 @@ exports.setApp = function (JPS){
         console.log("User: ", JPS.currentUserUID, " requested checkout.");
         return JPS.firebase.database().ref('/users/'+JPS.currentUserUID).once('value')
       })
+      .then(snapshot => {
+          JPS.requestor = snapshot.val()
+          JPS.requestor.key = snapshot.key;
+          return JPS.firebase.database().ref('/specialUsers/' + JPS.currentUserUID).once('value');
+      })
+      .then(snapshot => {
+          JPS.specialUser = snapshot.val()
+          if (JPS.specialUser.admin || JPS.specialUser.instructor) {
+              console.log("USER requesting reserveLateSlot is ADMIN or INSTRUCTOR");
+              return JPS.firebase.database().ref('/users/' + JPS.forUser).once('value');
+          }
+          throw (new Error("Non admin or instructor user requesting cashbuy."))
+      })
       .then ( snapshot => {
         if(snapshot.val() == null){
-          throw(new Error("User record does not exist in the database: " + JPS.currentUserUID))
+          throw(new Error("User record does not exist in the database: " + JPS.forUser))
         }
         JPS.user = snapshot.val();
         JPS.user.key = snapshot.key;
@@ -47,7 +61,7 @@ exports.setApp = function (JPS){
         JPS.recordToUpdate = {};
         JPS.unusedtimes = 0;
         console.log("Starting to process user transactions");
-        return JPS.firebase.database().ref('/transactions/'+JPS.currentUserUID).once('value')
+        return JPS.firebase.database().ref('/transactions/'+JPS.forUser).once('value')
       })
       .then( snapshot => {
         JPS.allTx = snapshot.val();
@@ -88,13 +102,13 @@ exports.setApp = function (JPS){
             JPS.recordToUpdate.unusedtimes = JPS.recordToUpdate.unusedtimes - 1;
             JPS.unusedtimes = JPS.unusedtimes - 1;
             JPS.firebase.database()
-              .ref('/transactions/'+JPS.currentUserUID+'/'+JPS.earliestToExpire)
+              .ref('/transactions/'+JPS.forUser+'/'+JPS.earliestToExpire)
               .update({unusedtimes: JPS.unusedtimes})
               .then( err => {
                 if(err){
                   throw(new Error(err.message + " " + err.code));
                 } else {
-                  console.log("Updated transaction date for user: ", JPS.currentUserUID);
+                  console.log("Updated transaction date for user: ", JPS.forUser);
                 }
               })
               .catch(err => {throw(err)})
@@ -131,7 +145,7 @@ exports.setApp = function (JPS){
               }
               else{
                 //======================================
-                res.status(200).jsonp("Booking done succesfully").end();
+                res.status(200).jsonp({context: "Booking done succesfully" }).end();
                 JPS.mailer.sendConfirmation(JPS.user.email, JPS.courseInfo, JPS.courseTime); //Send confirmation email
                 //======================================
               }
@@ -143,7 +157,7 @@ exports.setApp = function (JPS){
       })
       .catch( err => {
         console.error("Reserve slot failed: ", err);
-        res.status(500).jsonp("Reserve slot failed" + String(err)).end();
+        res.status(500).jsonp("Reserve slot failed: " + String(err)).end();
       })
     })
   })
