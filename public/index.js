@@ -343,6 +343,7 @@ module.exports =
 	JPSM.mg_domain = process.env.MAILGUN_DOMAIN || 'sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
 	JPSM.mg_from_who = process.env.MAILGUN_FROM_WHO || 'postmaster@sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
 	JPSM.feedbackMail = process.env.FEEDBACK_ADDRESS || 'tuomo.saarikivi@outlook.com'
+	JPSM.registrationMail = process.env.REGISTRATION_ADDRESS || 'tuomo.saarikivi@outlook.com'
 	JPSM.initialized = false;
 
 	module.exports = {
@@ -437,7 +438,7 @@ module.exports =
 
 	        JPSM.data = {
 	            from: JPSM.mg_from_who,
-	            to: 'joogakoulusilta@gmail.com',
+	            to: JPSM.registrationMail,
 	            subject: 'Rekisteröinti imoitus',
 	            html: JPSM.html
 	        }
