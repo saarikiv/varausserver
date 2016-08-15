@@ -79,6 +79,39 @@ module.exports = {
         });
     },
 
+
+    sendRegistration: (user) => {
+        if (!JPSM.initialized) return;
+
+        console.log("sendRegistration")
+        console.log(user)
+
+        JPSM.html =
+            "<h1>Rekisteröinti-ilmoitus:</h1>" +
+            "<br>" +
+            "<p> Käyttäjä:" + user.email + "</p>" +
+            "<br>" +
+            "<p> Nimi:" + user.firstname + " " + user.lastname + "</p>" +
+            "<br>" +
+            "<p> On rekisteröitynyt siltavaraukset.com palveluun.</p>"
+        console.log("Registration: ", JPSM.html)
+
+        JPSM.data = {
+            from: JPSM.mg_from_who,
+            to: 'joogakoulusilta@gmail.com',
+            subject: 'Rekisteröinti imoitus',
+            html: JPSM.html
+        }
+        JPSM.mailgun.messages().send(JPSM.data, (err, body) => {
+            if (err) {
+                console.error("MAILGUN-error: ", err);
+            } else {
+                console.log("MAIL-SENT: ", body);
+            }
+        });
+    },
+
+
     sendConfirmation: (sendTo, courseInfo, courseTime) => {
         if (!JPSM.initialized) return;
 

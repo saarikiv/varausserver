@@ -83,6 +83,7 @@ require('./get/getClientToken.js').setApp(JPS);
 require('./get/getPayTrailNotification.js').setApp(JPS);
 
 // POST
+require('./post/postNotifyRegistration.js').setApp(JPS);
 require('./post/postFeedback.js').setApp(JPS);
 require('./post/postPayTrailAuthCode.js').setApp(JPS);
 require('./post/postCheckout.js').setApp(JPS);
