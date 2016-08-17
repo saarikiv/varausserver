@@ -283,6 +283,9 @@ module.exports = {
         expires.setTime(trx.expires);
 
         JPSM.html =
+            "<h1>Kiitos ostostasi!</h1>" +
+            "<p>Voit nyt mennä varaamaan tunteja <a href=\"https://www.siltavaraukset.com\">Joogakoulu Sillan</a> varauspalvelusta.</p>" +
+            "<br></br>" +
             "<h1>Ostokuitti</h1>" +
             "<br></br>" +
             "<p>Tuote: " + trx.title + "</p>" +
@@ -297,7 +300,7 @@ module.exports = {
             "<p>Maksutapa: " + trx.details.transaction.paymentInstrumentType + "</p>" +
             "<br></br>" +
             "<p>Y-tunnus: 2736475-2  ALV-numero: FI27364752</p>" +
-            "<footer><a href=\"https: //joogakoulusilta-projekti.firebaseapp.com\">Joogakoulu Silta</a>, jooga(at)joogasilta.com</footer>"
+            "<footer><a href=\"https://www.siltavaraukset.com\">Joogakoulu Silta</a>, joogakoulusilta@gmail.com</footer>"
 
         JPSM.data = {
             from: JPSM.mg_from_who,
