@@ -35,7 +35,7 @@ module.exports =
 /******/ 	__webpack_require__.c = installedModules;
 
 /******/ 	// __webpack_public_path__
-/******/ 	__webpack_require__.p = "/home/tsa/repo/joogaserver/public/";
+/******/ 	__webpack_require__.p = "/home/saarikiv/joogaserver/public/";
 
 /******/ 	// Load entry module and return exports
 /******/ 	return __webpack_require__(0);
@@ -621,6 +621,7 @@ module.exports =
 	        console.log(trx.title)
 	        var expires = new Date();
 	        expires.setTime(trx.expires);
+	        var expiresTxt = trx.expires != 0? "<p> Voimassaolo loppuu: " + JPSM.jps.timeHelper.getDayStr(expires) + "</p>" : ""
 
 	        JPSM.html =
 	            "<h1>Kiitos ostostasi!</h1>" +
@@ -630,7 +631,7 @@ module.exports =
 	            "<br></br>" +
 	            "<p>Tuote: " + trx.title + "</p>" +
 	            "<p>Tuotekuvaus: " + trx.desc + "</p>" +
-	            "<p>Voimassaolo loppuu: " + JPSM.jps.timeHelper.getDayStr(expires) + "</p>" +
+	            expiresTxt +
 	            "<p>Veroton hinta: " + trx.beforetax + " " + trx.details.transaction.currencyIsoCode + "</p>" +
 	            "<p>ALV(" + trx.taxpercent + ")     : " + trx.taxamount + " " + trx.details.transaction.currencyIsoCode + "</p>" +
 	            "<p>Yhteensä     : " + trx.price + " " + trx.details.transaction.currencyIsoCode + "</p>" +
