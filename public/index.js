@@ -35,7 +35,7 @@ module.exports =
 /******/ 	__webpack_require__.c = installedModules;
 
 /******/ 	// __webpack_public_path__
-/******/ 	__webpack_require__.p = "/home/saarikiv/joogaserver/public/";
+/******/ 	__webpack_require__.p = "/home/tsa/repo/varausserver/public/";
 
 /******/ 	// Load entry module and return exports
 /******/ 	return __webpack_require__(0);
@@ -62,18 +62,18 @@ module.exports =
 	console.log("ENV: ", process.env.PWD);
 	if (process.env.NODE_ENV == "production") {
 	    JPS.firebaseConfig = {
-	        serviceAccount: "public/joogakoulusilta.json",
-	        databaseURL: "https://joogakoulusilta-654a9.firebaseio.com",
+	        serviceAccount: "public/varaus.json",
+	        databaseURL: "https://varaus-a0250.firebaseio.com/",
 	        databaseAuthVariableOverride: {
-	            uid: "joogaserver"
+	            uid: "varausserver"
 	        }
 	    };
 	} else {
 	    JPS.firebaseConfig = {
-	        serviceAccount: "public/joogakoulusilta-projekti.json",
-	        databaseURL: "https://joogakoulusilta-projekti.firebaseio.com",
+	        serviceAccount: "public/varaus-stage.json",
+	        databaseURL: "https://varaus-a0250.firebaseio.com/",
 	        databaseAuthVariableOverride: {
-	            uid: "joogaserver"
+	            uid: "varausserver"
 	        }
 	    };
 	}
