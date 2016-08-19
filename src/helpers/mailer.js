@@ -28,12 +28,11 @@ module.exports = {
 
         JPSM.html =
             "<h1>Kiitos palautteesta!</h1>" +
-            "<p>Olemme vastaanottaneet palautteesi ja arvostamme sitä, että käytit aikaasi antaaksesi meille palautetta.</p>" +
+            "<p>Olemme vastaanottaneet palautteesi ja arvostamme sitä, että käytit aikaasi antaaksesi palautetta.</p>" +
             "<p>Teemme kaikkemme, jotta voimme palvella Sinua paremmin tulevaisuudessa.</p>" +
             "<br>" +
             "<p>Ystävällisin terveisin,</p>" +
-            "<p>Joogakoulu Silta</p>"
-        console.log("Thankyou: ", JPSM.html)
+            "<p>Hakolahdentie 2</p>"
 
         JPSM.data = {
             from: JPSM.mg_from_who,
@@ -68,7 +67,7 @@ module.exports = {
         JPSM.data = {
             from: JPSM.mg_from_who,
             to: JPSM.feedbackMail,
-            subject: 'Joogakoulu Silta palaute',
+            subject: 'Hakolahdentie 2 varaus palaute',
             html: JPSM.html
         }
         JPSM.mailgun.messages().send(JPSM.data, (err, body) => {
@@ -113,29 +112,28 @@ module.exports = {
     },
 
 
-    sendConfirmation: (sendTo, courseInfo, courseTime) => {
+    sendConfirmation: (sendTo, slotInfo, slotTime) => {
         if (!JPSM.initialized) return;
 
         console.log("sendConfirmation")
         console.log(sendTo)
-        console.log(courseInfo)
-        console.log(courseTime)
+        console.log(slotInfo)
+        console.log(slotTime)
 
         JPSM.html =
             "<h1>Varauksen vahvistus</h1>" +
-            "<p>Varauksesi tunnille " + courseInfo.courseType.name + " on vahvistettu.</p>" +
-            "<p>Päivä: " + JPSM.jps.timeHelper.getDayStr(courseTime) + "</p>" +
-            "<p>Aika: " + JPSM.jps.timeHelper.getTimeStr(courseTime) + "</p>" +
+            "<p>Varauksesi tunnille on vahvistettu.</p>" +
+            "<p>Päivä: " + JPSM.jps.timeHelper.getDayStr(slotTime) + "</p>" +
+            "<p>Aika: " + JPSM.jps.timeHelper.getTimeStr(slotTime) + "</p>" +
             "<br></br>" +
-            "<p>Mikäli et pääse osallistumaan tunnille voit perua ilmoittautumisesi vielä vähintään 3 h ennen tunnin alkamista.</p>" +
-            "<footer><a href=\"https: //joogakoulusilta-projekti.firebaseapp.com\">Joogakoulu Silta</a>, jooga(at)joogasilta.com</footer>"
+            "<p>Mikäli et pääse saunomaan, voit perua varauksesi vielä vähintään 3 h ennen vuoron alkamista.</p>"
 
         console.log("CONFIRMATION: ", JPSM.html)
 
         JPSM.data = {
             from: JPSM.mg_from_who,
             to: sendTo,
-            subject: 'Varausvahvistus:' + courseTime.toString() + ' - Joogakoulu Silta',
+            subject: 'Varausvahvistus:' + slotTime.toString() + ' - Hakolahdentie 2',
             html: JPSM.html
         }
         JPSM.mailgun.messages().send(JPSM.data, (err, body) => {
@@ -147,91 +145,28 @@ module.exports = {
         });
     },
 
-    sendCourseCancellationCount: (sendTo, courseInfo, courseTimeMs) => {
+
+
+    sendCancellationCount: (sendTo, slotInfo, slotTimeMs) => {
         if (!JPSM.initialized) return;
         var day = new Date()
-        day.setTime(courseTimeMs)
-        console.log("sendCourseCancellationCount")
-        console.log(courseTimeMs)
-
-        JPSM.html =
-            "<h1>Tunti jolle olet ilmoittautunut on peruttu!</h1>" +
-            "<p>Tunti " + courseInfo.courseType.name + " on peruttu.</p>" +
-            "<p>Päivä: " + JPSM.jps.timeHelper.getDayStr(day) + "</p>" +
-            "<p>Aika: " + JPSM.jps.timeHelper.getTimeStr(day) + "</p>" +
-            "<br></br>" +
-            "<p>Kertalippusi on palautettu tilillesi.</p>" +
-            "<p>Tervetuloa jonain toisena ajankohtana!</p>" +
-            "<footer><a href=\"https: //joogakoulusilta-projekti.firebaseapp.com\">Joogakoulu Silta</a>, jooga(at)joogasilta.com</footer>"
-
-        JPSM.data = {
-            from: JPSM.mg_from_who,
-            to: sendTo,
-            subject: 'Tunnin peruutusilmoitus:' + day.toString() + ' - Joogakoulu Silta',
-            html: JPSM.html
-        }
-        JPSM.mailgun.messages().send(JPSM.data, (err, body) => {
-            if (err) {
-                console.error("MAILGUN-error: ", err);
-            } else {
-                console.log("CANCEL-SENT: ", body);
-            }
-        });
-    },
-
-    sendCourseCancellationTime: (sendTo, courseInfo, courseTimeMs) => {
-        if (!JPSM.initialized) return;
-        var day = new Date()
-        day.setTime(courseTimeMs)
-        console.log("sendCancellationTime")
-        console.log(courseTimeMs)
-
-        JPSM.html =
-            "<h1>Tunti jolle olet ilmoittautunut on peruttu!</h1>" +
-            "<p>Tunti " + courseInfo.courseType.name + " on peruttu.</p>" +
-            "<p>Päivä: " + JPSM.jps.timeHelper.getDayStr(day) + "</p>" +
-            "<p>Aika: " + JPSM.jps.timeHelper.getTimeStr(day) + "</p>" +
-            "<br></br>" +
-            "<p>Tervetuloa jonain toisena ajankohtana!</p>" +
-            "<footer><a href=\"https: //joogakoulusilta-projekti.firebaseapp.com\">Joogakoulu Silta</a>, jooga(at)joogasilta.com</footer>"
-
-        JPSM.data = {
-            from: JPSM.mg_from_who,
-            to: sendTo,
-            subject: 'Tunnin peruutusilmoitus:' + day.toString() + ' - Joogakoulu Silta',
-            html: JPSM.html
-        }
-        JPSM.mailgun.messages().send(JPSM.data, (err, body) => {
-            if (err) {
-                console.error("MAILGUN-error: ", err);
-            } else {
-                console.log("CANCEL-SENT: ", body);
-            }
-        });
-    },
-
-
-    sendCancellationCount: (sendTo, courseInfo, courseTimeMs) => {
-        if (!JPSM.initialized) return;
-        var day = new Date()
-        day.setTime(courseTimeMs)
+        day.setTime(slotTimeMs)
         console.log("sendCancellationCount")
-        console.log(courseTimeMs)
+        console.log(slotTimeMs)
 
         JPSM.html =
             "<h1>Peruutuksen vahvistus</h1>" +
-            "<p>Peruutuksesi tunnille " + courseInfo.courseType.name + " on vahvistettu.</p>" +
+            "<p>Peruutuksesi on vahvistettu.</p>" +
             "<p>Päivä: " + JPSM.jps.timeHelper.getDayStr(day) + "</p>" +
             "<p>Aika: " + JPSM.jps.timeHelper.getTimeStr(day) + "</p>" +
             "<br></br>" +
-            "<p>Kertalippusi on palautettu tilillesi.</p>" +
-            "<p>Tervetuloa jonain toisena ajankohtana!</p>" +
-            "<footer><a href=\"https: //joogakoulusilta-projekti.firebaseapp.com\">Joogakoulu Silta</a>, jooga(at)joogasilta.com</footer>"
+            "<p>Kertavarauksesi on palautettu tilillesi.</p>" +
+            "<p>Tervetuloa saunomaan jonain toisena ajankohtana!</p>"
 
         JPSM.data = {
             from: JPSM.mg_from_who,
             to: sendTo,
-            subject: 'Peruutusvahvistus:' + day.toString() + ' - Joogakoulu Silta',
+            subject: 'Peruutusvahvistus:' + day.toString() + ' - Hakolahdentie 2',
             html: JPSM.html
         }
         JPSM.mailgun.messages().send(JPSM.data, (err, body) => {
@@ -243,36 +178,6 @@ module.exports = {
         });
     },
 
-    sendCancellationTime: (sendTo, courseInfo, courseTimeMs) => {
-        if (!JPSM.initialized) return;
-        var day = new Date()
-        day.setTime(courseTimeMs)
-        console.log("sendCancellationTime")
-        console.log(courseTimeMs)
-
-        JPSM.html =
-            "<h1>Peruutuksen vahvistus</h1>" +
-            "<p>Peruutuksesi tunnille " + courseInfo.courseType.name + " on vahvistettu.</p>" +
-            "<p>Päivä: " + JPSM.jps.timeHelper.getDayStr(day) + "</p>" +
-            "<p>Aika: " + JPSM.jps.timeHelper.getTimeStr(day) + "</p>" +
-            "<br></br>" +
-            "<p>Tervetuloa jonain toisena ajankohtana!</p>" +
-            "<footer><a href=\"https: //joogakoulusilta-projekti.firebaseapp.com\">Joogakoulu Silta</a>, jooga(at)joogasilta.com</footer>"
-
-        JPSM.data = {
-            from: JPSM.mg_from_who,
-            to: sendTo,
-            subject: 'Peruutusvahvistus:' + day.toString() + ' - Joogakoulu Silta',
-            html: JPSM.html
-        }
-        JPSM.mailgun.messages().send(JPSM.data, (err, body) => {
-            if (err) {
-                console.error("MAILGUN-error: ", err);
-            } else {
-                console.log("CANCEL-SENT: ", body);
-            }
-        });
-    },
 
     sendReceipt: (sendTo, trx, trxId) => {
         if (!JPSM.initialized) return;
@@ -285,7 +190,7 @@ module.exports = {
 
         JPSM.html =
             "<h1>Kiitos ostostasi!</h1>" +
-            "<p>Voit nyt mennä varaamaan tunteja <a href=\"https://www.siltavaraukset.com\">Joogakoulu Sillan</a> varauspalvelusta.</p>" +
+            "<p>Voit nyt mennä varaamaan saunavuoroja.</p>" +
             "<br></br>" +
             "<h1>Ostokuitti</h1>" +
             "<br></br>" +
@@ -298,15 +203,12 @@ module.exports = {
             "<br></br>" +
             "<p>Ostotunniste: " + trxId + "</p>" +
             "<p>Maksupalvelutunniste: " + trx.details.transaction.id + "</p>" +
-            "<p>Maksutapa: " + trx.details.transaction.paymentInstrumentType + "</p>" +
-            "<br></br>" +
-            "<p>Y-tunnus: 2736475-2  ALV-numero: FI27364752</p>" +
-            "<footer><a href=\"https://www.siltavaraukset.com\">Joogakoulu Silta</a>, joogakoulusilta@gmail.com</footer>"
+            "<p>Maksutapa: " + trx.details.transaction.paymentInstrumentType + "</p>" 
 
         JPSM.data = {
             from: JPSM.mg_from_who,
             to: sendTo,
-            subject: 'Ostokuitti, Joogakoulu Silta',
+            subject: 'Ostokuitti, Hakolahdentie 2',
             html: JPSM.html
         }
         JPSM.mailgun.messages().send(JPSM.data, (err, body) => {

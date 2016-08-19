@@ -18,7 +18,7 @@ exports.setApp = function(JPS) {
             JPS.post = JSON.parse(JPS.body);
             console.log("POST:", JPS.post);
             JPS.currentUserToken = JPS.post.user;
-            JPS.courseInfo = JPS.post.courseInfo;
+            JPS.slotInfo = JPS.post.slotInfo;
             JPS.cancelItem = JPS.post.cancelItem;
             JPS.txRef = JPS.post.transactionReference;
             JPS.timezoneOffset = JPS.post.timezoneOffset;
@@ -34,25 +34,25 @@ exports.setApp = function(JPS) {
                         JPS.user = snapshot.val();
                         JPS.user.key = snapshot.key;
                         console.log("USER:", JPS.user);
-                        return JPS.firebase.database().ref('/bookingsbycourse/' + JPS.courseInfo.key + '/' + JPS.cancelItem + '/' + JPS.user.key).once('value');
+                        return JPS.firebase.database().ref('/bookingsbyslot/' + JPS.slotInfo.key + '/' + JPS.cancelItem + '/' + JPS.user.key).once('value');
                     } else {
                         throw (new Error("User record does not exist in the database: " + JPS.currentUserUID))
                     }
                 })
                 .then(snapshot => {
                     if (snapshot.val() == null) {
-                        throw (new Error("Booking by-COURSE does not exist in the database."))
+                        throw (new Error("Booking by-SLOT does not exist in the database."))
                     }
-                    return JPS.firebase.database().ref('/bookingsbyuser/' + JPS.user.key + '/' + JPS.courseInfo.key + '/' + JPS.cancelItem).once('value');
+                    return JPS.firebase.database().ref('/bookingsbyuser/' + JPS.user.key + '/' + JPS.slotInfo.key + '/' + JPS.cancelItem).once('value');
                 })
                 .then(snapshot => {
                     if (snapshot.val() == null) {
                         throw (new Error("Booking by-USER does not exist in the database."))
                     }
-                    return JPS.firebase.database().ref('/bookingsbyuser/' + JPS.user.key + '/' + JPS.courseInfo.key + '/' + JPS.cancelItem).remove();
+                    return JPS.firebase.database().ref('/bookingsbyuser/' + JPS.user.key + '/' + JPS.slotInfo.key + '/' + JPS.cancelItem).remove();
                 })
                 .then(() => {
-                    return JPS.firebase.database().ref('/bookingsbycourse/' + JPS.courseInfo.key + '/' + JPS.cancelItem + '/' + JPS.user.key).remove();
+                    return JPS.firebase.database().ref('/bookingsbyslot/' + JPS.slotInfo.key + '/' + JPS.cancelItem + '/' + JPS.user.key).remove();
                 })
                 .then(() => {
                     console.log("Transaction reference: ", JPS.txRef)
@@ -76,7 +76,7 @@ exports.setApp = function(JPS) {
                                 res.status(200).jsonp({
                                     message: "Cancellation COUNT was succesfull."
                                 }).end();
-                                JPS.mailer.sendCancellationCount(JPS.user.email, JPS.courseInfo, JPS.cancelItem); //Send confirmation email
+                                JPS.mailer.sendCancellationCount(JPS.user.email, JPS.slotInfo, JPS.cancelItem); //Send confirmation email
                             }).catch(err => {
                                 throw (new Error(err.message + " " + err.code));
                             })
@@ -84,7 +84,7 @@ exports.setApp = function(JPS) {
                         res.status(200).jsonp({
                             message: "Cancellation TIME was succesfull."
                         }).end();
-                        JPS.mailer.sendCancellationTime(JPS.user.email, JPS.courseInfo, JPS.cancelItem); //Send confirmation email
+                        JPS.mailer.sendCancellationTime(JPS.user.email, JPS.slotInfo, JPS.cancelItem); //Send confirmation email
                     }
                 })
                 .catch(err => {

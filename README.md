@@ -18,11 +18,11 @@
 > nvm use stable
 
 ###keys
-> openssl req -newkey rsa:2048 -new -nodes -x509 -days 3650 -keyout jooga-key.pem -out jooga-cert.pem
+> openssl req -newkey rsa:2048 -new -nodes -x509 -days 3650 -keyout varaus-key.pem -out varaus-cert.pem
 
 #### Github-repo:
 > cd path/to/code <br>
-> git clone https://github.com/saarikiv/joogaserver
+> git clone https://github.com/saarikiv/varausserver
 
 #### Alustus:
 > cd path/to/code/project <br>

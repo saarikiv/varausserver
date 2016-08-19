@@ -21,15 +21,15 @@ exports.setApp = function (JPS){
       JPS.post = JSON.parse(JPS.body);
       console.log("POST:", JPS.post);
       JPS.currentUserToken = JPS.post.user;
-      JPS.courseInfo = JPS.post.courseInfo;
+      JPS.slotInfo = JPS.post.slotInfo;
       JPS.weeksForward = JPS.post.weeksForward;
       JPS.timezoneOffset = JPS.post.timezoneOffset;
-      JPS.courseTime = JPS.timeHelper.getCourseTimeLocal(JPS.weeksForward, JPS.courseInfo.start, JPS.courseInfo.day)
+      JPS.slotTime = JPS.timeHelper.getSlotTimeLocal(JPS.weeksForward, JPS.slotInfo.start, JPS.slotInfo.day)
 
       JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
       .then( decodedToken => {
         JPS.currentUserUID = decodedToken.sub;
-        console.log("User: ", JPS.currentUserUID, " requested checkout.");
+        console.log("User: ", JPS.currentUserUID, " requested reserveSlot.");
         return JPS.firebase.database().ref('/users/'+JPS.currentUserUID).once('value')
       })
       .then ( snapshot => {
@@ -39,8 +39,7 @@ exports.setApp = function (JPS){
         JPS.user = snapshot.val();
         JPS.user.key = snapshot.key;
         console.log("USER:",JPS.user);
-        console.log("courseINFO:",JPS.courseInfo);
-        JPS.userHasTime = false;
+        console.log("slotINFO:",JPS.slotInfo);
         JPS.userHasCount = false;
         JPS.earliestToExpire = 0;
         JPS.expiryTime = 9999999999999;
@@ -52,76 +51,57 @@ exports.setApp = function (JPS){
       .then( snapshot => {
         JPS.allTx = snapshot.val();
         for (JPS.one in JPS.allTx){
-          switch(JPS.allTx[JPS.one].type){
-            case "time":
-              if(JPS.allTx[JPS.one].expires > JPS.courseTime.getTime()){
-                    JPS.userHasTime = true;
-              }
-              break;
-            case "count":
-              if((JPS.allTx[JPS.one].expires > JPS.now) && (JPS.allTx[JPS.one].unusedtimes > 0)){
-                JPS.userHasCount = true;
-                    //Find the earliest to expire record
-                if(JPS.allTx[JPS.one].expires < JPS.expiryTime){
-                  JPS.earliestToExpire = JPS.one;
-                  JPS.expiryTime = JPS.allTx[JPS.one].expires;
-                  JPS.recordToUpdate = JPS.allTx[JPS.one];
-                  JPS.unusedtimes = JPS.allTx[JPS.one].unusedtimes;
-                }
-              }
-              break;
-            default:
-              console.error("Unrecognized transaction type: ", JPS.allTx[JPS.one].type);
-              break;
+          if((JPS.allTx[JPS.one].expires > JPS.now) && (JPS.allTx[JPS.one].unusedtimes > 0)){
+            JPS.userHasCount = true;
+                //Find the earliest to expire record
+            if(JPS.allTx[JPS.one].expires < JPS.expiryTime){
+              JPS.earliestToExpire = JPS.one;
+              JPS.expiryTime = JPS.allTx[JPS.one].expires;
+              JPS.recordToUpdate = JPS.allTx[JPS.one];
+              JPS.unusedtimes = JPS.allTx[JPS.one].unusedtimes;
+            }
           }
         } // for - looping through transactions
         JPS.transactionReference = 0; //Leave it 0 if bookign is based on time-token.
-        if(!JPS.userHasTime){
-          console.log("User does not have time.");
-          if(!JPS.userHasCount){
-            console.log("User does not have count");
-            throw( new Error("User is not entitled to book this slot"));
-          }
-          else { //Process user has count option
-            JPS.transactionReference = JPS.earliestToExpire;
-            //TODO: Check tahat user has not already booked in to the course before reducing count.
-            JPS.recordToUpdate.unusedtimes = JPS.recordToUpdate.unusedtimes - 1;
-            JPS.unusedtimes = JPS.unusedtimes - 1;
-            JPS.firebase.database()
-              .ref('/transactions/'+JPS.currentUserUID+'/'+JPS.earliestToExpire)
-              .update({unusedtimes: JPS.unusedtimes})
-              .then( err => {
-                if(err){
-                  throw(new Error(err.message + " " + err.code));
-                } else {
-                  console.log("Updated transaction date for user: ", JPS.currentUserUID);
-                }
-              })
-              .catch(err => {throw(err)})
-            }
-          } else {
-          console.log("User has time.");
+        if(!JPS.userHasCount){
+          console.log("User does not have count");
+          throw( new Error("User is not entitled to book this slot"));
+        }
+        else { //Process user has count option
+          JPS.transactionReference = JPS.earliestToExpire;
+          //TODO: Check tahat user has not already booked in to the slot before reducing count.
+          JPS.recordToUpdate.unusedtimes = JPS.recordToUpdate.unusedtimes - 1;
+          JPS.unusedtimes = JPS.unusedtimes - 1;
+          JPS.firebase.database()
+            .ref('/transactions/'+JPS.currentUserUID+'/'+JPS.earliestToExpire)
+            .update({unusedtimes: JPS.unusedtimes})
+            .then( err => {
+              if(err){
+                throw(new Error(err.message + " " + err.code));
+              } else {
+                console.log("Updated transaction date for user: ", JPS.currentUserUID);
+              }
+            })
+            .catch(err => {throw(err)})
           }
           //If user is entitled, write the bookings in to the database
           if(JPS.userHasTime || JPS.userHasCount){
-            JPS.bookingTime = JPS.courseTime.getTime();
-            JPS.firebase.database().ref('/bookingsbycourse/'+JPS.courseInfo.key+'/'+JPS.bookingTime+'/'+JPS.user.key)
+            JPS.bookingTime = JPS.slotTime.getTime();
+            JPS.firebase.database().ref('/bookingsbyslot/'+JPS.slotInfo.key+'/'+JPS.bookingTime+'/'+JPS.user.key)
             .update({
               user: (JPS.user.alias)? JPS.user.alias : JPS.user.firstname + " " + JPS.user.lastname,
               transactionReference: JPS.transactionReference,
-              courseName: JPS.courseInfo.courseType.name,
-              courseTime: JPS.bookingTime
+              slotTime: JPS.bookingTime
             })
             .then( err => {
               if(err){
-                console.error("Booking by COURSE write to firabase failed: ", err);
-                throw(new Error("Booking by COURSE write to firabase failed: " + err.toString()))
+                console.error("Booking by SLOT write to firabase failed: ", err);
+                throw(new Error("Booking by SLOT write to firabase failed: " + err.toString()))
               }
-              return JPS.firebase.database().ref('/bookingsbyuser/'+JPS.user.key+'/'+JPS.courseInfo.key+'/'+JPS.bookingTime)
+              return JPS.firebase.database().ref('/bookingsbyuser/'+JPS.user.key+'/'+JPS.slotInfo.key+'/'+JPS.bookingTime)
               .update({
                 transactionReference: JPS.transactionReference,
-                courseName: JPS.courseInfo.courseType.name,
-                courseTime: JPS.bookingTime
+                slotTime: JPS.bookingTime
               })
             })
             .then( err => {
@@ -132,7 +112,7 @@ exports.setApp = function (JPS){
               else{
                 //======================================
                 res.status(200).jsonp("Booking done succesfully").end();
-                JPS.mailer.sendConfirmation(JPS.user.email, JPS.courseInfo, JPS.courseTime); //Send confirmation email
+                JPS.mailer.sendConfirmation(JPS.user.email, JPS.slotInfo, JPS.slotTime); //Send confirmation email
                 //======================================
               }
             })

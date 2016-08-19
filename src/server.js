@@ -78,10 +78,6 @@ JPS.mailer.initializeMail(JPS);
 // HEADERS
 require('./setHeaders.js').setApp(JPS);
 
-// GET
-require('./get/getClientToken.js').setApp(JPS);
-require('./get/getPayTrailNotification.js').setApp(JPS);
-
 // POST
 require('./post/postNotifyRegistration.js').setApp(JPS);
 require('./post/postFeedback.js').setApp(JPS);
@@ -92,9 +88,8 @@ require('./post/postCompletePaytrail.js').setApp(JPS);
 require('./post/postInitializePayTrailTransaction.js').setApp(JPS);
 require('./post/postCancelPayTrailTransaction.js').setApp(JPS);
 require('./post/postCashbuy.js').setApp(JPS);
-require('./post/postCancelCourse.js').setApp(JPS);
+require('./post/postCancelSlot.js').setApp(JPS);
 require('./post/postReserveSlot.js').setApp(JPS);
-require('./post/postReserveLateSlot.js').setApp(JPS);
 require('./post/postCancelSlot.js').setApp(JPS);
 require('./post/postRemoveTransaction.js').setApp(JPS);
 require('../tests/postTest.js').setApp(JPS);

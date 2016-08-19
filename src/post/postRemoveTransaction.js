@@ -42,8 +42,8 @@ exports.setApp = function(JPS) {
                 })
                 .then(() => {
                     if(JPS.transactionToRemove.type === 'special'){
-                        console.log("SPECIAL course transation - remove bookings: ", JPS.transactionToRemove.shopItemKey, JPS.forUserId);
-                        JPS.firebase.database().ref('/scbookingsbycourse/' + JPS.transactionToRemove.shopItemKey + "/" + JPS.forUserId).remove();
+                        console.log("SPECIAL slot transation - remove bookings: ", JPS.transactionToRemove.shopItemKey, JPS.forUserId);
+                        JPS.firebase.database().ref('/scbookingsbyslot/' + JPS.transactionToRemove.shopItemKey + "/" + JPS.forUserId).remove();
                         JPS.firebase.database().ref('/scbookingsbyuser/' + JPS.forUserId + "/" + JPS.transactionToRemove.shopItemKey).remove();
                     }
                     res.status(200).jsonp("Transaction removed succesfully.").end();

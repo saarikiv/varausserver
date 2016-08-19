@@ -46,7 +46,7 @@ exports.setApp = function(JPS) {
                     JPS.forUser.key = snapshot.key;
                     switch (JPS.itemType) {
                         case "special":
-                            return JPS.firebase.database().ref('/specialCourses/' + JPS.shopItemKey).once('value');
+                            return JPS.firebase.database().ref('/specialSlots/' + JPS.shopItemKey).once('value');
                         default:
                             return JPS.firebase.database().ref('/shopItems/' + JPS.shopItemKey).once('value');
                     }
@@ -117,12 +117,12 @@ exports.setApp = function(JPS) {
                             });
                     }
                     if(JPS.shopItem.type === "special"){
-                      console.log("special course purchase ok....");
+                      console.log("special slot purchase ok....");
                       JPS.shopItem.expires = 0;
                       JPS.firebase.database().ref('/transactions/' + JPS.forUser.key + '/' + JPS.now)
                           .update(Object.assign(JPS.transaction, JPS.shopItem))
                           .then(() => {
-                            return JPS.firebase.database().ref('/scbookingsbycourse/' + JPS.shopItemKey + '/' + JPS.forUser.key)
+                            return JPS.firebase.database().ref('/scbookingsbyslot/' + JPS.shopItemKey + '/' + JPS.forUser.key)
                             .update({transactionReference: JPS.now})
                           })
                           .then(() => {

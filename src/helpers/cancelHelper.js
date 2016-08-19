@@ -1,24 +1,24 @@
 module.exports = {
-    cancelSlot: (JPS, user, courseInfo, courseInstance, transactionReference) => {
+    cancelSlot: (JPS, user, slotInfo, slotInstance, transactionReference) => {
 
         var promise = new Promise((resolve, reject) => {
 
             console.log("USER:", user);
-            JPS.firebase.database().ref('/bookingsbycourse/' + courseInfo.key + '/' + courseInstance + '/' + user).once('value')
+            JPS.firebase.database().ref('/bookingsbyslot/' + slotInfo.key + '/' + slotInstance + '/' + user).once('value')
             .then(snapshot => {
                 if (snapshot.val() == null) {
-                    throw (new Error("Booking by-COURSE does not exist in the database."))
+                    throw (new Error("Booking by-SLOT does not exist in the database."))
                 }
-                return JPS.firebase.database().ref('/bookingsbyuser/' + user + '/' + courseInfo.key + '/' + courseInstance).once('value');
+                return JPS.firebase.database().ref('/bookingsbyuser/' + user + '/' + slotInfo.key + '/' + slotInstance).once('value');
             })
             .then(snapshot => {
                 if (snapshot.val() == null) {
                     throw (new Error("Booking by-USER does not exist in the database."))
                 }
-                return JPS.firebase.database().ref('/bookingsbyuser/' + user + '/' + courseInfo.key + '/' + courseInstance).remove();
+                return JPS.firebase.database().ref('/bookingsbyuser/' + user + '/' + slotInfo.key + '/' + slotInstance).remove();
             })
             .then(() => {
-                return JPS.firebase.database().ref('/bookingsbycourse/' + courseInfo.key + '/' + courseInstance + '/' + user).remove();
+                return JPS.firebase.database().ref('/bookingsbyslot/' + slotInfo.key + '/' + slotInstance + '/' + user).remove();
             })
             .then(() => {
                 console.log("Transaction reference: ", transactionReference)
@@ -39,12 +39,12 @@ module.exports = {
                             if (err) {
                                 throw (new Error(err.message + " " + err.code));
                             }
-                            JPS.mailer.sendCourseCancellationCount(JPS.user.email, courseInfo, courseInstance); //Send confirmation email
+                            JPS.mailer.sendSlotCancellationCount(JPS.user.email, slotInfo, slotInstance); //Send confirmation email
                         }).catch(err => {
                             throw (new Error(err.message + " " + err.code));
                         })
                 } else {
-                    JPS.mailer.sendCourseCancellationTime(JPS.user.email, courseInfo, courseInstance); //Send confirmation email
+                    JPS.mailer.sendSlotCancellationTime(JPS.user.email, slotInfo, slotInstance); //Send confirmation email
                 }
             })
             .catch(err => {

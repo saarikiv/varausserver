@@ -11,7 +11,7 @@ var commonLoaders = [
 
 module.exports = [
   {
-	name: "joogakoulu server",
+	name: "varaus server",
 	context: path.join(__dirname, "src"),
 	entry: "./server.js",
 	target: "node",
