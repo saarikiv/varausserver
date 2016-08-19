@@ -15,18 +15,18 @@ JPS.braintree = require("braintree");
 console.log("ENV: ", process.env.PWD);
 if (process.env.NODE_ENV == "production") {
     JPS.firebaseConfig = {
-        serviceAccount: "public/joogakoulusilta.json",
-        databaseURL: "https://joogakoulusilta-654a9.firebaseio.com",
+        serviceAccount: "public/varaus.json",
+        databaseURL: "https://varaus-a0250.firebaseio.com/",
         databaseAuthVariableOverride: {
-            uid: "joogaserver"
+            uid: "varausserver"
         }
     };
 } else {
     JPS.firebaseConfig = {
-        serviceAccount: "public/joogakoulusilta-projekti.json",
-        databaseURL: "https://joogakoulusilta-projekti.firebaseio.com",
+        serviceAccount: "public/varaus-stage.json",
+        databaseURL: "https://varaus-a0250.firebaseio.com/",
         databaseAuthVariableOverride: {
-            uid: "joogaserver"
+            uid: "varausserver"
         }
     };
 }
