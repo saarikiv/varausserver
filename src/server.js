@@ -92,7 +92,7 @@ require('./post/postCompletePaytrail.js').setApp(JPS);
 require('./post/postInitializePayTrailTransaction.js').setApp(JPS);
 require('./post/postCancelPayTrailTransaction.js').setApp(JPS);
 require('./post/postCashbuy.js').setApp(JPS);
-require('./post/postCancelCourse.js').setApp(JPS);
+require('./post/postCancelSlot.js').setApp(JPS);
 require('./post/postReserveSlot.js').setApp(JPS);
 require('./post/postReserveLateSlot.js').setApp(JPS);
 require('./post/postCancelSlot.js').setApp(JPS);

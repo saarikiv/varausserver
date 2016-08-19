@@ -1,20 +1,20 @@
 var JHLP = {}
 
 module.exports = {
-    getCourseTimeLocal: (weeksForward, timeOfStart, dayNumber) => {
+    getSlotTimeLocal: (weeksForward, timeOfStart, dayNumber) => {
 
-        JHLP.courseTime = new Date();
-        JHLP.dayNumber = JHLP.courseTime.getDay()
+        JHLP.slotTime = new Date();
+        JHLP.dayNumber = JHLP.slotTime.getDay()
         JHLP.dayNumber = (JHLP.dayNumber == 0) ? 7 : JHLP.dayNumber;
         JHLP.daysToAdd = weeksForward * 7 + dayNumber - JHLP.dayNumber;
 
-        JHLP.courseTime.setHours(0);
-        JHLP.courseTime.setMinutes(0);
-        JHLP.courseTime.setSeconds(0);
-        JHLP.courseTime.setMilliseconds(0);
-        JHLP.courseTime.setTime(JHLP.courseTime.getTime() + JHLP.daysToAdd * 24 * 60 * 60 * 1000 + timeOfStart);
+        JHLP.slotTime.setHours(0);
+        JHLP.slotTime.setMinutes(0);
+        JHLP.slotTime.setSeconds(0);
+        JHLP.slotTime.setMilliseconds(0);
+        JHLP.slotTime.setTime(JHLP.slotTime.getTime() + JHLP.daysToAdd * 24 * 60 * 60 * 1000 + timeOfStart);
 
-        return JHLP.courseTime;
+        return JHLP.slotTime;
     },
     getDayStr: (day) => {
         return day.getDate() + "." + day.getMonth()+1 + "." + day.getFullYear()

@@ -21,10 +21,10 @@ exports.setApp = function (JPS){
       JPS.post = JSON.parse(JPS.body);
       console.log("POST:", JPS.post);
       JPS.currentUserToken = JPS.post.user;
-      JPS.courseInfo = JPS.post.courseInfo;
+      JPS.slotInfo = JPS.post.slotInfo;
       JPS.weeksForward = JPS.post.weeksForward;
       JPS.timezoneOffset = JPS.post.timezoneOffset;
-      JPS.courseTime = JPS.timeHelper.getCourseTimeLocal(JPS.weeksForward, JPS.courseInfo.start, JPS.courseInfo.day)
+      JPS.slotTime = JPS.timeHelper.getSlotTimeLocal(JPS.weeksForward, JPS.slotInfo.start, JPS.slotInfo.day)
 
       JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
       .then( decodedToken => {
@@ -39,7 +39,7 @@ exports.setApp = function (JPS){
         JPS.user = snapshot.val();
         JPS.user.key = snapshot.key;
         console.log("USER:",JPS.user);
-        console.log("courseINFO:",JPS.courseInfo);
+        console.log("slotINFO:",JPS.slotInfo);
         JPS.userHasTime = false;
         JPS.userHasCount = false;
         JPS.earliestToExpire = 0;
@@ -54,7 +54,7 @@ exports.setApp = function (JPS){
         for (JPS.one in JPS.allTx){
           switch(JPS.allTx[JPS.one].type){
             case "time":
-              if(JPS.allTx[JPS.one].expires > JPS.courseTime.getTime()){
+              if(JPS.allTx[JPS.one].expires > JPS.slotTime.getTime()){
                     JPS.userHasTime = true;
               }
               break;
@@ -84,7 +84,7 @@ exports.setApp = function (JPS){
           }
           else { //Process user has count option
             JPS.transactionReference = JPS.earliestToExpire;
-            //TODO: Check tahat user has not already booked in to the course before reducing count.
+            //TODO: Check tahat user has not already booked in to the slot before reducing count.
             JPS.recordToUpdate.unusedtimes = JPS.recordToUpdate.unusedtimes - 1;
             JPS.unusedtimes = JPS.unusedtimes - 1;
             JPS.firebase.database()
@@ -104,24 +104,24 @@ exports.setApp = function (JPS){
           }
           //If user is entitled, write the bookings in to the database
           if(JPS.userHasTime || JPS.userHasCount){
-            JPS.bookingTime = JPS.courseTime.getTime();
-            JPS.firebase.database().ref('/bookingsbycourse/'+JPS.courseInfo.key+'/'+JPS.bookingTime+'/'+JPS.user.key)
+            JPS.bookingTime = JPS.slotTime.getTime();
+            JPS.firebase.database().ref('/bookingsbyslot/'+JPS.slotInfo.key+'/'+JPS.bookingTime+'/'+JPS.user.key)
             .update({
               user: (JPS.user.alias)? JPS.user.alias : JPS.user.firstname + " " + JPS.user.lastname,
               transactionReference: JPS.transactionReference,
-              courseName: JPS.courseInfo.courseType.name,
-              courseTime: JPS.bookingTime
+              slotName: JPS.slotInfo.slotType.name,
+              slotTime: JPS.bookingTime
             })
             .then( err => {
               if(err){
-                console.error("Booking by COURSE write to firabase failed: ", err);
-                throw(new Error("Booking by COURSE write to firabase failed: " + err.toString()))
+                console.error("Booking by SLOT write to firabase failed: ", err);
+                throw(new Error("Booking by SLOT write to firabase failed: " + err.toString()))
               }
-              return JPS.firebase.database().ref('/bookingsbyuser/'+JPS.user.key+'/'+JPS.courseInfo.key+'/'+JPS.bookingTime)
+              return JPS.firebase.database().ref('/bookingsbyuser/'+JPS.user.key+'/'+JPS.slotInfo.key+'/'+JPS.bookingTime)
               .update({
                 transactionReference: JPS.transactionReference,
-                courseName: JPS.courseInfo.courseType.name,
-                courseTime: JPS.bookingTime
+                slotName: JPS.slotInfo.slotType.name,
+                slotTime: JPS.bookingTime
               })
             })
             .then( err => {
@@ -132,7 +132,7 @@ exports.setApp = function (JPS){
               else{
                 //======================================
                 res.status(200).jsonp("Booking done succesfully").end();
-                JPS.mailer.sendConfirmation(JPS.user.email, JPS.courseInfo, JPS.courseTime); //Send confirmation email
+                JPS.mailer.sendConfirmation(JPS.user.email, JPS.slotInfo, JPS.slotTime); //Send confirmation email
                 //======================================
               }
             })

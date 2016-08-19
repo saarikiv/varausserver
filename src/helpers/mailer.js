@@ -113,19 +113,19 @@ module.exports = {
     },
 
 
-    sendConfirmation: (sendTo, courseInfo, courseTime) => {
+    sendConfirmation: (sendTo, slotInfo, slotTime) => {
         if (!JPSM.initialized) return;
 
         console.log("sendConfirmation")
         console.log(sendTo)
-        console.log(courseInfo)
-        console.log(courseTime)
+        console.log(slotInfo)
+        console.log(slotTime)
 
         JPSM.html =
             "<h1>Varauksen vahvistus</h1>" +
-            "<p>Varauksesi tunnille " + courseInfo.courseType.name + " on vahvistettu.</p>" +
-            "<p>Päivä: " + JPSM.jps.timeHelper.getDayStr(courseTime) + "</p>" +
-            "<p>Aika: " + JPSM.jps.timeHelper.getTimeStr(courseTime) + "</p>" +
+            "<p>Varauksesi tunnille " + slotInfo.slotType.name + " on vahvistettu.</p>" +
+            "<p>Päivä: " + JPSM.jps.timeHelper.getDayStr(slotTime) + "</p>" +
+            "<p>Aika: " + JPSM.jps.timeHelper.getTimeStr(slotTime) + "</p>" +
             "<br></br>" +
             "<p>Mikäli et pääse osallistumaan tunnille voit perua ilmoittautumisesi vielä vähintään 3 h ennen tunnin alkamista.</p>" +
             "<footer><a href=\"https: //joogakoulusilta-projekti.firebaseapp.com\">Joogakoulu Silta</a>, jooga(at)joogasilta.com</footer>"
@@ -135,7 +135,7 @@ module.exports = {
         JPSM.data = {
             from: JPSM.mg_from_who,
             to: sendTo,
-            subject: 'Varausvahvistus:' + courseTime.toString() + ' - Joogakoulu Silta',
+            subject: 'Varausvahvistus:' + slotTime.toString() + ' - Joogakoulu Silta',
             html: JPSM.html
         }
         JPSM.mailgun.messages().send(JPSM.data, (err, body) => {
@@ -147,16 +147,16 @@ module.exports = {
         });
     },
 
-    sendCourseCancellationCount: (sendTo, courseInfo, courseTimeMs) => {
+    sendSlotCancellationCount: (sendTo, slotInfo, slotTimeMs) => {
         if (!JPSM.initialized) return;
         var day = new Date()
-        day.setTime(courseTimeMs)
-        console.log("sendCourseCancellationCount")
-        console.log(courseTimeMs)
+        day.setTime(slotTimeMs)
+        console.log("sendSlotCancellationCount")
+        console.log(slotTimeMs)
 
         JPSM.html =
             "<h1>Tunti jolle olet ilmoittautunut on peruttu!</h1>" +
-            "<p>Tunti " + courseInfo.courseType.name + " on peruttu.</p>" +
+            "<p>Tunti " + slotInfo.slotType.name + " on peruttu.</p>" +
             "<p>Päivä: " + JPSM.jps.timeHelper.getDayStr(day) + "</p>" +
             "<p>Aika: " + JPSM.jps.timeHelper.getTimeStr(day) + "</p>" +
             "<br></br>" +
@@ -179,16 +179,16 @@ module.exports = {
         });
     },
 
-    sendCourseCancellationTime: (sendTo, courseInfo, courseTimeMs) => {
+    sendSlotCancellationTime: (sendTo, slotInfo, slotTimeMs) => {
         if (!JPSM.initialized) return;
         var day = new Date()
-        day.setTime(courseTimeMs)
+        day.setTime(slotTimeMs)
         console.log("sendCancellationTime")
-        console.log(courseTimeMs)
+        console.log(slotTimeMs)
 
         JPSM.html =
             "<h1>Tunti jolle olet ilmoittautunut on peruttu!</h1>" +
-            "<p>Tunti " + courseInfo.courseType.name + " on peruttu.</p>" +
+            "<p>Tunti " + slotInfo.slotType.name + " on peruttu.</p>" +
             "<p>Päivä: " + JPSM.jps.timeHelper.getDayStr(day) + "</p>" +
             "<p>Aika: " + JPSM.jps.timeHelper.getTimeStr(day) + "</p>" +
             "<br></br>" +
@@ -211,16 +211,16 @@ module.exports = {
     },
 
 
-    sendCancellationCount: (sendTo, courseInfo, courseTimeMs) => {
+    sendCancellationCount: (sendTo, slotInfo, slotTimeMs) => {
         if (!JPSM.initialized) return;
         var day = new Date()
-        day.setTime(courseTimeMs)
+        day.setTime(slotTimeMs)
         console.log("sendCancellationCount")
-        console.log(courseTimeMs)
+        console.log(slotTimeMs)
 
         JPSM.html =
             "<h1>Peruutuksen vahvistus</h1>" +
-            "<p>Peruutuksesi tunnille " + courseInfo.courseType.name + " on vahvistettu.</p>" +
+            "<p>Peruutuksesi tunnille " + slotInfo.slotType.name + " on vahvistettu.</p>" +
             "<p>Päivä: " + JPSM.jps.timeHelper.getDayStr(day) + "</p>" +
             "<p>Aika: " + JPSM.jps.timeHelper.getTimeStr(day) + "</p>" +
             "<br></br>" +
@@ -243,16 +243,16 @@ module.exports = {
         });
     },
 
-    sendCancellationTime: (sendTo, courseInfo, courseTimeMs) => {
+    sendCancellationTime: (sendTo, slotInfo, slotTimeMs) => {
         if (!JPSM.initialized) return;
         var day = new Date()
-        day.setTime(courseTimeMs)
+        day.setTime(slotTimeMs)
         console.log("sendCancellationTime")
-        console.log(courseTimeMs)
+        console.log(slotTimeMs)
 
         JPSM.html =
             "<h1>Peruutuksen vahvistus</h1>" +
-            "<p>Peruutuksesi tunnille " + courseInfo.courseType.name + " on vahvistettu.</p>" +
+            "<p>Peruutuksesi tunnille " + slotInfo.slotType.name + " on vahvistettu.</p>" +
             "<p>Päivä: " + JPSM.jps.timeHelper.getDayStr(day) + "</p>" +
             "<p>Aika: " + JPSM.jps.timeHelper.getTimeStr(day) + "</p>" +
             "<br></br>" +
