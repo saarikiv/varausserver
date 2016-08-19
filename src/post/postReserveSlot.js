@@ -29,7 +29,7 @@ exports.setApp = function (JPS){
       JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
       .then( decodedToken => {
         JPS.currentUserUID = decodedToken.sub;
-        console.log("User: ", JPS.currentUserUID, " requested checkout.");
+        console.log("User: ", JPS.currentUserUID, " requested reserveSlot.");
         return JPS.firebase.database().ref('/users/'+JPS.currentUserUID).once('value')
       })
       .then ( snapshot => {
@@ -40,7 +40,6 @@ exports.setApp = function (JPS){
         JPS.user.key = snapshot.key;
         console.log("USER:",JPS.user);
         console.log("slotINFO:",JPS.slotInfo);
-        JPS.userHasTime = false;
         JPS.userHasCount = false;
         JPS.earliestToExpire = 0;
         JPS.expiryTime = 9999999999999;
@@ -52,55 +51,38 @@ exports.setApp = function (JPS){
       .then( snapshot => {
         JPS.allTx = snapshot.val();
         for (JPS.one in JPS.allTx){
-          switch(JPS.allTx[JPS.one].type){
-            case "time":
-              if(JPS.allTx[JPS.one].expires > JPS.slotTime.getTime()){
-                    JPS.userHasTime = true;
-              }
-              break;
-            case "count":
-              if((JPS.allTx[JPS.one].expires > JPS.now) && (JPS.allTx[JPS.one].unusedtimes > 0)){
-                JPS.userHasCount = true;
-                    //Find the earliest to expire record
-                if(JPS.allTx[JPS.one].expires < JPS.expiryTime){
-                  JPS.earliestToExpire = JPS.one;
-                  JPS.expiryTime = JPS.allTx[JPS.one].expires;
-                  JPS.recordToUpdate = JPS.allTx[JPS.one];
-                  JPS.unusedtimes = JPS.allTx[JPS.one].unusedtimes;
-                }
-              }
-              break;
-            default:
-              console.error("Unrecognized transaction type: ", JPS.allTx[JPS.one].type);
-              break;
+          if((JPS.allTx[JPS.one].expires > JPS.now) && (JPS.allTx[JPS.one].unusedtimes > 0)){
+            JPS.userHasCount = true;
+                //Find the earliest to expire record
+            if(JPS.allTx[JPS.one].expires < JPS.expiryTime){
+              JPS.earliestToExpire = JPS.one;
+              JPS.expiryTime = JPS.allTx[JPS.one].expires;
+              JPS.recordToUpdate = JPS.allTx[JPS.one];
+              JPS.unusedtimes = JPS.allTx[JPS.one].unusedtimes;
+            }
           }
         } // for - looping through transactions
         JPS.transactionReference = 0; //Leave it 0 if bookign is based on time-token.
-        if(!JPS.userHasTime){
-          console.log("User does not have time.");
-          if(!JPS.userHasCount){
-            console.log("User does not have count");
-            throw( new Error("User is not entitled to book this slot"));
-          }
-          else { //Process user has count option
-            JPS.transactionReference = JPS.earliestToExpire;
-            //TODO: Check tahat user has not already booked in to the slot before reducing count.
-            JPS.recordToUpdate.unusedtimes = JPS.recordToUpdate.unusedtimes - 1;
-            JPS.unusedtimes = JPS.unusedtimes - 1;
-            JPS.firebase.database()
-              .ref('/transactions/'+JPS.currentUserUID+'/'+JPS.earliestToExpire)
-              .update({unusedtimes: JPS.unusedtimes})
-              .then( err => {
-                if(err){
-                  throw(new Error(err.message + " " + err.code));
-                } else {
-                  console.log("Updated transaction date for user: ", JPS.currentUserUID);
-                }
-              })
-              .catch(err => {throw(err)})
-            }
-          } else {
-          console.log("User has time.");
+        if(!JPS.userHasCount){
+          console.log("User does not have count");
+          throw( new Error("User is not entitled to book this slot"));
+        }
+        else { //Process user has count option
+          JPS.transactionReference = JPS.earliestToExpire;
+          //TODO: Check tahat user has not already booked in to the slot before reducing count.
+          JPS.recordToUpdate.unusedtimes = JPS.recordToUpdate.unusedtimes - 1;
+          JPS.unusedtimes = JPS.unusedtimes - 1;
+          JPS.firebase.database()
+            .ref('/transactions/'+JPS.currentUserUID+'/'+JPS.earliestToExpire)
+            .update({unusedtimes: JPS.unusedtimes})
+            .then( err => {
+              if(err){
+                throw(new Error(err.message + " " + err.code));
+              } else {
+                console.log("Updated transaction date for user: ", JPS.currentUserUID);
+              }
+            })
+            .catch(err => {throw(err)})
           }
           //If user is entitled, write the bookings in to the database
           if(JPS.userHasTime || JPS.userHasCount){
@@ -109,7 +91,6 @@ exports.setApp = function (JPS){
             .update({
               user: (JPS.user.alias)? JPS.user.alias : JPS.user.firstname + " " + JPS.user.lastname,
               transactionReference: JPS.transactionReference,
-              slotName: JPS.slotInfo.slotType.name,
               slotTime: JPS.bookingTime
             })
             .then( err => {
@@ -120,7 +101,6 @@ exports.setApp = function (JPS){
               return JPS.firebase.database().ref('/bookingsbyuser/'+JPS.user.key+'/'+JPS.slotInfo.key+'/'+JPS.bookingTime)
               .update({
                 transactionReference: JPS.transactionReference,
-                slotName: JPS.slotInfo.slotType.name,
                 slotTime: JPS.bookingTime
               })
             })

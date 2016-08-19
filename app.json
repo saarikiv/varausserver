@@ -1,8 +1,8 @@
 {
-  "name": "joogaserver",
+  "name": "varausserver",
   "description": "initial",
   "env": {
-    "JOOGATESTER": "TUOMO"
+    "VARAUSTESTER": "TUOMO"
   },
   "formation": {
     "web": {

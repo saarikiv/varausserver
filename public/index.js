@@ -49,15 +49,15 @@ module.exports =
 	// Server main faile
 	//------------------------------------------
 
-	var express = __webpack_require__(27)
+	var express = __webpack_require__(26)
 	var JPS = {} //The global.
-	JPS.tests = __webpack_require__(25)
-	JPS.timeHelper = __webpack_require__(8)
-	JPS.errorHelper = __webpack_require__(5)
-	JPS.cancelHelper = __webpack_require__(4)
-	JPS.pendingTransactionsHelper = __webpack_require__(7)
-	JPS.mailer = __webpack_require__(6)
-	JPS.braintree = __webpack_require__(26);
+	JPS.tests = __webpack_require__(24)
+	JPS.timeHelper = __webpack_require__(9)
+	JPS.errorHelper = __webpack_require__(6)
+	JPS.cancelHelper = __webpack_require__(5)
+	JPS.pendingTransactionsHelper = __webpack_require__(8)
+	JPS.mailer = __webpack_require__(7)
+	JPS.braintree = __webpack_require__(25);
 
 	console.log("ENV: ", process.env.PWD);
 	if (process.env.NODE_ENV == "production") {
@@ -77,7 +77,7 @@ module.exports =
 	        }
 	    };
 	}
-	JPS.firebase = __webpack_require__(28)
+	JPS.firebase = __webpack_require__(27)
 	JPS.app = express();
 	JPS.date = new Date();
 	JPS.listenport = 3000
@@ -123,28 +123,28 @@ module.exports =
 	JPS.mailer.initializeMail(JPS);
 
 	// HEADERS
-	__webpack_require__(23).setApp(JPS);
+	__webpack_require__(22).setApp(JPS);
 
 	// GET
-	__webpack_require__(2).setApp(JPS);
 	__webpack_require__(3).setApp(JPS);
+	__webpack_require__(4).setApp(JPS);
 
 	// POST
-	__webpack_require__(18).setApp(JPS);
-	__webpack_require__(16).setApp(JPS);
-	__webpack_require__(19).setApp(JPS);
-	__webpack_require__(14).setApp(JPS);
-	__webpack_require__(9).setApp(JPS);
-	__webpack_require__(15).setApp(JPS);
 	__webpack_require__(17).setApp(JPS);
-	__webpack_require__(11).setApp(JPS);
+	__webpack_require__(15).setApp(JPS);
+	__webpack_require__(18).setApp(JPS);
 	__webpack_require__(13).setApp(JPS);
 	__webpack_require__(10).setApp(JPS);
-	__webpack_require__(22).setApp(JPS);
-	__webpack_require__(21).setApp(JPS);
+	__webpack_require__(14).setApp(JPS);
+	__webpack_require__(16).setApp(JPS);
+	__webpack_require__(11).setApp(JPS);
 	__webpack_require__(12).setApp(JPS);
+	__webpack_require__(2).setApp(JPS);
+	__webpack_require__(21).setApp(JPS);
 	__webpack_require__(20).setApp(JPS);
-	__webpack_require__(24).setApp(JPS);
+	__webpack_require__(2).setApp(JPS);
+	__webpack_require__(19).setApp(JPS);
+	__webpack_require__(23).setApp(JPS);
 
 	/* WEBPACK VAR INJECTION */}.call(exports, "/"))
 
@@ -156,6 +156,110 @@ module.exports =
 
 /***/ },
 /* 2 */
+/***/ function(module, exports) {
+
+	exports.setApp = function(JPS) {
+
+	    //######################################################
+	    // POST: cancelSlot
+	    //######################################################
+
+	    JPS.app.post('/cancelSlot', (req, res) => {
+	        JPS.now = Date.now();
+	        console.log("POST: cancelSlot", JPS.now);
+	        JPS.body = '';
+	        req.on('data', (data) => {
+	            JPS.body += data;
+	            // Too much POST data, kill the connection!
+	            // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
+	            if (JPS.body.length > 1e6) req.connection.destroy();
+	        });
+	        req.on('end', () => {
+	            JPS.post = JSON.parse(JPS.body);
+	            console.log("POST:", JPS.post);
+	            JPS.currentUserToken = JPS.post.user;
+	            JPS.slotInfo = JPS.post.slotInfo;
+	            JPS.cancelItem = JPS.post.cancelItem;
+	            JPS.txRef = JPS.post.transactionReference;
+	            JPS.timezoneOffset = JPS.post.timezoneOffset;
+
+	            JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
+	                .then(decodedToken => {
+	                    JPS.currentUserUID = decodedToken.sub;
+	                    console.log("User: ", JPS.currentUserUID, " requested cancel slot.");
+	                    return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
+	                })
+	                .then(snapshot => {
+	                    if (snapshot.val() != null) {
+	                        JPS.user = snapshot.val();
+	                        JPS.user.key = snapshot.key;
+	                        console.log("USER:", JPS.user);
+	                        return JPS.firebase.database().ref('/bookingsbyslot/' + JPS.slotInfo.key + '/' + JPS.cancelItem + '/' + JPS.user.key).once('value');
+	                    } else {
+	                        throw (new Error("User record does not exist in the database: " + JPS.currentUserUID))
+	                    }
+	                })
+	                .then(snapshot => {
+	                    if (snapshot.val() == null) {
+	                        throw (new Error("Booking by-SLOT does not exist in the database."))
+	                    }
+	                    return JPS.firebase.database().ref('/bookingsbyuser/' + JPS.user.key + '/' + JPS.slotInfo.key + '/' + JPS.cancelItem).once('value');
+	                })
+	                .then(snapshot => {
+	                    if (snapshot.val() == null) {
+	                        throw (new Error("Booking by-USER does not exist in the database."))
+	                    }
+	                    return JPS.firebase.database().ref('/bookingsbyuser/' + JPS.user.key + '/' + JPS.slotInfo.key + '/' + JPS.cancelItem).remove();
+	                })
+	                .then(() => {
+	                    return JPS.firebase.database().ref('/bookingsbyslot/' + JPS.slotInfo.key + '/' + JPS.cancelItem + '/' + JPS.user.key).remove();
+	                })
+	                .then(() => {
+	                    console.log("Transaction reference: ", JPS.txRef)
+	                    if (JPS.txRef != 0) {
+	                        //Give back one use time for the user
+	                        JPS.firebase.database().ref('/transactions/' + JPS.user.key + '/' + JPS.txRef).once('value')
+	                            .then(snapshot => {
+	                                if (snapshot.val() == null) {
+	                                    throw (new Error("Transaction not found in the DB: TX:" + JPS.user.key + "/" + JPS.txRef));
+	                                }
+	                                JPS.unusedtimes = snapshot.val().unusedtimes;
+	                                JPS.unusedtimes++;
+	                                return JPS.firebase.database().ref('/transactions/' + JPS.user.key + '/' + JPS.txRef).update({
+	                                    unusedtimes: JPS.unusedtimes
+	                                })
+	                            })
+	                            .then(err => {
+	                                if (err) {
+	                                    throw (new Error(err.message + " " + err.code));
+	                                }
+	                                res.status(200).jsonp({
+	                                    message: "Cancellation COUNT was succesfull."
+	                                }).end();
+	                                JPS.mailer.sendCancellationCount(JPS.user.email, JPS.slotInfo, JPS.cancelItem); //Send confirmation email
+	                            }).catch(err => {
+	                                throw (new Error(err.message + " " + err.code));
+	                            })
+	                    } else {
+	                        res.status(200).jsonp({
+	                            message: "Cancellation TIME was succesfull."
+	                        }).end();
+	                        JPS.mailer.sendCancellationTime(JPS.user.email, JPS.slotInfo, JPS.cancelItem); //Send confirmation email
+	                    }
+	                })
+	                .catch(err => {
+	                    console.error("POST Cancel Slot failed: ", err);
+	                    res.status(500).jsonp({
+	                        message: "POST Cancel Slot failed:" + err.toString()
+	                    }).end();
+	                });
+	        })
+	    })
+	}
+
+
+/***/ },
+/* 3 */
 /***/ function(module, exports) {
 
 	
@@ -189,7 +293,7 @@ module.exports =
 
 
 /***/ },
-/* 3 */
+/* 4 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -254,7 +358,7 @@ module.exports =
 
 
 /***/ },
-/* 4 */
+/* 5 */
 /***/ function(module, exports) {
 
 	module.exports = {
@@ -318,7 +422,7 @@ module.exports =
 
 
 /***/ },
-/* 5 */
+/* 6 */
 /***/ function(module, exports) {
 
 	
@@ -335,11 +439,11 @@ module.exports =
 	}
 
 /***/ },
-/* 6 */
+/* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var JPSM = {}
-	JPSM.Mailgun = __webpack_require__(29)
+	JPSM.Mailgun = __webpack_require__(28)
 	JPSM.mg_api_key = process.env.MAILGUN_API_KEY || 'key-4230707292ae718f00a8274d41beb7f3';
 	JPSM.mg_domain = process.env.MAILGUN_DOMAIN || 'sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
 	JPSM.mg_from_who = process.env.MAILGUN_FROM_WHO || 'postmaster@sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
@@ -663,7 +767,7 @@ module.exports =
 
 
 /***/ },
-/* 7 */
+/* 8 */
 /***/ function(module, exports) {
 
 	
@@ -737,7 +841,7 @@ module.exports =
 
 
 /***/ },
-/* 8 */
+/* 9 */
 /***/ function(module, exports) {
 
 	var JHLP = {}
@@ -787,7 +891,7 @@ module.exports =
 	}
 
 /***/ },
-/* 9 */
+/* 10 */
 /***/ function(module, exports) {
 
 	exports.setApp = function(JPS) {
@@ -850,89 +954,6 @@ module.exports =
 	}
 
 /***/ },
-/* 10 */
-/***/ function(module, exports) {
-
-	exports.setApp = function(JPS) {
-
-	    //######################################################
-	    // POST: cancelslot, post the item being purchased
-	    //######################################################
-	    JPS.app.post('/cancelslot', (req, res) => {
-
-	        JPS.now = Date.now();
-	        console.log("cancelslot requested.", JPS.now);
-	        JPS.body = '';
-	        req.on('data', (data) => {
-	            JPS.body += data;
-	            // Too much POST data, kill the connection!
-	            // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
-	            if (JPS.body.length > 1e6) req.connection.destroy();
-	        });
-	        req.on('end', () => {
-	            JPS.post = JSON.parse(JPS.body);
-	            JPS.participants = JPS.post.participant_list;
-	            JPS.currentUserToken = JPS.post.current_user;
-	            JPS.slotInstance = JPS.post.slot_instance;
-	            JPS.slotInfo = JPS.post.slot_info;
-	            JPS.reason = JPS.post.reason;
-	            console.log("POST:", JPS.post);
-
-	            JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
-	                .then(decodedToken => {
-	                    JPS.currentUserUID = decodedToken.sub;
-	                    console.log("User: ", JPS.currentUserUID, " requested cancelslot by user: ", JPS.currentUserUID);
-	                    return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
-	                })
-	                .then(snapshot => {
-	                    if(snapshot.val() != null){
-	                      JPS.user = snapshot.val()
-	                      JPS.user.key = snapshot.key;
-	                      return JPS.firebase.database().ref('/specialUsers/' + JPS.currentUserUID).once('value');
-	                    } else {
-	                      throw (new Error("User record does not exist in the database: " + JPS.currentUserUID))
-	                    }
-	                })
-	                .then(snapshot => {
-	                    JPS.specialUser = snapshot.val()
-	                    if (JPS.specialUser.instructor) {
-	                        console.log("USER requesting cancelslot is INSTRUCTOR.");
-	                        return JPS.firebase.database().ref('/cancelledSlots/' + JPS.slotInfo.key + '/' + JPS.slotInstance).update({
-	                          user: JPS.currentUserUID,
-	                          reason: JPS.reason,
-	                          time: JPS.now
-	                        })
-	                    }
-	                    throw (new Error("Non instructor user requesting cashbuy."))
-	                })
-	                .then(() => {
-	                    console.log("Process participants: ", JPS.participants);
-	                    JPS.participants.forEach((item) => {
-	                      console.log("Processing: ", item);
-	                        JPS.cancelHelper.cancelSlot(JPS, item.key, JPS.slotInfo, JPS.slotInstance, item.transactionReference)
-	                        .then(() => {
-	                            console.log("Slot cancellation OK for user: " + item.key);
-	                        })
-	                        .catch(error => {
-	                            console.error("One slot cancel failed: ", error, item.key, JPS.slotInfo, JPS.slotInstance, item.transactionReference)
-	                            JPS.firebase.database().ref('/cancelledSlots/' + JPS.slotInfo.key + '/' + JPS.slotInstance + '/failures/' + item.key).update({
-	                                error: error,
-	                                transactionReference: item.transactionReference,
-	                                uid: item.key
-	                            })
-	                        })
-	                    })
-	                    res.status(200).jsonp("Slot cancelled succesfully.").end();
-	                }).catch(err => {
-	                    console.error("cancelslot failde: ", err);
-	                    res.status(500).jsonp("cancelslot failde." + err.toString()).end(err);
-	                });
-	        })
-	    })
-	}
-
-
-/***/ },
 /* 11 */
 /***/ function(module, exports) {
 
@@ -979,110 +1000,6 @@ module.exports =
 
 /***/ },
 /* 12 */
-/***/ function(module, exports) {
-
-	exports.setApp = function(JPS) {
-
-	    //######################################################
-	    // POST: cancelSlot
-	    //######################################################
-
-	    JPS.app.post('/cancelSlot', (req, res) => {
-	        JPS.now = Date.now();
-	        console.log("POST: cancelSlot", JPS.now);
-	        JPS.body = '';
-	        req.on('data', (data) => {
-	            JPS.body += data;
-	            // Too much POST data, kill the connection!
-	            // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
-	            if (JPS.body.length > 1e6) req.connection.destroy();
-	        });
-	        req.on('end', () => {
-	            JPS.post = JSON.parse(JPS.body);
-	            console.log("POST:", JPS.post);
-	            JPS.currentUserToken = JPS.post.user;
-	            JPS.slotInfo = JPS.post.slotInfo;
-	            JPS.cancelItem = JPS.post.cancelItem;
-	            JPS.txRef = JPS.post.transactionReference;
-	            JPS.timezoneOffset = JPS.post.timezoneOffset;
-
-	            JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
-	                .then(decodedToken => {
-	                    JPS.currentUserUID = decodedToken.sub;
-	                    console.log("User: ", JPS.currentUserUID, " requested cancel slot.");
-	                    return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
-	                })
-	                .then(snapshot => {
-	                    if (snapshot.val() != null) {
-	                        JPS.user = snapshot.val();
-	                        JPS.user.key = snapshot.key;
-	                        console.log("USER:", JPS.user);
-	                        return JPS.firebase.database().ref('/bookingsbyslot/' + JPS.slotInfo.key + '/' + JPS.cancelItem + '/' + JPS.user.key).once('value');
-	                    } else {
-	                        throw (new Error("User record does not exist in the database: " + JPS.currentUserUID))
-	                    }
-	                })
-	                .then(snapshot => {
-	                    if (snapshot.val() == null) {
-	                        throw (new Error("Booking by-SLOT does not exist in the database."))
-	                    }
-	                    return JPS.firebase.database().ref('/bookingsbyuser/' + JPS.user.key + '/' + JPS.slotInfo.key + '/' + JPS.cancelItem).once('value');
-	                })
-	                .then(snapshot => {
-	                    if (snapshot.val() == null) {
-	                        throw (new Error("Booking by-USER does not exist in the database."))
-	                    }
-	                    return JPS.firebase.database().ref('/bookingsbyuser/' + JPS.user.key + '/' + JPS.slotInfo.key + '/' + JPS.cancelItem).remove();
-	                })
-	                .then(() => {
-	                    return JPS.firebase.database().ref('/bookingsbyslot/' + JPS.slotInfo.key + '/' + JPS.cancelItem + '/' + JPS.user.key).remove();
-	                })
-	                .then(() => {
-	                    console.log("Transaction reference: ", JPS.txRef)
-	                    if (JPS.txRef != 0) {
-	                        //Give back one use time for the user
-	                        JPS.firebase.database().ref('/transactions/' + JPS.user.key + '/' + JPS.txRef).once('value')
-	                            .then(snapshot => {
-	                                if (snapshot.val() == null) {
-	                                    throw (new Error("Transaction not found in the DB: TX:" + JPS.user.key + "/" + JPS.txRef));
-	                                }
-	                                JPS.unusedtimes = snapshot.val().unusedtimes;
-	                                JPS.unusedtimes++;
-	                                return JPS.firebase.database().ref('/transactions/' + JPS.user.key + '/' + JPS.txRef).update({
-	                                    unusedtimes: JPS.unusedtimes
-	                                })
-	                            })
-	                            .then(err => {
-	                                if (err) {
-	                                    throw (new Error(err.message + " " + err.code));
-	                                }
-	                                res.status(200).jsonp({
-	                                    message: "Cancellation COUNT was succesfull."
-	                                }).end();
-	                                JPS.mailer.sendCancellationCount(JPS.user.email, JPS.slotInfo, JPS.cancelItem); //Send confirmation email
-	                            }).catch(err => {
-	                                throw (new Error(err.message + " " + err.code));
-	                            })
-	                    } else {
-	                        res.status(200).jsonp({
-	                            message: "Cancellation TIME was succesfull."
-	                        }).end();
-	                        JPS.mailer.sendCancellationTime(JPS.user.email, JPS.slotInfo, JPS.cancelItem); //Send confirmation email
-	                    }
-	                })
-	                .catch(err => {
-	                    console.error("POST Cancel Slot failed: ", err);
-	                    res.status(500).jsonp({
-	                        message: "POST Cancel Slot failed:" + err.toString()
-	                    }).end();
-	                });
-	        })
-	    })
-	}
-
-
-/***/ },
-/* 13 */
 /***/ function(module, exports) {
 
 	exports.setApp = function(JPS) {
@@ -1237,7 +1154,7 @@ module.exports =
 
 
 /***/ },
-/* 14 */
+/* 13 */
 /***/ function(module, exports) {
 
 	exports.setApp = function(JPS) {
@@ -1396,7 +1313,7 @@ module.exports =
 
 
 /***/ },
-/* 15 */
+/* 14 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -1500,7 +1417,7 @@ module.exports =
 
 
 /***/ },
-/* 16 */
+/* 15 */
 /***/ function(module, exports) {
 
 	exports.setApp = function(JPS) {
@@ -1548,7 +1465,7 @@ module.exports =
 
 
 /***/ },
-/* 17 */
+/* 16 */
 /***/ function(module, exports) {
 
 	exports.setApp = function(JPS) {
@@ -1700,7 +1617,7 @@ module.exports =
 
 
 /***/ },
-/* 18 */
+/* 17 */
 /***/ function(module, exports) {
 
 	exports.setApp = function(JPS) {
@@ -1744,7 +1661,7 @@ module.exports =
 
 
 /***/ },
-/* 19 */
+/* 18 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -1793,7 +1710,7 @@ module.exports =
 
 
 /***/ },
-/* 20 */
+/* 19 */
 /***/ function(module, exports) {
 
 	exports.setApp = function(JPS) {
@@ -1855,7 +1772,7 @@ module.exports =
 
 
 /***/ },
-/* 21 */
+/* 20 */
 /***/ function(module, exports) {
 
 	
@@ -2025,7 +1942,7 @@ module.exports =
 
 
 /***/ },
-/* 22 */
+/* 21 */
 /***/ function(module, exports) {
 
 	
@@ -2059,7 +1976,7 @@ module.exports =
 	      JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
 	      .then( decodedToken => {
 	        JPS.currentUserUID = decodedToken.sub;
-	        console.log("User: ", JPS.currentUserUID, " requested checkout.");
+	        console.log("User: ", JPS.currentUserUID, " requested reserveSlot.");
 	        return JPS.firebase.database().ref('/users/'+JPS.currentUserUID).once('value')
 	      })
 	      .then ( snapshot => {
@@ -2070,7 +1987,6 @@ module.exports =
 	        JPS.user.key = snapshot.key;
 	        console.log("USER:",JPS.user);
 	        console.log("slotINFO:",JPS.slotInfo);
-	        JPS.userHasTime = false;
 	        JPS.userHasCount = false;
 	        JPS.earliestToExpire = 0;
 	        JPS.expiryTime = 9999999999999;
@@ -2082,55 +1998,38 @@ module.exports =
 	      .then( snapshot => {
 	        JPS.allTx = snapshot.val();
 	        for (JPS.one in JPS.allTx){
-	          switch(JPS.allTx[JPS.one].type){
-	            case "time":
-	              if(JPS.allTx[JPS.one].expires > JPS.slotTime.getTime()){
-	                    JPS.userHasTime = true;
-	              }
-	              break;
-	            case "count":
-	              if((JPS.allTx[JPS.one].expires > JPS.now) && (JPS.allTx[JPS.one].unusedtimes > 0)){
-	                JPS.userHasCount = true;
-	                    //Find the earliest to expire record
-	                if(JPS.allTx[JPS.one].expires < JPS.expiryTime){
-	                  JPS.earliestToExpire = JPS.one;
-	                  JPS.expiryTime = JPS.allTx[JPS.one].expires;
-	                  JPS.recordToUpdate = JPS.allTx[JPS.one];
-	                  JPS.unusedtimes = JPS.allTx[JPS.one].unusedtimes;
-	                }
-	              }
-	              break;
-	            default:
-	              console.error("Unrecognized transaction type: ", JPS.allTx[JPS.one].type);
-	              break;
+	          if((JPS.allTx[JPS.one].expires > JPS.now) && (JPS.allTx[JPS.one].unusedtimes > 0)){
+	            JPS.userHasCount = true;
+	                //Find the earliest to expire record
+	            if(JPS.allTx[JPS.one].expires < JPS.expiryTime){
+	              JPS.earliestToExpire = JPS.one;
+	              JPS.expiryTime = JPS.allTx[JPS.one].expires;
+	              JPS.recordToUpdate = JPS.allTx[JPS.one];
+	              JPS.unusedtimes = JPS.allTx[JPS.one].unusedtimes;
+	            }
 	          }
 	        } // for - looping through transactions
 	        JPS.transactionReference = 0; //Leave it 0 if bookign is based on time-token.
-	        if(!JPS.userHasTime){
-	          console.log("User does not have time.");
-	          if(!JPS.userHasCount){
-	            console.log("User does not have count");
-	            throw( new Error("User is not entitled to book this slot"));
-	          }
-	          else { //Process user has count option
-	            JPS.transactionReference = JPS.earliestToExpire;
-	            //TODO: Check tahat user has not already booked in to the slot before reducing count.
-	            JPS.recordToUpdate.unusedtimes = JPS.recordToUpdate.unusedtimes - 1;
-	            JPS.unusedtimes = JPS.unusedtimes - 1;
-	            JPS.firebase.database()
-	              .ref('/transactions/'+JPS.currentUserUID+'/'+JPS.earliestToExpire)
-	              .update({unusedtimes: JPS.unusedtimes})
-	              .then( err => {
-	                if(err){
-	                  throw(new Error(err.message + " " + err.code));
-	                } else {
-	                  console.log("Updated transaction date for user: ", JPS.currentUserUID);
-	                }
-	              })
-	              .catch(err => {throw(err)})
-	            }
-	          } else {
-	          console.log("User has time.");
+	        if(!JPS.userHasCount){
+	          console.log("User does not have count");
+	          throw( new Error("User is not entitled to book this slot"));
+	        }
+	        else { //Process user has count option
+	          JPS.transactionReference = JPS.earliestToExpire;
+	          //TODO: Check tahat user has not already booked in to the slot before reducing count.
+	          JPS.recordToUpdate.unusedtimes = JPS.recordToUpdate.unusedtimes - 1;
+	          JPS.unusedtimes = JPS.unusedtimes - 1;
+	          JPS.firebase.database()
+	            .ref('/transactions/'+JPS.currentUserUID+'/'+JPS.earliestToExpire)
+	            .update({unusedtimes: JPS.unusedtimes})
+	            .then( err => {
+	              if(err){
+	                throw(new Error(err.message + " " + err.code));
+	              } else {
+	                console.log("Updated transaction date for user: ", JPS.currentUserUID);
+	              }
+	            })
+	            .catch(err => {throw(err)})
 	          }
 	          //If user is entitled, write the bookings in to the database
 	          if(JPS.userHasTime || JPS.userHasCount){
@@ -2139,7 +2038,6 @@ module.exports =
 	            .update({
 	              user: (JPS.user.alias)? JPS.user.alias : JPS.user.firstname + " " + JPS.user.lastname,
 	              transactionReference: JPS.transactionReference,
-	              slotName: JPS.slotInfo.slotType.name,
 	              slotTime: JPS.bookingTime
 	            })
 	            .then( err => {
@@ -2150,7 +2048,6 @@ module.exports =
 	              return JPS.firebase.database().ref('/bookingsbyuser/'+JPS.user.key+'/'+JPS.slotInfo.key+'/'+JPS.bookingTime)
 	              .update({
 	                transactionReference: JPS.transactionReference,
-	                slotName: JPS.slotInfo.slotType.name,
 	                slotTime: JPS.bookingTime
 	              })
 	            })
@@ -2181,7 +2078,7 @@ module.exports =
 
 
 /***/ },
-/* 23 */
+/* 22 */
 /***/ function(module, exports) {
 
 	
@@ -2205,7 +2102,7 @@ module.exports =
 
 
 /***/ },
-/* 24 */
+/* 23 */
 /***/ function(module, exports) {
 
 	
@@ -2252,7 +2149,7 @@ module.exports =
 
 
 /***/ },
-/* 25 */
+/* 24 */
 /***/ function(module, exports) {
 
 	
@@ -2300,25 +2197,25 @@ module.exports =
 	}
 
 /***/ },
-/* 26 */
+/* 25 */
 /***/ function(module, exports) {
 
 	module.exports = require("braintree");
 
 /***/ },
-/* 27 */
+/* 26 */
 /***/ function(module, exports) {
 
 	module.exports = require("express");
 
 /***/ },
-/* 28 */
+/* 27 */
 /***/ function(module, exports) {
 
 	module.exports = require("firebase");
 
 /***/ },
-/* 29 */
+/* 28 */
 /***/ function(module, exports) {
 
 	module.exports = require("mailgun-js");
