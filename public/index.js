@@ -49,15 +49,15 @@ module.exports =
 	// Server main faile
 	//------------------------------------------
 
-	var express = __webpack_require__(23)
+	var express = __webpack_require__(24)
 	var JPS = {} //The global.
-	JPS.tests = __webpack_require__(21)
+	JPS.tests = __webpack_require__(22)
 	JPS.timeHelper = __webpack_require__(7)
 	JPS.errorHelper = __webpack_require__(4)
 	JPS.cancelHelper = __webpack_require__(3)
 	JPS.pendingTransactionsHelper = __webpack_require__(6)
 	JPS.mailer = __webpack_require__(5)
-	JPS.braintree = __webpack_require__(22);
+	JPS.braintree = __webpack_require__(23);
 
 	console.log("ENV: ", process.env.PWD);
 	if (process.env.NODE_ENV == "production") {
@@ -77,7 +77,7 @@ module.exports =
 	        }
 	    };
 	}
-	JPS.firebase = __webpack_require__(24)
+	JPS.firebase = __webpack_require__(25)
 	JPS.app = express();
 	JPS.date = new Date();
 	JPS.listenport = 3000
@@ -123,23 +123,24 @@ module.exports =
 	JPS.mailer.initializeMail(JPS);
 
 	// HEADERS
-	__webpack_require__(19).setApp(JPS);
+	__webpack_require__(20).setApp(JPS);
 
 	// POST
-	__webpack_require__(15).setApp(JPS);
-	__webpack_require__(13).setApp(JPS);
 	__webpack_require__(16).setApp(JPS);
+	__webpack_require__(13).setApp(JPS);
+	__webpack_require__(17).setApp(JPS);
 	__webpack_require__(11).setApp(JPS);
 	__webpack_require__(8).setApp(JPS);
 	__webpack_require__(12).setApp(JPS);
+	__webpack_require__(15).setApp(JPS);
 	__webpack_require__(14).setApp(JPS);
 	__webpack_require__(9).setApp(JPS);
 	__webpack_require__(10).setApp(JPS);
 	__webpack_require__(1).setApp(JPS);
-	__webpack_require__(18).setApp(JPS);
+	__webpack_require__(19).setApp(JPS);
 	__webpack_require__(1).setApp(JPS);
-	__webpack_require__(17).setApp(JPS);
-	__webpack_require__(20).setApp(JPS);
+	__webpack_require__(18).setApp(JPS);
+	__webpack_require__(21).setApp(JPS);
 
 	/* WEBPACK VAR INJECTION */}.call(exports, "/"))
 
@@ -339,7 +340,7 @@ module.exports =
 /***/ function(module, exports, __webpack_require__) {
 
 	var JPSM = {}
-	JPSM.Mailgun = __webpack_require__(25)
+	JPSM.Mailgun = __webpack_require__(26)
 	JPSM.mg_api_key = process.env.MAILGUN_API_KEY || 'key-4230707292ae718f00a8274d41beb7f3';
 	JPSM.mg_domain = process.env.MAILGUN_DOMAIN || 'sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
 	JPSM.mg_from_who = process.env.MAILGUN_FROM_WHO || 'postmaster@sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
@@ -433,7 +434,7 @@ module.exports =
 	            "<br>" +
 	            "<p> Nimi:" + user.firstname + " " + user.lastname + "</p>" +
 	            "<br>" +
-	            "<p> On rekisteröitynyt siltavaraukset.com palveluun.</p>"
+	            "<p> On rekisteröitynyt Hakolahdentie 2 varaus palveluun.</p>"
 	        console.log("Registration: ", JPSM.html)
 
 	        JPSM.data = {
@@ -1271,6 +1272,158 @@ module.exports =
 	    //######################################################
 	    // POST: 
 	    //######################################################
+	    JPS.app.post('/initializedelayedtransaction', (req, res) => {
+
+	        JPS.now = Date.now();
+	        console.log("initializedelayedtransaction requested.", JPS.now);
+	        JPS.body = '';
+	        req.on('data', (data) => {
+	            JPS.body += data;
+	            // Too much POST data, kill the connection!
+	            // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
+	            if (JPS.body.length > 1e6) req.connection.destroy();
+	        });
+	        req.on('end', () => {
+	            JPS.post = JSON.parse(JPS.body);
+	            JPS.currentUserToken = JPS.post.current_user;
+	            JPS.shopItemKey = JPS.post.item_key;
+	            JPS.itemType = JPS.post.purchase_target;
+	            console.log("POST:", JPS.post);
+
+	            JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
+	                .then(decodedToken => {
+	                    JPS.currentUserUID = decodedToken.sub;
+	                    console.log("User: ", JPS.currentUserUID, " requested initializedelayedtransaction.");
+	                    return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
+	                })
+	                .then(snapshot => {
+	                    if(snapshot.val() != null){
+	                        JPS.user = snapshot.val()
+	                        JPS.user.key = snapshot.key;
+	                        switch(JPS.itemType){
+	                        case "special":
+	                            return JPS.firebase.database().ref('/specialSlots/' + JPS.shopItemKey).once('value');
+	                        default:
+	                            return JPS.firebase.database().ref('/shopItems/' + JPS.shopItemKey).once('value');
+	                        }
+	                    } else {
+	                        throw(new Error("User was not found in the database: ", JPS.currentUserUID))
+	                    }
+
+	                })
+	                .then(snapshot => {
+	                    JPS.shopItem = snapshot.val();
+	                    console.log("shopitem: ",JPS.shopItem );
+	                    JPS.transaction = {
+	                            user: JPS.user.key,
+	                            shopItem: JPS.shopItem,
+	                            shopItemKey: JPS.shopItemKey,
+	                            error: { code: 0 },
+	                            details: "pending"
+	                        }
+	                        //==================================
+	                        // Write the transaction to the database
+	                        //==================================
+	                        //calculate the expiry moment if type is count
+	                    if (JPS.shopItem.type === "count") {
+	                        JPS.shopItem.expires = JPS.timeHelper.shiftUntilEndOfDayMs(JPS.date.setTime(JPS.now + JPS.shopItem.expiresAfterDays * 24 * 60 * 60 * 1000));
+	                        JPS.shopItem.unusedtimes = JPS.shopItem.usetimes;
+	                        JPS.ref = JPS.firebase.database().ref('/pendingtransactions/').push({
+	                                transaction: JPS.transaction,
+	                                shopItem: JPS.shopItem,
+	                                user: JPS.user.key,
+	                                receiptEmail: JPS.user.email,
+	                                timestamp: JPS.now
+	                            },err => {
+	                                if(err){
+	                                    console.error("COUNT push failed: ", err)
+	                                    throw (new Error("COUNT push failed" + err.message + " " + err.code));
+	                                } else {
+	                                    console.log("Pending count transaction saved: ", JPS.ref.key);
+	                                    res.status(200).jsonp(JPS.ref.key).end();
+	                                }
+	                            });
+	                    }
+	                    if (JPS.shopItem.type === "time") {
+	                        console.log("time item process started.");
+	                        JPS.lastTimeUserHasValidUseTime = JPS.now;
+	                        JPS.firebase.database().ref('/transactions/' + JPS.user.key).once('value')
+	                            .then(snapshot => {
+	                                if(snapshot.val() != null){ //User has previous transactions - find the latest expiry
+	                                    console.log("Porcessing users previous transactions to find latest expiry.");
+	                                    var one;
+	                                    var all = snapshot.val();
+	                                    for (one in all) {
+	                                        if (all[one].type === "time") {
+	                                            if (all[one].expires > JPS.lastTimeUserHasValidUseTime) {
+	                                                JPS.lastTimeUserHasValidUseTime = all[one].expires;
+	                                                console.log("Found later expiry than now: ", JPS.lastTimeUserHasValidUseTime);
+	                                            }
+	                                        }
+	                                    }
+	                                }
+	                                JPS.shopItem.expires = JPS.timeHelper.shiftUntilEndOfDayMs(JPS.date.setTime(JPS.lastTimeUserHasValidUseTime + JPS.shopItem.usedays * 24 * 60 * 60 * 1000));
+	                                console.log("This new time expires: ", JPS.shopItem.expires);
+	                                JPS.ref = JPS.firebase.database().ref('/pendingtransactions/').push({
+	                                    transaction: JPS.transaction,
+	                                    shopItem: JPS.shopItem,
+	                                    receiptEmail: JPS.user.email,
+	                                    user: JPS.user.key,
+	                                    timestamp: JPS.now
+	                                }, err => {
+	                                    if(err){
+	                                        console.error("TIME push failed", err)
+	                                        throw (new Error("TIME push failed" + err.message + " " + err.code));                                        
+	                                    } else {
+	                                        console.log("Pending time transaction saved: ",JPS.ref.key);
+	                                        res.status(200).jsonp(JPS.ref.key).end();
+	                                    }
+	                                })
+	                            }, err => {
+	                                console.error(err.message + " " + err.code)
+	                                throw (new Error(err.message + " " + err.code));
+	                            });
+	                    }
+	                    if(JPS.shopItem.type === "special"){
+	                        console.log("special slot purchase....");
+	                        JPS.shopItem.expires = 0;
+	                        JPS.ref = JPS.firebase.database().ref('/pendingtransactions/').push({
+	                            transaction: JPS.transaction,
+	                            shopItem: JPS.shopItem,
+	                            user: JPS.user.key,
+	                            receiptEmail: JPS.user.email,
+	                            timestamp: JPS.now
+	                        }, err => {
+	                            if(err){
+	                                console.error(err.message + " " + err.code)
+	                                throw (new Error(err.message + " " + err.code));                                        
+	                            } else {
+	                                console.log("Pending special transaction saved: ",JPS.ref.key);
+	                                res.status(200).jsonp(JPS.ref.key).end();
+	                            }
+	                        })
+	                    }
+
+	                    }).catch(err => {
+	                    console.error("Initialize delayed transaction failed: ", err);
+	                    res.status(500).jsonp({
+	                        message: "Initialize delayed transaction failde." + err.toString()
+	                    }).end(err);
+	                });
+	            })
+	        })
+	}
+
+
+/***/ },
+/* 15 */
+/***/ function(module, exports) {
+
+	exports.setApp = function(JPS) {
+
+	    //######################################################
+	    // POST: 
+	    //######################################################
 	    JPS.app.post('/initializepaytrailtransaction', (req, res) => {
 
 	        JPS.now = Date.now();
@@ -1415,7 +1568,7 @@ module.exports =
 
 
 /***/ },
-/* 15 */
+/* 16 */
 /***/ function(module, exports) {
 
 	exports.setApp = function(JPS) {
@@ -1459,7 +1612,7 @@ module.exports =
 
 
 /***/ },
-/* 16 */
+/* 17 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -1508,7 +1661,7 @@ module.exports =
 
 
 /***/ },
-/* 17 */
+/* 18 */
 /***/ function(module, exports) {
 
 	exports.setApp = function(JPS) {
@@ -1570,7 +1723,7 @@ module.exports =
 
 
 /***/ },
-/* 18 */
+/* 19 */
 /***/ function(module, exports) {
 
 	
@@ -1706,7 +1859,7 @@ module.exports =
 
 
 /***/ },
-/* 19 */
+/* 20 */
 /***/ function(module, exports) {
 
 	
@@ -1730,7 +1883,7 @@ module.exports =
 
 
 /***/ },
-/* 20 */
+/* 21 */
 /***/ function(module, exports) {
 
 	
@@ -1777,7 +1930,7 @@ module.exports =
 
 
 /***/ },
-/* 21 */
+/* 22 */
 /***/ function(module, exports) {
 
 	
@@ -1825,25 +1978,25 @@ module.exports =
 	}
 
 /***/ },
-/* 22 */
+/* 23 */
 /***/ function(module, exports) {
 
 	module.exports = require("braintree");
 
 /***/ },
-/* 23 */
+/* 24 */
 /***/ function(module, exports) {
 
 	module.exports = require("express");
 
 /***/ },
-/* 24 */
+/* 25 */
 /***/ function(module, exports) {
 
 	module.exports = require("firebase");
 
 /***/ },
-/* 25 */
+/* 26 */
 /***/ function(module, exports) {
 
 	module.exports = require("mailgun-js");

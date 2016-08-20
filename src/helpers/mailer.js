@@ -93,7 +93,7 @@ module.exports = {
             "<br>" +
             "<p> Nimi:" + user.firstname + " " + user.lastname + "</p>" +
             "<br>" +
-            "<p> On rekisteröitynyt siltavaraukset.com palveluun.</p>"
+            "<p> On rekisteröitynyt Hakolahdentie 2 varaus palveluun.</p>"
         console.log("Registration: ", JPSM.html)
 
         JPSM.data = {
