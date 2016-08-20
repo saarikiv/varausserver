@@ -86,6 +86,7 @@ require('./post/postCheckout.js').setApp(JPS);
 require('./post/postApproveIncomplete.js').setApp(JPS);
 require('./post/postCompletePaytrail.js').setApp(JPS);
 require('./post/postInitializePayTrailTransaction.js').setApp(JPS);
+require('./post/postInitializeDelayedTransaction.js').setApp(JPS);
 require('./post/postCancelPayTrailTransaction.js').setApp(JPS);
 require('./post/postCashbuy.js').setApp(JPS);
 require('./post/postCancelSlot.js').setApp(JPS);
