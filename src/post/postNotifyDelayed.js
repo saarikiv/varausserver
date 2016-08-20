@@ -3,10 +3,10 @@ exports.setApp = function(JPS) {
     //######################################################
     // POST: cashbuy, post the item being purchased
     //######################################################
-    JPS.app.post('/feedback', (req, res) => {
+    JPS.app.post('/notifydelayed', (req, res) => {
 
         JPS.now = Date.now();
-        console.log("Feedback requested.", JPS.now);
+        console.log("notifydelayed requested.", JPS.now);
         JPS.body = '';
         req.on('data', (data) => {
             JPS.body += data;
@@ -17,25 +17,22 @@ exports.setApp = function(JPS) {
         req.on('end', () => {
             JPS.post = JSON.parse(JPS.body);
             JPS.currentUserToken = JPS.post.current_user;
-            JPS.feedbackMessage = JPS.post.feedback_message;
+            JPS.transaction = JPS.post.transaction;
             console.log("POST:", JPS.post);
 
             JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
                 .then(decodedToken => {
                     JPS.currentUserUID = decodedToken.sub;
-                    console.log("User: ", JPS.currentUserUID, " requested feedback.");
+                    console.log("User: ", JPS.currentUserUID, " requested notifydelayed");
                     return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
                 })
                 .then(snapshot => {
                     JPS.user = snapshot.val()
-                    JPS.mailer.sendFeedback(JPS.user, JPS.feedbackMessage)
-                    JPS.mailer.sendThankyouForFeedback(JPS.user)
-                    res.status(200).jsonp("Feedback sent ok.").end()
+                    JPS.mailer.sendNotifyDelayed(JPS.user, JPS.transaction)
+                    res.status(200).jsonp("Notify sent ok.").end()
                 }).catch(err => {
-                    console.error("Feedback failde: ", err);
-                    res.status(500).jsonp({
-                        message: "Feedback failde." + err.toString()
-                    }).end(err);
+                    console.error("Notify failde: ", err);
+                    res.status(500).jsonp( "Feedback failde." + String(err) ).end();
                 });
         })
     })

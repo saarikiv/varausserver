@@ -49,15 +49,15 @@ module.exports =
 	// Server main faile
 	//------------------------------------------
 
-	var express = __webpack_require__(24)
+	var express = __webpack_require__(25)
 	var JPS = {} //The global.
-	JPS.tests = __webpack_require__(22)
+	JPS.tests = __webpack_require__(23)
 	JPS.timeHelper = __webpack_require__(7)
 	JPS.errorHelper = __webpack_require__(4)
 	JPS.cancelHelper = __webpack_require__(3)
 	JPS.pendingTransactionsHelper = __webpack_require__(6)
 	JPS.mailer = __webpack_require__(5)
-	JPS.braintree = __webpack_require__(23);
+	JPS.braintree = __webpack_require__(24);
 
 	console.log("ENV: ", process.env.PWD);
 	if (process.env.NODE_ENV == "production") {
@@ -77,7 +77,7 @@ module.exports =
 	        }
 	    };
 	}
-	JPS.firebase = __webpack_require__(25)
+	JPS.firebase = __webpack_require__(26)
 	JPS.app = express();
 	JPS.date = new Date();
 	JPS.listenport = 3000
@@ -123,12 +123,12 @@ module.exports =
 	JPS.mailer.initializeMail(JPS);
 
 	// HEADERS
-	__webpack_require__(20).setApp(JPS);
+	__webpack_require__(21).setApp(JPS);
 
 	// POST
-	__webpack_require__(16).setApp(JPS);
-	__webpack_require__(13).setApp(JPS);
 	__webpack_require__(17).setApp(JPS);
+	__webpack_require__(13).setApp(JPS);
+	__webpack_require__(18).setApp(JPS);
 	__webpack_require__(11).setApp(JPS);
 	__webpack_require__(8).setApp(JPS);
 	__webpack_require__(12).setApp(JPS);
@@ -137,10 +137,11 @@ module.exports =
 	__webpack_require__(9).setApp(JPS);
 	__webpack_require__(10).setApp(JPS);
 	__webpack_require__(1).setApp(JPS);
-	__webpack_require__(19).setApp(JPS);
+	__webpack_require__(20).setApp(JPS);
 	__webpack_require__(1).setApp(JPS);
-	__webpack_require__(18).setApp(JPS);
-	__webpack_require__(21).setApp(JPS);
+	__webpack_require__(16).setApp(JPS);
+	__webpack_require__(19).setApp(JPS);
+	__webpack_require__(22).setApp(JPS);
 
 	/* WEBPACK VAR INJECTION */}.call(exports, "/"))
 
@@ -340,11 +341,12 @@ module.exports =
 /***/ function(module, exports, __webpack_require__) {
 
 	var JPSM = {}
-	JPSM.Mailgun = __webpack_require__(26)
+	JPSM.Mailgun = __webpack_require__(27)
 	JPSM.mg_api_key = process.env.MAILGUN_API_KEY || 'key-4230707292ae718f00a8274d41beb7f3';
 	JPSM.mg_domain = process.env.MAILGUN_DOMAIN || 'sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
 	JPSM.mg_from_who = process.env.MAILGUN_FROM_WHO || 'postmaster@sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
 	JPSM.feedbackMail = process.env.FEEDBACK_ADDRESS || 'tuomo.saarikivi@outlook.com'
+	JPSM.notifyMail = process.env.NOTIFY_ADDRESS || 'tuomo.saarikivi@outlook.com'
 	JPSM.registrationMail = process.env.REGISTRATION_ADDRESS || 'tuomo.saarikivi@outlook.com'
 	JPSM.initialized = false;
 
@@ -390,6 +392,41 @@ module.exports =
 	        });
 	    },
 
+
+	    sendNotifyDelayed: (user, transaction) => {
+	        if (!JPSM.initialized) return;
+
+	        console.log("sendNotifyDelayed")
+	        console.log(user)
+	        console.log(transaction)
+
+	        JPSM.html =
+	            "<h1>Ostoilmoitus:</h1>" +
+	            "<p> Hakolahdentie 2 saunavarusjärjestelmässä odottaa osto vahvistamista.</p>" +
+	            "<br>" +
+	            "<p> Oston tunniste: " + transaction + "</p>" +
+	            "<br>" +
+	            "<p> Oston teki käyttäjä: " + user.uid + "</p>" +
+	            "<p> Nimi: " + user.firstname + " " + user.lastname + "</p>" +
+	            "<p> Sähköposti: " + user.email + "</p>" 
+	            
+
+	        console.log("Notification: ", JPSM.html)
+
+	        JPSM.data = {
+	            from: JPSM.mg_from_who,
+	            to: JPSM.notifyMail,
+	            subject: 'Hakolahdentie 2 oston ilmoitus',
+	            html: JPSM.html
+	        }
+	        JPSM.mailgun.messages().send(JPSM.data, (err, body) => {
+	            if (err) {
+	                console.error("MAILGUN-error: ", err);
+	            } else {
+	                console.log("MAIL-SENT: ", body);
+	            }
+	        });
+	    },
 
 	    sendFeedback: (user, feedback) => {
 	        if (!JPSM.initialized) return;
@@ -463,7 +500,7 @@ module.exports =
 
 	        JPSM.html =
 	            "<h1>Varauksen vahvistus</h1>" +
-	            "<p>Varauksesi tunnille on vahvistettu.</p>" +
+	            "<p>Saunavuoron varauksesi on vahvistettu.</p>" +
 	            "<p>Päivä: " + JPSM.jps.timeHelper.getDayStr(slotTime) + "</p>" +
 	            "<p>Aika: " + JPSM.jps.timeHelper.getTimeStr(slotTime) + "</p>" +
 	            "<br></br>" +
@@ -662,7 +699,8 @@ module.exports =
 	        return JHLP.slotTime;
 	    },
 	    getDayStr: (day) => {
-	        return day.getDate() + "." + day.getMonth()+1 + "." + day.getFullYear()
+	        var month = 1+day.getMonth()
+	        return day.getDate() + "." + month + "." + day.getFullYear()
 	    },
 	    getTimeStr: (day) => {
 	        return day.toTimeString()
@@ -1244,7 +1282,7 @@ module.exports =
 	            JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
 	                .then(decodedToken => {
 	                    JPS.currentUserUID = decodedToken.sub;
-	                    console.log("User: ", JPS.currentUserUID, " requested cashbuy for user: ", JPS.forUserId);
+	                    console.log("User: ", JPS.currentUserUID, " requested feedback.");
 	                    return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
 	                })
 	                .then(snapshot => {
@@ -1576,6 +1614,51 @@ module.exports =
 	    //######################################################
 	    // POST: cashbuy, post the item being purchased
 	    //######################################################
+	    JPS.app.post('/notifydelayed', (req, res) => {
+
+	        JPS.now = Date.now();
+	        console.log("notifydelayed requested.", JPS.now);
+	        JPS.body = '';
+	        req.on('data', (data) => {
+	            JPS.body += data;
+	            // Too much POST data, kill the connection!
+	            // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
+	            if (JPS.body.length > 1e6) req.connection.destroy();
+	        });
+	        req.on('end', () => {
+	            JPS.post = JSON.parse(JPS.body);
+	            JPS.currentUserToken = JPS.post.current_user;
+	            JPS.transaction = JPS.post.transaction;
+	            console.log("POST:", JPS.post);
+
+	            JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
+	                .then(decodedToken => {
+	                    JPS.currentUserUID = decodedToken.sub;
+	                    console.log("User: ", JPS.currentUserUID, " requested notifydelayed");
+	                    return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
+	                })
+	                .then(snapshot => {
+	                    JPS.user = snapshot.val()
+	                    JPS.mailer.sendNotifyDelayed(JPS.user, JPS.transaction)
+	                    res.status(200).jsonp("Notify sent ok.").end()
+	                }).catch(err => {
+	                    console.error("Notify failde: ", err);
+	                    res.status(500).jsonp( "Feedback failde." + String(err) ).end();
+	                });
+	        })
+	    })
+	}
+
+
+/***/ },
+/* 17 */
+/***/ function(module, exports) {
+
+	exports.setApp = function(JPS) {
+
+	    //######################################################
+	    // POST: cashbuy, post the item being purchased
+	    //######################################################
 	    JPS.app.post('/notifyRegistration', (req, res) => {
 
 	        JPS.now = Date.now();
@@ -1612,7 +1695,7 @@ module.exports =
 
 
 /***/ },
-/* 17 */
+/* 18 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -1661,7 +1744,7 @@ module.exports =
 
 
 /***/ },
-/* 18 */
+/* 19 */
 /***/ function(module, exports) {
 
 	exports.setApp = function(JPS) {
@@ -1723,7 +1806,7 @@ module.exports =
 
 
 /***/ },
-/* 19 */
+/* 20 */
 /***/ function(module, exports) {
 
 	
@@ -1859,7 +1942,7 @@ module.exports =
 
 
 /***/ },
-/* 20 */
+/* 21 */
 /***/ function(module, exports) {
 
 	
@@ -1883,7 +1966,7 @@ module.exports =
 
 
 /***/ },
-/* 21 */
+/* 22 */
 /***/ function(module, exports) {
 
 	
@@ -1930,7 +2013,7 @@ module.exports =
 
 
 /***/ },
-/* 22 */
+/* 23 */
 /***/ function(module, exports) {
 
 	
@@ -1978,25 +2061,25 @@ module.exports =
 	}
 
 /***/ },
-/* 23 */
+/* 24 */
 /***/ function(module, exports) {
 
 	module.exports = require("braintree");
 
 /***/ },
-/* 24 */
+/* 25 */
 /***/ function(module, exports) {
 
 	module.exports = require("express");
 
 /***/ },
-/* 25 */
+/* 26 */
 /***/ function(module, exports) {
 
 	module.exports = require("firebase");
 
 /***/ },
-/* 26 */
+/* 27 */
 /***/ function(module, exports) {
 
 	module.exports = require("mailgun-js");
