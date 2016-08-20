@@ -17,7 +17,8 @@ module.exports = {
         return JHLP.slotTime;
     },
     getDayStr: (day) => {
-        return day.getDate() + "." + day.getMonth()+1 + "." + day.getFullYear()
+        var month = 1+day.getMonth()
+        return day.getDate() + "." + month + "." + day.getFullYear()
     },
     getTimeStr: (day) => {
         return day.toTimeString()

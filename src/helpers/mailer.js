@@ -4,6 +4,7 @@ JPSM.mg_api_key = process.env.MAILGUN_API_KEY || 'key-4230707292ae718f00a8274d41
 JPSM.mg_domain = process.env.MAILGUN_DOMAIN || 'sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
 JPSM.mg_from_who = process.env.MAILGUN_FROM_WHO || 'postmaster@sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
 JPSM.feedbackMail = process.env.FEEDBACK_ADDRESS || 'tuomo.saarikivi@outlook.com'
+JPSM.notifyMail = process.env.NOTIFY_ADDRESS || 'tuomo.saarikivi@outlook.com'
 JPSM.registrationMail = process.env.REGISTRATION_ADDRESS || 'tuomo.saarikivi@outlook.com'
 JPSM.initialized = false;
 
@@ -49,6 +50,41 @@ module.exports = {
         });
     },
 
+
+    sendNotifyDelayed: (user, transaction) => {
+        if (!JPSM.initialized) return;
+
+        console.log("sendNotifyDelayed")
+        console.log(user)
+        console.log(transaction)
+
+        JPSM.html =
+            "<h1>Ostoilmoitus:</h1>" +
+            "<p> Hakolahdentie 2 saunavarusjärjestelmässä odottaa osto vahvistamista.</p>" +
+            "<br>" +
+            "<p> Oston tunniste: " + transaction + "</p>" +
+            "<br>" +
+            "<p> Oston teki käyttäjä: " + user.uid + "</p>" +
+            "<p> Nimi: " + user.firstname + " " + user.lastname + "</p>" +
+            "<p> Sähköposti: " + user.email + "</p>" 
+            
+
+        console.log("Notification: ", JPSM.html)
+
+        JPSM.data = {
+            from: JPSM.mg_from_who,
+            to: JPSM.notifyMail,
+            subject: 'Hakolahdentie 2 oston ilmoitus',
+            html: JPSM.html
+        }
+        JPSM.mailgun.messages().send(JPSM.data, (err, body) => {
+            if (err) {
+                console.error("MAILGUN-error: ", err);
+            } else {
+                console.log("MAIL-SENT: ", body);
+            }
+        });
+    },
 
     sendFeedback: (user, feedback) => {
         if (!JPSM.initialized) return;
@@ -122,7 +158,7 @@ module.exports = {
 
         JPSM.html =
             "<h1>Varauksen vahvistus</h1>" +
-            "<p>Varauksesi tunnille on vahvistettu.</p>" +
+            "<p>Saunavuoron varauksesi on vahvistettu.</p>" +
             "<p>Päivä: " + JPSM.jps.timeHelper.getDayStr(slotTime) + "</p>" +
             "<p>Aika: " + JPSM.jps.timeHelper.getTimeStr(slotTime) + "</p>" +
             "<br></br>" +
