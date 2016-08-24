@@ -35,7 +35,7 @@ module.exports =
 /******/ 	__webpack_require__.c = installedModules;
 
 /******/ 	// __webpack_public_path__
-/******/ 	__webpack_require__.p = "/home/saarikiv/varausserver/public/";
+/******/ 	__webpack_require__.p = "/home/tsa/repo/varausserver/public/";
 
 /******/ 	// Load entry module and return exports
 /******/ 	return __webpack_require__(0);
@@ -570,18 +570,16 @@ module.exports =
 	            "<h1>Kiitos ostostasi!</h1>" +
 	            "<p>Voit nyt mennä varaamaan saunavuoroja.</p>" +
 	            "<br></br>" +
-	            "<h1>Ostokuitti</h1>" +
+	            "<h1>Laskun tiedot</h1>" +
 	            "<br></br>" +
 	            "<p>Tuote: " + trx.title + "</p>" +
-	            "<p>Tuotekuvaus: " + trx.desc + "</p>" +
+	            "<p>" + trx.desc + "</p>" +
 	            expiresTxt +
 	            "<p>Veroton hinta: " + trx.beforetax + " " + trx.details.transaction.currencyIsoCode + "</p>" +
 	            "<p>ALV(" + trx.taxpercent + ")     : " + trx.taxamount + " " + trx.details.transaction.currencyIsoCode + "</p>" +
 	            "<p>Yhteensä     : " + trx.price + " " + trx.details.transaction.currencyIsoCode + "</p>" +
 	            "<br></br>" +
-	            "<p>Ostotunniste: " + trxId + "</p>" +
-	            "<p>Maksupalvelutunniste: " + trx.details.transaction.id + "</p>" +
-	            "<p>Maksutapa: " + trx.details.transaction.paymentInstrumentType + "</p>" 
+	            "<p>Ostotunniste: " + trxId + "</p>"
 
 	        JPSM.data = {
 	            from: JPSM.mg_from_who,
