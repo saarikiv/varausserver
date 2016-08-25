@@ -63,7 +63,7 @@ module.exports =
 	if (process.env.NODE_ENV == "production") {
 	    JPS.firebaseConfig = {
 	        serviceAccount: "public/varaus.json",
-	        databaseURL: "https://varaus-a0250.firebaseio.com/",
+	        databaseURL: "https://hakolahdentie-2.firebaseio.com/",
 	        databaseAuthVariableOverride: {
 	            uid: "varausserver"
 	        }
