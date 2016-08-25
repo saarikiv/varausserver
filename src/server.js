@@ -16,7 +16,7 @@ console.log("ENV: ", process.env.PWD);
 if (process.env.NODE_ENV == "production") {
     JPS.firebaseConfig = {
         serviceAccount: "public/varaus-prod.json",
-        databaseURL: "https://varaus-a0250.firebaseio.com/",
+        databaseURL: "https://hakolahdentie-2.firebaseio.com/",
         databaseAuthVariableOverride: {
             uid: "varausserver"
         }
@@ -24,7 +24,7 @@ if (process.env.NODE_ENV == "production") {
 } else {
     JPS.firebaseConfig = {
         serviceAccount: "public/varaus-stage.json",
-        databaseURL: "https://hakolahdentie-2.firebaseio.com/",
+        databaseURL: "https://varaus-a0250.firebaseio.com/",
         databaseAuthVariableOverride: {
             uid: "varausserver"
         }
