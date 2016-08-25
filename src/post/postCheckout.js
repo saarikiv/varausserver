@@ -19,10 +19,8 @@ exports.setApp = function(JPS) {
         });
         req.on('end', () => {
             JPS.post = JSON.parse(JPS.body);
-            JPS.nonceFromTheClient = JPS.post.payment_method_nonce;
             JPS.currentUserToken = JPS.post.current_user;
             JPS.shopItemKey = JPS.post.item_key;
-            JPS.itemType = JPS.post.purchase_target;
             console.log("POST:", JPS.post);
 
             JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
@@ -35,118 +33,45 @@ exports.setApp = function(JPS) {
                     if(snapshot.val() != null){
                         JPS.user = snapshot.val()
                         JPS.user.key = snapshot.key;
-                        switch(JPS.itemType){
-                        case "special":
-                            return JPS.firebase.database().ref('/specialSlots/' + JPS.shopItemKey).once('value');
-                        default:
-                            return JPS.firebase.database().ref('/shopItems/' + JPS.shopItemKey).once('value');
-                        }
+                        return JPS.firebase.database().ref('/shopItems/' + JPS.shopItemKey).once('value');
                     }
                     throw( new Error("User was not found in db: " + JPS.currentUserUID) );
 
                 })
                 .then(snapshot => {
                     JPS.shopItem = snapshot.val();
-                    //
-                    //=======================================
-                    // Do transaction to Braintree
-                    //=======================================
-                    //
-                    JPS.gateway.transaction.sale({
-                        amount: JPS.shopItem.price,
-                        paymentMethodNonce: JPS.nonceFromTheClient,
-                        options: {
-                            submitForSettlement: true
-                        }
-                    }, (err, result) => {
-                        if (err) {
-                            console.error(err);
-                            throw (new Error("Sale transaction to Braintree failed: " + err.toString()))
-                        } else {
-                            console.log("Braintree transaction succesfully done.");
-                        }
-
-                        JPS.transaction = {
-                                user: JPS.user.key,
-                                shopItem: JPS.shopItem,
-                                shopItemKey: JPS.shopItemKey,
-                                error: err ? err : {
-                                    code: 0
-                                },
-                                details: result
-                            }
-                            //==================================
-                            // Write the transaction to the database
-                            //==================================
-                            //calculate the expiry moment if type is count
-                        if (JPS.shopItem.type === "count") {
-                            JPS.shopItem.expires = JPS.timeHelper.shiftUntilEndOfDayMs(JPS.date.setTime(JPS.now + JPS.shopItem.expiresAfterDays * 24 * 60 * 60 * 1000));
-                            JPS.shopItem.unusedtimes = JPS.shopItem.usetimes;
-                            JPS.firebase.database().ref('/transactions/' + JPS.user.key + '/' + JPS.now)
-                                .update(Object.assign(JPS.transaction, JPS.shopItem))
-                                .then(() => {
-                                    console.log("Transaction saved: ", JPS.transaction, JPS.shopItem);
-                                    res.status(200).jsonp(JPS.transaction).end();
-                                    JPS.mailer.sendReceipt(JPS.user.email, JPS.transaction, JPS.now); //Send confirmation email
-                                }).catch(err => {
-                                    throw (new Error(err.message + " " + err.code));
-                                });
-                        }
-                        if (JPS.shopItem.type === "time") {
-                            JPS.lastTimeUserHasValidUseTime = JPS.now;
-                            JPS.firebase.database().ref('/transactions/' + JPS.user.key).once('value')
-                                .then(snapshot => {
-                                    var one;
-                                    var all = snapshot.val();
-                                    for (one in all) {
-                                        if (all[one].type === "time") {
-                                            if (all[one].expires > JPS.lastTimeUserHasValidUseTime) {
-                                                JPS.lastTimeUserHasValidUseTime = all[one].expires;
-                                            }
-                                        }
+                    JPS.transaction = {
+                            user: JPS.user.key,
+                            shopItem: JPS.shopItem,
+                            shopItemKey: JPS.shopItemKey,
+                            error: {
+                                code: 0
+                            },
+                            details: {
+                                success: true,
+                                    transaction: {
+                                    amount: JPS.shopItem.price,
+                                    currencyIsoCode: "EUR",
+                                    id: JPS.now,
+                                    paymentInstrumentType: "invoice",
+                                    paymentMethod: "invoice"
                                     }
-                                    JPS.shopItem.expires = JPS.timeHelper.shiftUntilEndOfDayMs(JPS.date.setTime(JPS.lastTimeUserHasValidUseTime + JPS.shopItem.usedays * 24 * 60 * 60 * 1000));
-                                    return JPS.firebase.database().ref('/transactions/' + JPS.user.key + '/' + JPS.now)
-                                        .update(Object.assign(JPS.transaction, JPS.shopItem))
-                                })
-                                .then(() => {
-                                    console.log("Transaction saved: ", JPS.transaction, JPS.shopItem);
-                                    res.status(200).jsonp(JPS.transaction).end();
-                                    JPS.mailer.sendReceipt(JPS.user.email, JPS.transaction, JPS.now); //Send confirmation email
-                                })
-                                .catch(err => {
-                                    console.error(err.message + " " + err.code)
-                                    throw (new Error(err.message + " " + err.code));
-                                });
                         }
-                        if(JPS.shopItem.type === "special"){
-                          console.log("special slot purchase....");
-                          JPS.shopItem.expires = 0;
-                          JPS.firebase.database().ref('/transactions/' + JPS.user.key + '/' + JPS.now)
-                              .update(Object.assign(JPS.transaction, JPS.shopItem))
-                              .then(() => {
-                                return JPS.firebase.database().ref('/scbookingsbyslot/' + JPS.shopItemKey + '/' + JPS.user.key)
-                                .update({transactionReference: JPS.now})
-                              })
-                              .then(() => {
-                                return JPS.firebase.database().ref('/scbookingsbyuser/' + JPS.forUser.key + '/' + JPS.shopItemKey)
-                                .update({transactionReference: JPS.now, shopItem: JPS.shopItem})
-                              })
-                              .then(() => {
-                                  console.log("Transaction saved: ", JPS.transaction, JPS.shopItem);
-                                  res.status(200).jsonp(JPS.transaction).end();
-                                  JPS.mailer.sendReceipt(JPS.user.email, JPS.transaction, JPS.now); //Send confirmation email
-                              }).catch(err => {
-                                  throw (new Error(err.message + " " + err.code));
-                              });
-                        }
-
-                    })
+                    }
+                    JPS.shopItem.expires = JPS.timeHelper.shiftUntilEndOfDayMs(JPS.date.setTime(JPS.now + JPS.shopItem.expiresAfterDays * 24 * 60 * 60 * 1000));
+                    JPS.shopItem.unusedtimes = JPS.shopItem.usetimes;
+                    JPS.firebase.database().ref('/transactions/' + JPS.user.key + '/' + JPS.now)
+                        .update(Object.assign(JPS.transaction, JPS.shopItem))
+                        .then(() => {
+                            console.log("Transaction saved: ", JPS.transaction, JPS.shopItem);
+                            res.status(200).jsonp("Checkout successful.").end();
+                            JPS.mailer.sendReceipt(JPS.user.email, JPS.transaction, JPS.now); //Send confirmation email
+                        }).catch(err => {
+                            throw (new Error(err.message + " " + err.code));
+                        });
                 }).catch(err => {
                     console.error("Checkout failde: ", err);
-                    res.status(500).jsonp({
-                        message: "Checkout failde."
-                    }).end(err);
+                    res.status(500).jsonp("Checkout failde." + String(err)).end();
                 });
         })
     })

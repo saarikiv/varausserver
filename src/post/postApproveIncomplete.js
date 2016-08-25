@@ -29,15 +29,28 @@ exports.setApp = function(JPS) {
             .then(snapshot => {
                 JPS.user = snapshot.val()
                 JPS.user.key = snapshot.key;
-                return JPS.pendingTransactionsHelper.completePendingTransaction(JPS, JPS.pendingTransactionKey, JPS.user.lastname, "Invoice", null)
+                return JPS.firebase.database().ref('/specialUsers/' + JPS.currentUserUID).once('value');
             })
-            .then( status => {
-                console.log("Status from completing pending transaction: ", status);
-                res.status(200).end();
-            })
+            .then(snapshot => {
+                JPS.specialUser = snapshot.val()
+                if (JPS.specialUser.admin || JPS.specialUser.instructor) {
+                    console.log("USER requesting approveincomplete is ADMIN or INSTRUCTOR");
+                    JPS.pendingTransactionsHelper.completePendingTransaction(JPS, JPS.pendingTransactionKey, JPS.user.lastname, "Admin", null)
+                    .then( status => {
+                        console.log("Status from completing pending transaction: ", status);
+                        res.status(200).end();
+                    })
+                    .catch((error) => {
+                        console.error("Complete pending transaction request failed: ", error);
+                        throw( new Error("Complete pending transaction request failed: " + error.message))
+                    })
+                } else{
+                    throw (new Error("Non admin or instructor user requesting cashbuy."))
+                }
             }).catch(err => {
                 console.error("approveincomplete failde: ", err);
                 res.status(500).jsonp("approveincomplete failde." + String(err)).end(err);
             });
         })
+    })
 }

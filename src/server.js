@@ -35,12 +35,14 @@ JPS.app = express();
 JPS.date = new Date();
 JPS.listenport = 3000
 JPS.firebase.initializeApp(JPS.firebaseConfig);
-JPS.gateway = JPS.braintree.connect({
+
+/*JPS.gateway = JPS.braintree.connect({
     environment: (process.env.BRAINTREE_ENV === "production") ? JPS.braintree.Environment.Production : JPS.braintree.Environment.Sandbox,
     merchantId: process.env.BRAINTREE_MI || "3gv7c5tq5q7hxrcs",
     publicKey: process.env.BRAINTREE_PUBK || "gksd667wsgn35wjp",
     privateKey: process.env.BRAINTREE_PRIK || "2c01703b7daffd7352eeaada7a4a95e5"
-});
+});*/
+
 //------------------------------------------
 // Process handlers
 //------------------------------------------
