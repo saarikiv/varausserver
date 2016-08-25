@@ -26,8 +26,8 @@ module.exports = [
 	new webpack.optimize.OccurenceOrderPlugin(),
 	//new webpack.optimize.UglifyJsPlugin({ mangle: false, sourcemap: false }),
 	new CopyWebpackPlugin([
-		{ from: './keys/varaus.json', to: '../public/varaus.json'},
-		{ from: './keys/varaus-stage.json', to: '../public/varaus-stage.json'}
+		{ from: './keys/varaus-stage.json', to: '../public/varaus-stage.json'},
+		{ from: './keys/varaus-prod.json', to: '../public/varaus-prod.json'}
 	])],
 	externals: /^[a-z\-0-9]+$/,
 	module: {
