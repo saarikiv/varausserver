@@ -49,15 +49,15 @@ module.exports =
 	// Server main faile
 	//------------------------------------------
 
-	var express = __webpack_require__(25)
+	var express = __webpack_require__(26)
 	var JPS = {} //The global.
-	JPS.tests = __webpack_require__(23)
+	JPS.tests = __webpack_require__(24)
 	JPS.timeHelper = __webpack_require__(7)
 	JPS.errorHelper = __webpack_require__(4)
 	JPS.cancelHelper = __webpack_require__(3)
 	JPS.pendingTransactionsHelper = __webpack_require__(6)
 	JPS.mailer = __webpack_require__(5)
-	JPS.braintree = __webpack_require__(24);
+	JPS.braintree = __webpack_require__(25);
 
 	console.log("ENV: ", process.env.PWD);
 	if (process.env.NODE_ENV == "production") {
@@ -77,7 +77,7 @@ module.exports =
 	        }
 	    };
 	}
-	JPS.firebase = __webpack_require__(26)
+	JPS.firebase = __webpack_require__(27)
 	JPS.app = express();
 	JPS.date = new Date();
 	JPS.listenport = 3000
@@ -125,12 +125,12 @@ module.exports =
 	JPS.mailer.initializeMail(JPS);
 
 	// HEADERS
-	__webpack_require__(21).setApp(JPS);
+	__webpack_require__(22).setApp(JPS);
 
 	// POST
 	__webpack_require__(17).setApp(JPS);
 	__webpack_require__(13).setApp(JPS);
-	__webpack_require__(18).setApp(JPS);
+	__webpack_require__(19).setApp(JPS);
 	__webpack_require__(11).setApp(JPS);
 	__webpack_require__(8).setApp(JPS);
 	__webpack_require__(12).setApp(JPS);
@@ -139,11 +139,12 @@ module.exports =
 	__webpack_require__(9).setApp(JPS);
 	__webpack_require__(10).setApp(JPS);
 	__webpack_require__(1).setApp(JPS);
-	__webpack_require__(20).setApp(JPS);
+	__webpack_require__(21).setApp(JPS);
 	__webpack_require__(1).setApp(JPS);
 	__webpack_require__(16).setApp(JPS);
-	__webpack_require__(19).setApp(JPS);
-	__webpack_require__(22).setApp(JPS);
+	__webpack_require__(20).setApp(JPS);
+	__webpack_require__(18).setApp(JPS);
+	__webpack_require__(23).setApp(JPS);
 
 	/* WEBPACK VAR INJECTION */}.call(exports, "/"))
 
@@ -343,7 +344,7 @@ module.exports =
 /***/ function(module, exports, __webpack_require__) {
 
 	var JPSM = {}
-	JPSM.Mailgun = __webpack_require__(27)
+	JPSM.Mailgun = __webpack_require__(28)
 	JPSM.mg_api_key = process.env.MAILGUN_API_KEY || 'key-4230707292ae718f00a8274d41beb7f3';
 	JPSM.mg_domain = process.env.MAILGUN_DOMAIN || 'sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
 	JPSM.mg_from_who = process.env.MAILGUN_FROM_WHO || 'postmaster@sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
@@ -622,7 +623,8 @@ module.exports =
 	                JPS.pendingTransaction = snapshot.val()
 	                console.log("Processing pending transaction: ", JPS.pendingTransaction)
 	                JPS.dataToUpdate = Object.assign(
-	                    JPS.pendingTransaction.transaction, 
+	                    JPS.pendingTransaction.transaction,
+	                    {paymentReceived : false}, 
 	                    JPS.pendingTransaction.shopItem, {
 	                    details: {
 	                        success: true,
@@ -1619,6 +1621,64 @@ module.exports =
 
 /***/ },
 /* 18 */
+/***/ function(module, exports) {
+
+	exports.setApp = function(JPS) {
+
+	    //######################################################
+	    // POST: cashbuy, post the item being purchased
+	    //######################################################
+	    JPS.app.post('/okTransaction', (req, res) => {
+
+	        JPS.now = Date.now();
+	        console.log("okTransaction requested.", JPS.now);
+	        JPS.body = '';
+	        req.on('data', (data) => {
+	            JPS.body += data;
+	            // Too much POST data, kill the connection!
+	            // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
+	            if (JPS.body.length > 1e6) req.connection.destroy();
+	        });
+	        req.on('end', () => {
+	            JPS.post = JSON.parse(JPS.body);
+	            JPS.currentUserToken = JPS.post.current_user;
+	            JPS.forUserId = JPS.post.for_user;
+	            JPS.transactionToOk = JPS.post.transaction;
+	            console.log("POST:", JPS.post);
+
+	            JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
+	                .then(decodedToken => {
+	                    JPS.currentUserUID = decodedToken.sub;
+	                    console.log("User: ", JPS.currentUserUID, " requested okTransaction: ", JPS.forUserId + "/" + JPS.transactionToOk.purchasetime);
+	                    return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
+	                })
+	                .then(snapshot => {
+	                    JPS.user = snapshot.val()
+	                    JPS.user.key = snapshot.key;
+	                    return JPS.firebase.database().ref('/specialUsers/' + JPS.currentUserUID).once('value');
+	                })
+	                .then(snapshot => {
+	                    JPS.specialUser = snapshot.val()
+	                    if (JPS.specialUser.admin) {
+	                        console.log("USER requesting trx ok is ADMIN");
+	                        return JPS.firebase.database()
+	                        .ref('/transactions/' + JPS.forUserId + "/" + JPS.transactionToOk.purchasetime).update({paymentReceived : true});
+	                    }
+	                    throw (new Error("Non admin or instructor user requesting cashbuy."))
+	                })
+	                .then(() => {
+	                    res.status(200).jsonp("Transaction ok succesfully.").end();
+	                }).catch(err => {
+	                    console.error("okTransaction failde: ", err);
+	                    res.status(500).jsonp("okTransaction failde." + String(err)).end();
+	                });
+	        })
+	    })
+	}
+
+
+/***/ },
+/* 19 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -1667,7 +1727,7 @@ module.exports =
 
 
 /***/ },
-/* 19 */
+/* 20 */
 /***/ function(module, exports) {
 
 	exports.setApp = function(JPS) {
@@ -1707,7 +1767,7 @@ module.exports =
 	                .then(snapshot => {
 	                    JPS.specialUser = snapshot.val()
 	                    if (JPS.specialUser.admin) {
-	                        console.log("USER requesting cashpay is ADMIN");
+	                        console.log("USER requesting transaction remove is ADMIN");
 	                        return JPS.firebase.database().ref('/transactions/' + JPS.forUserId + "/" + JPS.transactionToRemove.purchasetime).remove();
 	                    }
 	                    throw (new Error("Non admin or instructor user requesting cashbuy."))
@@ -1729,7 +1789,7 @@ module.exports =
 
 
 /***/ },
-/* 20 */
+/* 21 */
 /***/ function(module, exports) {
 
 	
@@ -1865,7 +1925,7 @@ module.exports =
 
 
 /***/ },
-/* 21 */
+/* 22 */
 /***/ function(module, exports) {
 
 	
@@ -1889,7 +1949,7 @@ module.exports =
 
 
 /***/ },
-/* 22 */
+/* 23 */
 /***/ function(module, exports) {
 
 	
@@ -1936,7 +1996,7 @@ module.exports =
 
 
 /***/ },
-/* 23 */
+/* 24 */
 /***/ function(module, exports) {
 
 	
@@ -1984,25 +2044,25 @@ module.exports =
 	}
 
 /***/ },
-/* 24 */
+/* 25 */
 /***/ function(module, exports) {
 
 	module.exports = require("braintree");
 
 /***/ },
-/* 25 */
+/* 26 */
 /***/ function(module, exports) {
 
 	module.exports = require("express");
 
 /***/ },
-/* 26 */
+/* 27 */
 /***/ function(module, exports) {
 
 	module.exports = require("firebase");
 
 /***/ },
-/* 27 */
+/* 28 */
 /***/ function(module, exports) {
 
 	module.exports = require("mailgun-js");

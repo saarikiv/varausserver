@@ -3,10 +3,10 @@ exports.setApp = function(JPS) {
     //######################################################
     // POST: cashbuy, post the item being purchased
     //######################################################
-    JPS.app.post('/removeTransaction', (req, res) => {
+    JPS.app.post('/okTransaction', (req, res) => {
 
         JPS.now = Date.now();
-        console.log("removeTransaction requested.", JPS.now);
+        console.log("okTransaction requested.", JPS.now);
         JPS.body = '';
         req.on('data', (data) => {
             JPS.body += data;
@@ -18,13 +18,13 @@ exports.setApp = function(JPS) {
             JPS.post = JSON.parse(JPS.body);
             JPS.currentUserToken = JPS.post.current_user;
             JPS.forUserId = JPS.post.for_user;
-            JPS.transactionToRemove = JPS.post.transaction;
+            JPS.transactionToOk = JPS.post.transaction;
             console.log("POST:", JPS.post);
 
             JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
                 .then(decodedToken => {
                     JPS.currentUserUID = decodedToken.sub;
-                    console.log("User: ", JPS.currentUserUID, " requested removeTransaction: ", JPS.forUserId + "/" + JPS.transactionToRemove.purchasetime);
+                    console.log("User: ", JPS.currentUserUID, " requested okTransaction: ", JPS.forUserId + "/" + JPS.transactionToOk.purchasetime);
                     return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
                 })
                 .then(snapshot => {
@@ -35,21 +35,17 @@ exports.setApp = function(JPS) {
                 .then(snapshot => {
                     JPS.specialUser = snapshot.val()
                     if (JPS.specialUser.admin) {
-                        console.log("USER requesting transaction remove is ADMIN");
-                        return JPS.firebase.database().ref('/transactions/' + JPS.forUserId + "/" + JPS.transactionToRemove.purchasetime).remove();
+                        console.log("USER requesting trx ok is ADMIN");
+                        return JPS.firebase.database()
+                        .ref('/transactions/' + JPS.forUserId + "/" + JPS.transactionToOk.purchasetime).update({paymentReceived : true});
                     }
                     throw (new Error("Non admin or instructor user requesting cashbuy."))
                 })
                 .then(() => {
-                    if(JPS.transactionToRemove.type === 'special'){
-                        console.log("SPECIAL slot transation - remove bookings: ", JPS.transactionToRemove.shopItemKey, JPS.forUserId);
-                        JPS.firebase.database().ref('/scbookingsbyslot/' + JPS.transactionToRemove.shopItemKey + "/" + JPS.forUserId).remove();
-                        JPS.firebase.database().ref('/scbookingsbyuser/' + JPS.forUserId + "/" + JPS.transactionToRemove.shopItemKey).remove();
-                    }
-                    res.status(200).jsonp("Transaction removed succesfully.").end();
+                    res.status(200).jsonp("Transaction ok succesfully.").end();
                 }).catch(err => {
-                    console.error("removeTransaction failde: ", err);
-                    res.status(500).jsonp("removeTransaction failde." + String(err)).end();
+                    console.error("okTransaction failde: ", err);
+                    res.status(500).jsonp("okTransaction failde." + String(err)).end();
                 });
         })
     })
