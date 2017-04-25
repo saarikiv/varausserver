@@ -49,15 +49,15 @@ module.exports =
 	// Server main faile
 	//------------------------------------------
 
-	var express = __webpack_require__(26)
+	var express = __webpack_require__(1)
 	var JPS = {} //The global.
-	JPS.tests = __webpack_require__(24)
-	JPS.timeHelper = __webpack_require__(7)
+	JPS.tests = __webpack_require__(2)
+	JPS.timeHelper = __webpack_require__(3)
 	JPS.errorHelper = __webpack_require__(4)
-	JPS.cancelHelper = __webpack_require__(3)
+	JPS.cancelHelper = __webpack_require__(5)
 	JPS.pendingTransactionsHelper = __webpack_require__(6)
-	JPS.mailer = __webpack_require__(5)
-	JPS.braintree = __webpack_require__(25);
+	JPS.mailer = __webpack_require__(7)
+	JPS.braintree = __webpack_require__(9);
 
 	console.log("ENV: ", process.env.PWD);
 	if (process.env.NODE_ENV == "production") {
@@ -77,7 +77,7 @@ module.exports =
 	        }
 	    };
 	}
-	JPS.firebase = __webpack_require__(27)
+	JPS.firebase = __webpack_require__(10)
 	JPS.app = express();
 	JPS.date = new Date();
 	JPS.listenport = 3000
@@ -125,26 +125,26 @@ module.exports =
 	JPS.mailer.initializeMail(JPS);
 
 	// HEADERS
-	__webpack_require__(22).setApp(JPS);
+	__webpack_require__(11).setApp(JPS);
 
 	// POST
-	__webpack_require__(17).setApp(JPS);
-	__webpack_require__(13).setApp(JPS);
-	__webpack_require__(19).setApp(JPS);
-	__webpack_require__(11).setApp(JPS);
-	__webpack_require__(8).setApp(JPS);
 	__webpack_require__(12).setApp(JPS);
-	__webpack_require__(15).setApp(JPS);
+	__webpack_require__(13).setApp(JPS);
 	__webpack_require__(14).setApp(JPS);
-	__webpack_require__(9).setApp(JPS);
-	__webpack_require__(10).setApp(JPS);
-	__webpack_require__(1).setApp(JPS);
-	__webpack_require__(21).setApp(JPS);
-	__webpack_require__(1).setApp(JPS);
 	__webpack_require__(16).setApp(JPS);
-	__webpack_require__(20).setApp(JPS);
+	__webpack_require__(17).setApp(JPS);
 	__webpack_require__(18).setApp(JPS);
+	__webpack_require__(19).setApp(JPS);
+	__webpack_require__(20).setApp(JPS);
+	__webpack_require__(21).setApp(JPS);
+	__webpack_require__(22).setApp(JPS);
 	__webpack_require__(23).setApp(JPS);
+	__webpack_require__(24).setApp(JPS);
+	__webpack_require__(23).setApp(JPS);
+	__webpack_require__(25).setApp(JPS);
+	__webpack_require__(26).setApp(JPS);
+	__webpack_require__(27).setApp(JPS);
+	__webpack_require__(28).setApp(JPS);
 
 	/* WEBPACK VAR INJECTION */}.call(exports, "/"))
 
@@ -152,114 +152,126 @@ module.exports =
 /* 1 */
 /***/ function(module, exports) {
 
-	exports.setApp = function(JPS) {
-
-	    //######################################################
-	    // POST: cancelSlot
-	    //######################################################
-
-	    JPS.app.post('/cancelSlot', (req, res) => {
-	        JPS.now = Date.now();
-	        console.log("POST: cancelSlot", JPS.now);
-	        JPS.body = '';
-	        req.on('data', (data) => {
-	            JPS.body += data;
-	            // Too much POST data, kill the connection!
-	            // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
-	            if (JPS.body.length > 1e6) req.connection.destroy();
-	        });
-	        req.on('end', () => {
-	            JPS.post = JSON.parse(JPS.body);
-	            console.log("POST:", JPS.post);
-	            JPS.currentUserToken = JPS.post.user;
-	            JPS.slotInfo = JPS.post.slotInfo;
-	            JPS.cancelItem = JPS.post.cancelItem;
-	            JPS.txRef = JPS.post.transactionReference;
-	            JPS.timezoneOffset = JPS.post.timezoneOffset;
-
-	            JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
-	                .then(decodedToken => {
-	                    JPS.currentUserUID = decodedToken.sub;
-	                    console.log("User: ", JPS.currentUserUID, " requested cancel slot.");
-	                    return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
-	                })
-	                .then(snapshot => {
-	                    if (snapshot.val() != null) {
-	                        JPS.user = snapshot.val();
-	                        JPS.user.key = snapshot.key;
-	                        console.log("USER:", JPS.user);
-	                        return JPS.firebase.database().ref('/bookingsbyslot/' + JPS.slotInfo.key + '/' + JPS.cancelItem + '/' + JPS.user.key).once('value');
-	                    } else {
-	                        throw (new Error("User record does not exist in the database: " + JPS.currentUserUID))
-	                    }
-	                })
-	                .then(snapshot => {
-	                    if (snapshot.val() == null) {
-	                        throw (new Error("Booking by-SLOT does not exist in the database."))
-	                    }
-	                    return JPS.firebase.database().ref('/bookingsbyuser/' + JPS.user.key + '/' + JPS.slotInfo.key + '/' + JPS.cancelItem).once('value');
-	                })
-	                .then(snapshot => {
-	                    if (snapshot.val() == null) {
-	                        throw (new Error("Booking by-USER does not exist in the database."))
-	                    }
-	                    return JPS.firebase.database().ref('/bookingsbyuser/' + JPS.user.key + '/' + JPS.slotInfo.key + '/' + JPS.cancelItem).remove();
-	                })
-	                .then(() => {
-	                    return JPS.firebase.database().ref('/bookingsbyslot/' + JPS.slotInfo.key + '/' + JPS.cancelItem + '/' + JPS.user.key).remove();
-	                })
-	                .then(() => {
-	                    console.log("Transaction reference: ", JPS.txRef)
-	                    if (JPS.txRef != 0) {
-	                        //Give back one use time for the user
-	                        JPS.firebase.database().ref('/transactions/' + JPS.user.key + '/' + JPS.txRef).once('value')
-	                            .then(snapshot => {
-	                                if (snapshot.val() == null) {
-	                                    throw (new Error("Transaction not found in the DB: TX:" + JPS.user.key + "/" + JPS.txRef));
-	                                }
-	                                JPS.unusedtimes = snapshot.val().unusedtimes;
-	                                JPS.unusedtimes++;
-	                                return JPS.firebase.database().ref('/transactions/' + JPS.user.key + '/' + JPS.txRef).update({
-	                                    unusedtimes: JPS.unusedtimes
-	                                })
-	                            })
-	                            .then(err => {
-	                                if (err) {
-	                                    throw (new Error(err.message + " " + err.code));
-	                                }
-	                                res.status(200).jsonp({
-	                                    message: "Cancellation COUNT was succesfull."
-	                                }).end();
-	                                JPS.mailer.sendCancellationCount(JPS.user.email, JPS.slotInfo, JPS.cancelItem); //Send confirmation email
-	                            }).catch(err => {
-	                                throw (new Error(err.message + " " + err.code));
-	                            })
-	                    } else {
-	                        res.status(200).jsonp({
-	                            message: "Cancellation TIME was succesfull."
-	                        }).end();
-	                        JPS.mailer.sendCancellationTime(JPS.user.email, JPS.slotInfo, JPS.cancelItem); //Send confirmation email
-	                    }
-	                })
-	                .catch(err => {
-	                    console.error("POST Cancel Slot failed: ", err);
-	                    res.status(500).jsonp({
-	                        message: "POST Cancel Slot failed:" + err.toString()
-	                    }).end();
-	                });
-	        })
-	    })
-	}
-
+	module.exports = require("express");
 
 /***/ },
 /* 2 */
 /***/ function(module, exports) {
 
-	module.exports = require("md5");
+	
+	module.exports = {
+
+	    executeTestCase: (JPS, testCase) => {
+	        var promise = new Promise( (resolve, reject) => {
+	            switch(testCase){
+	            case "firebase_error_log":
+	                JPS.tests.testFirebaseLogging(JPS)
+	                .then(() => {resolve()})
+	                .catch(error => {
+	                    reject(error)})
+	                break;
+	            default:
+	                console.error("Test case was not known");
+	                reject("Unknown test case: " + testCase)
+	            }
+	        })
+	        return promise;
+	    },
+
+	    testFirebaseLogging: (JPS) => {
+	        var promise = new Promise( (resolve, reject) => {
+	            try{
+	                console.log("Test case: testFirebaseLogging");
+	                JPS.errorHelper.logErrorToFirebase(JPS,{
+	                    error: "testivirhe",
+	                    details: "jotain meni tosi pieleen",
+	                    context: {
+	                        id: 56,
+	                        runner: "iskari"
+	                    }
+	                })
+	            } 
+	            catch(e){
+	                console.error("Test case: testFirebaseLogging failed:", e);
+	                reject(e);
+	            }
+	            console.log("Test case: testFirebaseLogging passed");
+	            resolve();
+	        })
+	        return promise;
+	    }
+	}
 
 /***/ },
 /* 3 */
+/***/ function(module, exports) {
+
+	var JHLP = {}
+
+	module.exports = {
+	    getSlotTimeLocal: (weeksForward, timeOfStart, dayNumber) => {
+
+	        JHLP.slotTime = new Date();
+	        JHLP.dayNumber = JHLP.slotTime.getDay()
+	        JHLP.dayNumber = (JHLP.dayNumber == 0) ? 7 : JHLP.dayNumber;
+	        JHLP.daysToAdd = weeksForward * 7 + dayNumber - JHLP.dayNumber;
+
+	        JHLP.slotTime.setHours(0);
+	        JHLP.slotTime.setMinutes(0);
+	        JHLP.slotTime.setSeconds(0);
+	        JHLP.slotTime.setMilliseconds(0);
+	        JHLP.slotTime.setTime(JHLP.slotTime.getTime() + JHLP.daysToAdd * 24 * 60 * 60 * 1000 + timeOfStart);
+
+	        return JHLP.slotTime;
+	    },
+	    getDayStr: (day) => {
+	        var month = 1+day.getMonth()
+	        return day.getDate() + "." + month + "." + day.getFullYear()
+	    },
+	    getTimeStr: (day) => {
+	        return day.toTimeString()
+	    },
+	    getUntilEndOfDayMsFromNow: (now) => {
+	        JHLP.nowTime = new Date();
+	        JHLP.nowTime.setTime(now);
+	        JHLP.nowTime.setHours(23);
+	        JHLP.nowTime.setMinutes(59);
+	        JHLP.nowTime.setSeconds(59);
+	        JHLP.nowTime.setMilliseconds(999);
+	        return (JHLP.nowTime.getTime() - now)
+	    },
+	    shiftUntilEndOfDayMs: (now) => {
+	        JHLP.nowTime = new Date();
+	        JHLP.nowTime.setTime(now);
+	        JHLP.nowTime.setHours(23);
+	        JHLP.nowTime.setMinutes(59);
+	        JHLP.nowTime.setSeconds(59);
+	        JHLP.nowTime.setMilliseconds(999);
+	        console.log("TIME HELPER - shift time to EOD:", JHLP.nowTime, (now - JHLP.nowTime.getTime()));
+	        return JHLP.nowTime.getTime()
+	    }
+
+	}
+
+/***/ },
+/* 4 */
+/***/ function(module, exports) {
+
+	
+	module.exports = {
+	    logErrorToFirebase: (JPS, error) => {
+	        JPS.firebase.database().ref('/serverError/' + Date.now()).update({
+	            error
+	        }, err => {
+	            if (err) {
+	                console.error("Writing error to firebase failed: ", err);
+	            }
+	        })
+	    }
+	}
+
+/***/ },
+/* 5 */
 /***/ function(module, exports) {
 
 	module.exports = {
@@ -323,28 +335,85 @@ module.exports =
 
 
 /***/ },
-/* 4 */
+/* 6 */
 /***/ function(module, exports) {
 
 	
 	module.exports = {
-	    logErrorToFirebase: (JPS, error) => {
-	        JPS.firebase.database().ref('/serverError/' + Date.now()).update({
-	            error
-	        }, err => {
-	            if (err) {
-	                console.error("Writing error to firebase failed: ", err);
+
+
+	    completePendingTransaction: (JPS, pendingTransactionKey, externalReference, paymentInstrumentType, paymentMethod) => {
+
+	        var promise = new Promise( (resolve, reject) => {
+	//Promise/////////////////////////////////////////////////
+
+	        // Let's get the transaction at hand.
+	        JPS.firebase.database().ref('/pendingtransactions/' + pendingTransactionKey).once('value')
+	        .then(snapshot => {
+	            if(snapshot.val() !== null){
+	                JPS.pendingTransaction = snapshot.val()
+	                console.log("Processing pending transaction: ", JPS.pendingTransaction)
+	                JPS.dataToUpdate = Object.assign(
+	                    JPS.pendingTransaction.transaction, 
+	                    JPS.pendingTransaction.shopItem, {
+	                    details: {
+	                        success: true,
+	                        transaction: {
+	                            pendingTransaction: pendingTransactionKey,
+	                            amount: JPS.pendingTransaction.shopItem.price,
+	                            currencyIsoCode: "EUR",
+	                            id: externalReference,
+	                            paymentInstrumentType: paymentInstrumentType,
+	                            paymentMethod: paymentMethod
+	                        }
+	                    }
+	                })
+	                return JPS.firebase.database().ref('/transactions/'+JPS.pendingTransaction.user+'/'+JPS.pendingTransaction.timestamp)
+	                .update(JPS.dataToUpdate)                    
 	            }
+	            throw( new Error("PendingTransactionHelper: Pending transaction was not found: " + pendingTransactionKey))
+	        }).then(() => {
+	            console.log("Pending transaction processed succesfully. Removing pending record.");
+	            return JPS.firebase.database().ref('/pendingtransactions/'+pendingTransactionKey).remove();
+	        }).then(() => {
+	            console.log("Pending record removed successfully.");
+	            if(JPS.pendingTransaction.shopItem.type === "special"){
+	                JPS.firebase.database().ref('/scbookingsbyslot/' + JPS.pendingTransaction.transaction.shopItemKey + '/' + JPS.pendingTransaction.user)
+	                .update({transactionReference: JPS.pendingTransaction.timestamp, shopItem: JPS.pendingTransaction.shopItem})
+	                .then(() => {
+	                    return JPS.firebase.database().ref('/scbookingsbyuser/' + JPS.pendingTransaction.user + '/' + JPS.pendingTransaction.transaction.shopItemKey)
+	                    .update({transactionReference: JPS.pendingTransaction.timestamp, shopItem: JPS.pendingTransaction.shopItem})
+	                }).then(()=>{
+	                    console.log("Updated SC-bookings succesfully");
+	                    JPS.mailer.sendReceipt(JPS.pendingTransaction.receiptEmail, JPS.dataToUpdate, JPS.pendingTransaction.timestamp);
+	                })
+	                .catch(error => {
+	                    console.error("Processing SC-bookings failed: ", pendingTransactionKey, error);
+	                    throw(new Error("Processing SC-bookings failed: " + pendingTransactionKey + error.message))
+	                })
+	                resolve({code: 200, message: "OK"});                    
+	            } else {
+	                JPS.mailer.sendReceipt(JPS.pendingTransaction.receiptEmail, JPS.dataToUpdate, JPS.pendingTransaction.timestamp);
+	                resolve({code: 200, message: "OK"});                    
+	            }                  
+	        }).catch(err => {
+	            console.error("completePendingTransaction failde: ", err, JPS.pendingTransaction);
+	            reject({code: 500, message: "completePendingTransaction failde: " + err, err});
+	        });
+
+	//Promise/////////////////////////////////////////////////
 	        })
+	        return promise;
 	    }
 	}
 
+
 /***/ },
-/* 5 */
+/* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var JPSM = {}
-	JPSM.Mailgun = __webpack_require__(28)
+	JPSM.Mailgun = __webpack_require__(8)
 	JPSM.mg_api_key = process.env.MAILGUN_API_KEY || 'key-4230707292ae718f00a8274d41beb7f3';
 	JPSM.mg_domain = process.env.MAILGUN_DOMAIN || 'sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
 	JPSM.mg_from_who = process.env.MAILGUN_FROM_WHO || 'postmaster@sandbox75ae890e64684217a94067bbc25db626.mailgun.org';
@@ -604,133 +673,280 @@ module.exports =
 
 
 /***/ },
-/* 6 */
+/* 8 */
+/***/ function(module, exports) {
+
+	module.exports = require("mailgun-js");
+
+/***/ },
+/* 9 */
+/***/ function(module, exports) {
+
+	module.exports = require("braintree");
+
+/***/ },
+/* 10 */
+/***/ function(module, exports) {
+
+	module.exports = require("firebase");
+
+/***/ },
+/* 11 */
 /***/ function(module, exports) {
 
 	
-	module.exports = {
+	exports.setApp = function (JPS){
 
+	  //#############################
+	  // Add headers
+	  //#############################
+	  JPS.app.use( (req, res, next) => {
+	      // Website you wish to allow to connect
+	      res.setHeader('Access-Control-Allow-Origin', '*');
+	      res.setHeader('content-type', 'text/plain')
+	      // Request methods you wish to allow
+	      res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
+	      res.setHeader('Access-Control-Allow-Headers', 'content-type')
+	      // Pass to next layer of middleware
+	      next();
+	  });
 
-	    completePendingTransaction: (JPS, pendingTransactionKey, externalReference, paymentInstrumentType, paymentMethod) => {
-
-	        var promise = new Promise( (resolve, reject) => {
-	//Promise/////////////////////////////////////////////////
-
-	        // Let's get the transaction at hand.
-	        JPS.firebase.database().ref('/pendingtransactions/' + pendingTransactionKey).once('value')
-	        .then(snapshot => {
-	            if(snapshot.val() !== null){
-	                JPS.pendingTransaction = snapshot.val()
-	                console.log("Processing pending transaction: ", JPS.pendingTransaction)
-	                JPS.dataToUpdate = Object.assign(
-	                    JPS.pendingTransaction.transaction,
-	                    {paymentReceived : false}, 
-	                    JPS.pendingTransaction.shopItem, {
-	                    details: {
-	                        success: true,
-	                        transaction: {
-	                            pendingTransaction: pendingTransactionKey,
-	                            amount: JPS.pendingTransaction.shopItem.price,
-	                            currencyIsoCode: "EUR",
-	                            id: externalReference,
-	                            paymentInstrumentType: paymentInstrumentType,
-	                            paymentMethod: paymentMethod
-	                        }
-	                    }
-	                })
-	                return JPS.firebase.database().ref('/transactions/'+JPS.pendingTransaction.user+'/'+JPS.pendingTransaction.timestamp)
-	                .update(JPS.dataToUpdate)                    
-	            }
-	            throw( new Error("PendingTransactionHelper: Pending transaction was not found: " + pendingTransactionKey))
-	        }).then(() => {
-	            console.log("Pending transaction processed succesfully. Removing pending record.");
-	            return JPS.firebase.database().ref('/pendingtransactions/'+pendingTransactionKey).remove();
-	        }).then(() => {
-	            console.log("Pending record removed successfully.");
-	            if(JPS.pendingTransaction.shopItem.type === "special"){
-	                JPS.firebase.database().ref('/scbookingsbyslot/' + JPS.pendingTransaction.transaction.shopItemKey + '/' + JPS.pendingTransaction.user)
-	                .update({transactionReference: JPS.pendingTransaction.timestamp, shopItem: JPS.pendingTransaction.shopItem})
-	                .then(() => {
-	                    return JPS.firebase.database().ref('/scbookingsbyuser/' + JPS.pendingTransaction.user + '/' + JPS.pendingTransaction.transaction.shopItemKey)
-	                    .update({transactionReference: JPS.pendingTransaction.timestamp, shopItem: JPS.pendingTransaction.shopItem})
-	                }).then(()=>{
-	                    console.log("Updated SC-bookings succesfully");
-	                    JPS.mailer.sendReceipt(JPS.pendingTransaction.receiptEmail, JPS.dataToUpdate, JPS.pendingTransaction.timestamp);
-	                })
-	                .catch(error => {
-	                    console.error("Processing SC-bookings failed: ", pendingTransactionKey, error);
-	                    throw(new Error("Processing SC-bookings failed: " + pendingTransactionKey + error.message))
-	                })
-	                resolve({code: 200, message: "OK"});                    
-	            } else {
-	                JPS.mailer.sendReceipt(JPS.pendingTransaction.receiptEmail, JPS.dataToUpdate, JPS.pendingTransaction.timestamp);
-	                resolve({code: 200, message: "OK"});                    
-	            }                  
-	        }).catch(err => {
-	            console.error("completePendingTransaction failde: ", err, JPS.pendingTransaction);
-	            reject({code: 500, message: "completePendingTransaction failde: " + err, err});
-	        });
-
-	//Promise/////////////////////////////////////////////////
-	        })
-	        return promise;
-	    }
 	}
 
 
 /***/ },
-/* 7 */
+/* 12 */
 /***/ function(module, exports) {
 
-	var JHLP = {}
+	exports.setApp = function(JPS) {
 
-	module.exports = {
-	    getSlotTimeLocal: (weeksForward, timeOfStart, dayNumber) => {
+	    //######################################################
+	    // POST: cashbuy, post the item being purchased
+	    //######################################################
+	    JPS.app.post('/notifyRegistration', (req, res) => {
 
-	        JHLP.slotTime = new Date();
-	        JHLP.dayNumber = JHLP.slotTime.getDay()
-	        JHLP.dayNumber = (JHLP.dayNumber == 0) ? 7 : JHLP.dayNumber;
-	        JHLP.daysToAdd = weeksForward * 7 + dayNumber - JHLP.dayNumber;
+	        JPS.now = Date.now();
+	        console.log("notifyRegistration requested.", JPS.now);
+	        JPS.body = '';
+	        req.on('data', (data) => {
+	            JPS.body += data;
+	            // Too much POST data, kill the connection!
+	            // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
+	            if (JPS.body.length > 1e6) req.connection.destroy();
+	        });
+	        req.on('end', () => {
+	            JPS.post = JSON.parse(JPS.body);
+	            JPS.currentUserToken = JPS.post.current_user;
+	            console.log("POST:", JPS.post);
 
-	        JHLP.slotTime.setHours(0);
-	        JHLP.slotTime.setMinutes(0);
-	        JHLP.slotTime.setSeconds(0);
-	        JHLP.slotTime.setMilliseconds(0);
-	        JHLP.slotTime.setTime(JHLP.slotTime.getTime() + JHLP.daysToAdd * 24 * 60 * 60 * 1000 + timeOfStart);
-
-	        return JHLP.slotTime;
-	    },
-	    getDayStr: (day) => {
-	        var month = 1+day.getMonth()
-	        return day.getDate() + "." + month + "." + day.getFullYear()
-	    },
-	    getTimeStr: (day) => {
-	        return day.toTimeString()
-	    },
-	    getUntilEndOfDayMsFromNow: (now) => {
-	        JHLP.nowTime = new Date();
-	        JHLP.nowTime.setTime(now);
-	        JHLP.nowTime.setHours(23);
-	        JHLP.nowTime.setMinutes(59);
-	        JHLP.nowTime.setSeconds(59);
-	        JHLP.nowTime.setMilliseconds(999);
-	        return (JHLP.nowTime.getTime() - now)
-	    },
-	    shiftUntilEndOfDayMs: (now) => {
-	        JHLP.nowTime = new Date();
-	        JHLP.nowTime.setTime(now);
-	        JHLP.nowTime.setHours(23);
-	        JHLP.nowTime.setMinutes(59);
-	        JHLP.nowTime.setSeconds(59);
-	        JHLP.nowTime.setMilliseconds(999);
-	        console.log("TIME HELPER - shift time to EOD:", JHLP.nowTime, (now - JHLP.nowTime.getTime()));
-	        return JHLP.nowTime.getTime()
-	    }
-
+	            JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
+	                .then(decodedToken => {
+	                    JPS.currentUserUID = decodedToken.sub;
+	                    console.log("User: ", JPS.currentUserUID, " requested notifyRegistration.");
+	                    return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
+	                })
+	                .then(snapshot => {
+	                    JPS.user = snapshot.val()
+	                    JPS.mailer.sendRegistration(JPS.user)
+	                    res.status(200).jsonp("Notification sent ok.").end()
+	                }).catch(err => {
+	                    console.error("Notification failde: ", err);
+	                    res.status(500).jsonp("Notification failde." + String(err)).end();
+	                });
+	        })
+	    })
 	}
 
+
 /***/ },
-/* 8 */
+/* 13 */
+/***/ function(module, exports) {
+
+	exports.setApp = function(JPS) {
+
+	    //######################################################
+	    // POST: cashbuy, post the item being purchased
+	    //######################################################
+	    JPS.app.post('/feedback', (req, res) => {
+
+	        JPS.now = Date.now();
+	        console.log("Feedback requested.", JPS.now);
+	        JPS.body = '';
+	        req.on('data', (data) => {
+	            JPS.body += data;
+	            // Too much POST data, kill the connection!
+	            // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
+	            if (JPS.body.length > 1e6) req.connection.destroy();
+	        });
+	        req.on('end', () => {
+	            JPS.post = JSON.parse(JPS.body);
+	            JPS.currentUserToken = JPS.post.current_user;
+	            JPS.feedbackMessage = JPS.post.feedback_message;
+	            console.log("POST:", JPS.post);
+
+	            JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
+	                .then(decodedToken => {
+	                    JPS.currentUserUID = decodedToken.sub;
+	                    console.log("User: ", JPS.currentUserUID, " requested feedback.");
+	                    return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
+	                })
+	                .then(snapshot => {
+	                    JPS.user = snapshot.val()
+	                    JPS.mailer.sendFeedback(JPS.user, JPS.feedbackMessage)
+	                    JPS.mailer.sendThankyouForFeedback(JPS.user)
+	                    res.status(200).jsonp("Feedback sent ok.").end()
+	                }).catch(err => {
+	                    console.error("Feedback failde: ", err);
+	                    res.status(500).jsonp({
+	                        message: "Feedback failde." + err.toString()
+	                    }).end(err);
+	                });
+	        })
+	    })
+	}
+
+
+/***/ },
+/* 14 */
+/***/ function(module, exports, __webpack_require__) {
+
+	
+	var md5 = __webpack_require__ (15)
+
+	exports.setApp = function (JPS){
+
+	    //######################################################
+	    // POST: 
+	    //######################################################
+	    JPS.app.post('/paytrailauthcode', (req, res) => {
+
+	        JPS.now = Date.now();
+	        console.log("paytrailauthcode requested.", JPS.now);
+	        JPS.body = '';
+	        req.on('data', (data) => {
+	            JPS.body += data;
+	            // Too much POST data, kill the connection!
+	            // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
+	            if (JPS.body.length > 1e6) req.connection.destroy();
+	        });
+	        req.on('end', () => {
+	            JPS.post = JSON.parse(JPS.body);
+	            JPS.currentUserToken = JPS.post.current_user;
+	            JPS.trxDetails = JPS.post.auth_code;
+	            console.log("POST:", JPS.post);
+
+	            JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
+	                .then(decodedToken => {
+	                    JPS.currentUserUID = decodedToken.sub;
+	                    console.log("User: ", JPS.currentUserUID, " requested paytrailauthcode.");
+	                    JPS.merchantAuthenticationhash = "6pKF4jkv97zmqBJ3ZL8gUw5DfT2NMQ" //TODO: get this from ENV
+	                    console.log("trxDetails", JPS.trxDetails);
+	                    JPS.hashOK = md5(JPS.merchantAuthenticationhash + '|' + JPS.trxDetails).toUpperCase()
+	                    console.log("HASH-OK", JPS.hashOK);
+	                    res.status(200).end(JPS.hashOK);
+	                }).catch(err => {
+	                    console.error("paytrailauthcode failed: ", err);
+	                    res.status(500).jsonp({
+	                        message: "paytrailauthcode failed." + err.toString()
+	                    }).end(err);
+	                });
+	            })
+	        })
+	}
+
+
+/***/ },
+/* 15 */
+/***/ function(module, exports) {
+
+	module.exports = require("md5");
+
+/***/ },
+/* 16 */
+/***/ function(module, exports) {
+
+	exports.setApp = function(JPS) {
+
+	    //######################################################
+	    // POST: checkout, post the item being purchased
+	    // This post will read the shop item and find out the token + price associated with it
+	    // It then creates payment transaction and inserts the payment data to the firebase
+	    // Finally adds to the users entitlement new tokens to use.
+	    //######################################################
+	    JPS.app.post('/checkout', (req, res) => {
+
+	        JPS.now = Date.now();
+	        console.log("Checkout requested.", JPS.now);
+	        JPS.body = '';
+	        req.on('data', (data) => {
+	            JPS.body += data;
+	            // Too much POST data, kill the connection!
+	            // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
+	            if (JPS.body.length > 1e6) req.connection.destroy();
+	        });
+	        req.on('end', () => {
+	            JPS.post = JSON.parse(JPS.body);
+	            JPS.currentUserToken = JPS.post.current_user;
+	            JPS.shopItemKey = JPS.post.item_key;
+	            console.log("POST:", JPS.post);
+
+	            JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
+	                .then(decodedToken => {
+	                    JPS.currentUserUID = decodedToken.sub;
+	                    console.log("User: ", JPS.currentUserUID, " requested checkout.");
+	                    return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
+	                })
+	                .then(snapshot => {
+	                    if(snapshot.val() != null){
+	                        JPS.user = snapshot.val()
+	                        JPS.user.key = snapshot.key;
+	                        return JPS.firebase.database().ref('/shopItems/' + JPS.shopItemKey).once('value');
+	                    }
+	                    throw( new Error("User was not found in db: " + JPS.currentUserUID) );
+
+	                })
+	                .then(snapshot => {
+	                    JPS.shopItem = snapshot.val();
+	                    JPS.transaction = {
+	                            user: JPS.user.key,
+	                            shopItem: JPS.shopItem,
+	                            shopItemKey: JPS.shopItemKey,
+	                            error: {
+	                                code: 0
+	                            },
+	                            details: {
+	                                success: true,
+	                                    transaction: {
+	                                    amount: JPS.shopItem.price,
+	                                    currencyIsoCode: "EUR",
+	                                    id: JPS.now,
+	                                    paymentInstrumentType: "invoice",
+	                                    paymentMethod: "invoice"
+	                                    }
+	                        }
+	                    }
+	                    JPS.shopItem.expires = JPS.timeHelper.shiftUntilEndOfDayMs(JPS.date.setTime(JPS.now + JPS.shopItem.expiresAfterDays * 24 * 60 * 60 * 1000));
+	                    JPS.shopItem.unusedtimes = JPS.shopItem.usetimes;
+	                    JPS.firebase.database().ref('/transactions/' + JPS.user.key + '/' + JPS.now)
+	                        .update(Object.assign(JPS.transaction, JPS.shopItem))
+	                        .then(() => {
+	                            console.log("Transaction saved: ", JPS.transaction, JPS.shopItem);
+	                            res.status(200).jsonp("Checkout successful.").end();
+	                            JPS.mailer.sendReceipt(JPS.user.email, JPS.transaction, JPS.now); //Send confirmation email
+	                        }).catch(err => {
+	                            throw (new Error(err.message + " " + err.code));
+	                        });
+	                }).catch(err => {
+	                    console.error("Checkout failde: ", err);
+	                    res.status(500).jsonp("Checkout failde." + String(err)).end();
+	                });
+	        })
+	    })
+	}
+
+
+/***/ },
+/* 17 */
 /***/ function(module, exports) {
 
 	exports.setApp = function(JPS) {
@@ -791,7 +1007,415 @@ module.exports =
 	}
 
 /***/ },
-/* 9 */
+/* 18 */
+/***/ function(module, exports, __webpack_require__) {
+
+	
+	var md5 = __webpack_require__ (15)
+
+	exports.setApp = function (JPS){
+
+	//######################################################
+	// GET: clienttoken, needed for the client to initiate payment method
+	//######################################################
+
+	  JPS.app.post('/completepaytrail', (req, res) => {
+	    
+	    
+	    JPS.now = Date.now();
+	    console.log("completepaytrail requested.", JPS.now);
+	    JPS.body = '';
+	    req.on('data', (data) => {
+	        JPS.body += data;
+	        // Too much POST data, kill the connection!
+	        // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
+	        if (JPS.body.length > 1e6) req.connection.destroy();
+	    });
+	    req.on('end', () => {
+	        JPS.post = JSON.parse(JPS.body);
+	        JPS.currentUserToken = JPS.post.current_user;
+	        console.log("POST:", JPS.post);
+	        JPS.merchantAuthenticationhash = "6pKF4jkv97zmqBJ3ZL8gUw5DfT2NMQ"
+	        console.log("ORDER_NUMBER", JPS.post.ORDER_NUMBER);
+	        console.log("TIMESTAMP", JPS.post.TIMESTAMP);
+	        console.log("PAID", JPS.post.PAID);
+	        console.log("METHOD", JPS.post.METHOD);
+	        console.log("RETURN_AUTHCODE", JPS.post.RETURN_AUTHCODE);
+	        JPS.hashOK = md5(JPS.post.ORDER_NUMBER + '|' + JPS.post.TIMESTAMP + '|' + JPS.post.PAID + '|' + JPS.post.METHOD + '|' + JPS.merchantAuthenticationhash).toUpperCase()
+	        JPS.hashNOK = md5(JPS.post.ORDER_NUMBER + '|' + JPS.post.TIMESTAMP + '|' + JPS.merchantAuthenticationhash).toUpperCase()
+	        console.log("HASH-OK", JPS.hashOK);
+	        console.log("HASH-NOK", JPS.hashNOK);
+	        JPS.orderNumber = JPS.post.ORDER_NUMBER;
+	        JPS.timeStamp = JPS.post.TIMESTAMP;
+	        JPS.paymentTransactionRef = JPS.post.PAID;
+	        JPS.paymentMethod = JPS.post.METHOD
+	        JPS.authorizationCode = JPS.post.RETURN_AUTHCODE;
+
+	        JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
+	        .then(decodedToken => {
+	            JPS.currentUserUID = decodedToken.sub;
+	            console.log("User: ", JPS.currentUserUID, " requested completepaytrail.");
+	            return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
+	        })
+	        .then(snapshot => {
+	            if(snapshot.val() != null){
+	              JPS.user = snapshot.val()
+	              JPS.user.key = snapshot.key;
+	              if(JPS.post.PAID){
+	                console.log("Transaction was paid OK");
+	                if(JPS.hashOK === JPS.post.RETURN_AUTHCODE){
+	                  console.log("Authorization code matches!!", JPS.hashOK);
+	                  console.log("start processing: ", JPS.orderNumber);
+
+	                  JPS.pendingTransactionsHelper.completePendingTransaction(JPS, JPS.orderNumber, JPS.paymentTransactionRef, "PayTrail", JPS.paymentMethod)
+	                  .then( status => {
+	                      console.log("Status from completing pending transaction: ", status);
+	                      res.status(200).end();
+	                  })
+	                  .catch((error) => {
+	                      console.error("Complete pending transaction request failed: ", error);
+	                      throw( new Error("Complete pending transaction request failed: " + error.message))
+	                  })
+
+	                } else {
+	                  console.error("Input authorization code did not match: " + JPS.hashOK + "!=" + JPS.authorizationCode + " --- " + JPS.hashNOK);
+	                  throw (new Error("Input authorization code did not match: " + JPS.hashOK + "!=" + JPS.authorizationCode + " --- " + JPS.hashNOK))
+	                }
+	              }
+	              else{
+	                console.log("Payment did not clear or was cancelled. Remove the pending transaction: ", JPS.orderNumber);
+	                JPS.firebase.database().ref('/pendingtransactions/'+JPS.orderNumber).remove()
+	                .then(() => {
+	                  console.log("Pending transaction for NOK payment removed: ", JPS.orderNumber);
+	                  res.status(200).end();
+	                })
+	                .catch(error => {
+	                  console.error("Removing pending transaction failed.");
+	                  throw (new Error("Removing pending transaction failed." + error.message))
+	                })
+	              }
+	            } else{
+	              throw( new Error("User was not found in db: " + JPS.currentUserUID) );
+	            }
+
+	        })
+	        .catch(err => {
+	            console.error("Complete Pay Trai transaction failed: ", err);
+	            res.status(500).jsonp({
+	                message: "Complete Pay Trai transaction failde." + err
+	            }).end(err);
+	        })
+	    })
+	  })
+	}
+
+
+/***/ },
+/* 19 */
+/***/ function(module, exports) {
+
+	exports.setApp = function(JPS) {
+
+	    //######################################################
+	    // POST: 
+	    //######################################################
+	    JPS.app.post('/initializepaytrailtransaction', (req, res) => {
+
+	        JPS.now = Date.now();
+	        console.log("initializepaytrailtransaction requested.", JPS.now);
+	        JPS.body = '';
+	        req.on('data', (data) => {
+	            JPS.body += data;
+	            // Too much POST data, kill the connection!
+	            // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
+	            if (JPS.body.length > 1e6) req.connection.destroy();
+	        });
+	        req.on('end', () => {
+	            JPS.post = JSON.parse(JPS.body);
+	            JPS.currentUserToken = JPS.post.current_user;
+	            JPS.shopItemKey = JPS.post.item_key;
+	            JPS.itemType = JPS.post.purchase_target;
+	            console.log("POST:", JPS.post);
+
+	            JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
+	                .then(decodedToken => {
+	                    JPS.currentUserUID = decodedToken.sub;
+	                    console.log("User: ", JPS.currentUserUID, " requested initializepaytrailtransaction.");
+	                    return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
+	                })
+	                .then(snapshot => {
+	                    if(snapshot.val() != null){
+	                        JPS.user = snapshot.val()
+	                        JPS.user.key = snapshot.key;
+	                        switch(JPS.itemType){
+	                        case "special":
+	                            return JPS.firebase.database().ref('/specialSlots/' + JPS.shopItemKey).once('value');
+	                        default:
+	                            return JPS.firebase.database().ref('/shopItems/' + JPS.shopItemKey).once('value');
+	                        }
+	                    } else {
+	                        throw(new Error("User was not found in the database: ", JPS.currentUserUID))
+	                    }
+
+	                })
+	                .then(snapshot => {
+	                    JPS.shopItem = snapshot.val();
+	                    console.log("shopitem: ",JPS.shopItem );
+	                    JPS.transaction = {
+	                            user: JPS.user.key,
+	                            shopItem: JPS.shopItem,
+	                            shopItemKey: JPS.shopItemKey,
+	                            error: { code: 0 },
+	                            details: "pending"
+	                        }
+	                        //==================================
+	                        // Write the transaction to the database
+	                        //==================================
+	                        //calculate the expiry moment if type is count
+	                    if (JPS.shopItem.type === "count") {
+	                        JPS.shopItem.expires = JPS.timeHelper.shiftUntilEndOfDayMs(JPS.date.setTime(JPS.now + JPS.shopItem.expiresAfterDays * 24 * 60 * 60 * 1000));
+	                        JPS.shopItem.unusedtimes = JPS.shopItem.usetimes;
+	                        JPS.ref = JPS.firebase.database().ref('/pendingtransactions/').push({
+	                                transaction: JPS.transaction,
+	                                shopItem: JPS.shopItem,
+	                                user: JPS.user.key,
+	                                receiptEmail: JPS.user.email,
+	                                timestamp: JPS.now
+	                            },err => {
+	                                if(err){
+	                                    console.error("COUNT push failed: ", err)
+	                                    throw (new Error("COUNT push failed" + err.message + " " + err.code));
+	                                } else {
+	                                    console.log("Pending count transaction saved: ", JPS.ref.key);
+	                                    res.status(200).jsonp(JPS.ref.key).end();
+	                                }
+	                            });
+	                    }
+	                    if (JPS.shopItem.type === "time") {
+	                        console.log("time item process started.");
+	                        JPS.lastTimeUserHasValidUseTime = JPS.now;
+	                        JPS.firebase.database().ref('/transactions/' + JPS.user.key).once('value')
+	                            .then(snapshot => {
+	                                if(snapshot.val() != null){ //User has previous transactions - find the latest expiry
+	                                    console.log("Porcessing users previous transactions to find latest expiry.");
+	                                    var one;
+	                                    var all = snapshot.val();
+	                                    for (one in all) {
+	                                        if (all[one].type === "time") {
+	                                            if (all[one].expires > JPS.lastTimeUserHasValidUseTime) {
+	                                                JPS.lastTimeUserHasValidUseTime = all[one].expires;
+	                                                console.log("Found later expiry than now: ", JPS.lastTimeUserHasValidUseTime);
+	                                            }
+	                                        }
+	                                    }
+	                                }
+	                                JPS.shopItem.expires = JPS.timeHelper.shiftUntilEndOfDayMs(JPS.date.setTime(JPS.lastTimeUserHasValidUseTime + JPS.shopItem.usedays * 24 * 60 * 60 * 1000));
+	                                console.log("This new time expires: ", JPS.shopItem.expires);
+	                                JPS.ref = JPS.firebase.database().ref('/pendingtransactions/').push({
+	                                    transaction: JPS.transaction,
+	                                    shopItem: JPS.shopItem,
+	                                    receiptEmail: JPS.user.email,
+	                                    user: JPS.user.key,
+	                                    timestamp: JPS.now
+	                                }, err => {
+	                                    if(err){
+	                                        console.error("TIME push failed", err)
+	                                        throw (new Error("TIME push failed" + err.message + " " + err.code));                                        
+	                                    } else {
+	                                        console.log("Pending time transaction saved: ",JPS.ref.key);
+	                                        res.status(200).jsonp(JPS.ref.key).end();
+	                                    }
+	                                })
+	                            }, err => {
+	                                console.error(err.message + " " + err.code)
+	                                throw (new Error(err.message + " " + err.code));
+	                            });
+	                    }
+	                    if(JPS.shopItem.type === "special"){
+	                        console.log("special slot purchase....");
+	                        JPS.shopItem.expires = 0;
+	                        JPS.ref = JPS.firebase.database().ref('/pendingtransactions/').push({
+	                            transaction: JPS.transaction,
+	                            shopItem: JPS.shopItem,
+	                            user: JPS.user.key,
+	                            receiptEmail: JPS.user.email,
+	                            timestamp: JPS.now
+	                        }, err => {
+	                            if(err){
+	                                console.error(err.message + " " + err.code)
+	                                throw (new Error(err.message + " " + err.code));                                        
+	                            } else {
+	                                console.log("Pending special transaction saved: ",JPS.ref.key);
+	                                res.status(200).jsonp(JPS.ref.key).end();
+	                            }
+	                        })
+	                    }
+
+	                    }).catch(err => {
+	                    console.error("Initialize Pay Trai transaction failed: ", err);
+	                    res.status(500).jsonp({
+	                        message: "Initialize Pay Trai transaction failde." + err.toString()
+	                    }).end(err);
+	                });
+	            })
+	        })
+	}
+
+
+/***/ },
+/* 20 */
+/***/ function(module, exports) {
+
+	exports.setApp = function(JPS) {
+
+	    //######################################################
+	    // POST: 
+	    //######################################################
+	    JPS.app.post('/initializedelayedtransaction', (req, res) => {
+
+	        JPS.now = Date.now();
+	        console.log("initializedelayedtransaction requested.", JPS.now);
+	        JPS.body = '';
+	        req.on('data', (data) => {
+	            JPS.body += data;
+	            // Too much POST data, kill the connection!
+	            // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
+	            if (JPS.body.length > 1e6) req.connection.destroy();
+	        });
+	        req.on('end', () => {
+	            JPS.post = JSON.parse(JPS.body);
+	            JPS.currentUserToken = JPS.post.current_user;
+	            JPS.shopItemKey = JPS.post.item_key;
+	            JPS.itemType = JPS.post.purchase_target;
+	            console.log("POST:", JPS.post);
+
+	            JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
+	                .then(decodedToken => {
+	                    JPS.currentUserUID = decodedToken.sub;
+	                    console.log("User: ", JPS.currentUserUID, " requested initializedelayedtransaction.");
+	                    return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
+	                })
+	                .then(snapshot => {
+	                    if(snapshot.val() != null){
+	                        JPS.user = snapshot.val()
+	                        JPS.user.key = snapshot.key;
+	                        switch(JPS.itemType){
+	                        case "special":
+	                            return JPS.firebase.database().ref('/specialSlots/' + JPS.shopItemKey).once('value');
+	                        default:
+	                            return JPS.firebase.database().ref('/shopItems/' + JPS.shopItemKey).once('value');
+	                        }
+	                    } else {
+	                        throw(new Error("User was not found in the database: ", JPS.currentUserUID))
+	                    }
+
+	                })
+	                .then(snapshot => {
+	                    JPS.shopItem = snapshot.val();
+	                    console.log("shopitem: ",JPS.shopItem );
+	                    JPS.transaction = {
+	                            user: JPS.user.key,
+	                            shopItem: JPS.shopItem,
+	                            shopItemKey: JPS.shopItemKey,
+	                            error: { code: 0 },
+	                            details: "pending"
+	                        }
+	                        //==================================
+	                        // Write the transaction to the database
+	                        //==================================
+	                        //calculate the expiry moment if type is count
+	                    if (JPS.shopItem.type === "count") {
+	                        JPS.shopItem.expires = JPS.timeHelper.shiftUntilEndOfDayMs(JPS.date.setTime(JPS.now + JPS.shopItem.expiresAfterDays * 24 * 60 * 60 * 1000));
+	                        JPS.shopItem.unusedtimes = JPS.shopItem.usetimes;
+	                        JPS.ref = JPS.firebase.database().ref('/pendingtransactions/').push({
+	                                transaction: JPS.transaction,
+	                                shopItem: JPS.shopItem,
+	                                user: JPS.user.key,
+	                                receiptEmail: JPS.user.email,
+	                                timestamp: JPS.now
+	                            },err => {
+	                                if(err){
+	                                    console.error("COUNT push failed: ", err)
+	                                    throw (new Error("COUNT push failed" + err.message + " " + err.code));
+	                                } else {
+	                                    console.log("Pending count transaction saved: ", JPS.ref.key);
+	                                    res.status(200).jsonp(JPS.ref.key).end();
+	                                }
+	                            });
+	                    }
+	                    if (JPS.shopItem.type === "time") {
+	                        console.log("time item process started.");
+	                        JPS.lastTimeUserHasValidUseTime = JPS.now;
+	                        JPS.firebase.database().ref('/transactions/' + JPS.user.key).once('value')
+	                            .then(snapshot => {
+	                                if(snapshot.val() != null){ //User has previous transactions - find the latest expiry
+	                                    console.log("Porcessing users previous transactions to find latest expiry.");
+	                                    var one;
+	                                    var all = snapshot.val();
+	                                    for (one in all) {
+	                                        if (all[one].type === "time") {
+	                                            if (all[one].expires > JPS.lastTimeUserHasValidUseTime) {
+	                                                JPS.lastTimeUserHasValidUseTime = all[one].expires;
+	                                                console.log("Found later expiry than now: ", JPS.lastTimeUserHasValidUseTime);
+	                                            }
+	                                        }
+	                                    }
+	                                }
+	                                JPS.shopItem.expires = JPS.timeHelper.shiftUntilEndOfDayMs(JPS.date.setTime(JPS.lastTimeUserHasValidUseTime + JPS.shopItem.usedays * 24 * 60 * 60 * 1000));
+	                                console.log("This new time expires: ", JPS.shopItem.expires);
+	                                JPS.ref = JPS.firebase.database().ref('/pendingtransactions/').push({
+	                                    transaction: JPS.transaction,
+	                                    shopItem: JPS.shopItem,
+	                                    receiptEmail: JPS.user.email,
+	                                    user: JPS.user.key,
+	                                    timestamp: JPS.now
+	                                }, err => {
+	                                    if(err){
+	                                        console.error("TIME push failed", err)
+	                                        throw (new Error("TIME push failed" + err.message + " " + err.code));                                        
+	                                    } else {
+	                                        console.log("Pending time transaction saved: ",JPS.ref.key);
+	                                        res.status(200).jsonp(JPS.ref.key).end();
+	                                    }
+	                                })
+	                            }, err => {
+	                                console.error(err.message + " " + err.code)
+	                                throw (new Error(err.message + " " + err.code));
+	                            });
+	                    }
+	                    if(JPS.shopItem.type === "special"){
+	                        console.log("special slot purchase....");
+	                        JPS.shopItem.expires = 0;
+	                        JPS.ref = JPS.firebase.database().ref('/pendingtransactions/').push({
+	                            transaction: JPS.transaction,
+	                            shopItem: JPS.shopItem,
+	                            user: JPS.user.key,
+	                            receiptEmail: JPS.user.email,
+	                            timestamp: JPS.now
+	                        }, err => {
+	                            if(err){
+	                                console.error(err.message + " " + err.code)
+	                                throw (new Error(err.message + " " + err.code));                                        
+	                            } else {
+	                                console.log("Pending special transaction saved: ",JPS.ref.key);
+	                                res.status(200).jsonp(JPS.ref.key).end();
+	                            }
+	                        })
+	                    }
+
+	                    }).catch(err => {
+	                    console.error("Initialize delayed transaction failed: ", err);
+	                    res.status(500).jsonp({
+	                        message: "Initialize delayed transaction failde." + err.toString()
+	                    }).end(err);
+	                });
+	            })
+	        })
+	}
+
+
+/***/ },
+/* 21 */
 /***/ function(module, exports) {
 
 	exports.setApp = function(JPS) {
@@ -836,7 +1460,7 @@ module.exports =
 
 
 /***/ },
-/* 10 */
+/* 22 */
 /***/ function(module, exports) {
 
 	exports.setApp = function(JPS) {
@@ -991,21 +1615,18 @@ module.exports =
 
 
 /***/ },
-/* 11 */
+/* 23 */
 /***/ function(module, exports) {
 
 	exports.setApp = function(JPS) {
 
 	    //######################################################
-	    // POST: checkout, post the item being purchased
-	    // This post will read the shop item and find out the token + price associated with it
-	    // It then creates payment transaction and inserts the payment data to the firebase
-	    // Finally adds to the users entitlement new tokens to use.
+	    // POST: cancelSlot
 	    //######################################################
-	    JPS.app.post('/checkout', (req, res) => {
 
+	    JPS.app.post('/cancelSlot', (req, res) => {
 	        JPS.now = Date.now();
-	        console.log("Checkout requested.", JPS.now);
+	        console.log("POST: cancelSlot", JPS.now);
 	        JPS.body = '';
 	        req.on('data', (data) => {
 	            JPS.body += data;
@@ -1015,560 +1636,82 @@ module.exports =
 	        });
 	        req.on('end', () => {
 	            JPS.post = JSON.parse(JPS.body);
-	            JPS.currentUserToken = JPS.post.current_user;
-	            JPS.shopItemKey = JPS.post.item_key;
 	            console.log("POST:", JPS.post);
+	            JPS.currentUserToken = JPS.post.user;
+	            JPS.slotInfo = JPS.post.slotInfo;
+	            JPS.cancelItem = JPS.post.cancelItem;
+	            JPS.txRef = JPS.post.transactionReference;
+	            JPS.timezoneOffset = JPS.post.timezoneOffset;
 
 	            JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
 	                .then(decodedToken => {
 	                    JPS.currentUserUID = decodedToken.sub;
-	                    console.log("User: ", JPS.currentUserUID, " requested checkout.");
+	                    console.log("User: ", JPS.currentUserUID, " requested cancel slot.");
 	                    return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
 	                })
 	                .then(snapshot => {
-	                    if(snapshot.val() != null){
-	                        JPS.user = snapshot.val()
+	                    if (snapshot.val() != null) {
+	                        JPS.user = snapshot.val();
 	                        JPS.user.key = snapshot.key;
-	                        return JPS.firebase.database().ref('/shopItems/' + JPS.shopItemKey).once('value');
-	                    }
-	                    throw( new Error("User was not found in db: " + JPS.currentUserUID) );
-
-	                })
-	                .then(snapshot => {
-	                    JPS.shopItem = snapshot.val();
-	                    JPS.transaction = {
-	                            user: JPS.user.key,
-	                            shopItem: JPS.shopItem,
-	                            shopItemKey: JPS.shopItemKey,
-	                            error: {
-	                                code: 0
-	                            },
-	                            details: {
-	                                success: true,
-	                                    transaction: {
-	                                    amount: JPS.shopItem.price,
-	                                    currencyIsoCode: "EUR",
-	                                    id: JPS.now,
-	                                    paymentInstrumentType: "invoice",
-	                                    paymentMethod: "invoice"
-	                                    }
-	                        }
-	                    }
-	                    JPS.shopItem.expires = JPS.timeHelper.shiftUntilEndOfDayMs(JPS.date.setTime(JPS.now + JPS.shopItem.expiresAfterDays * 24 * 60 * 60 * 1000));
-	                    JPS.shopItem.unusedtimes = JPS.shopItem.usetimes;
-	                    JPS.firebase.database().ref('/transactions/' + JPS.user.key + '/' + JPS.now)
-	                        .update(Object.assign(JPS.transaction, JPS.shopItem))
-	                        .then(() => {
-	                            console.log("Transaction saved: ", JPS.transaction, JPS.shopItem);
-	                            res.status(200).jsonp("Checkout successful.").end();
-	                            JPS.mailer.sendReceipt(JPS.user.email, JPS.transaction, JPS.now); //Send confirmation email
-	                        }).catch(err => {
-	                            throw (new Error(err.message + " " + err.code));
-	                        });
-	                }).catch(err => {
-	                    console.error("Checkout failde: ", err);
-	                    res.status(500).jsonp("Checkout failde." + String(err)).end();
-	                });
-	        })
-	    })
-	}
-
-
-/***/ },
-/* 12 */
-/***/ function(module, exports, __webpack_require__) {
-
-	
-	var md5 = __webpack_require__ (2)
-
-	exports.setApp = function (JPS){
-
-	//######################################################
-	// GET: clienttoken, needed for the client to initiate payment method
-	//######################################################
-
-	  JPS.app.post('/completepaytrail', (req, res) => {
-	    
-	    
-	    JPS.now = Date.now();
-	    console.log("completepaytrail requested.", JPS.now);
-	    JPS.body = '';
-	    req.on('data', (data) => {
-	        JPS.body += data;
-	        // Too much POST data, kill the connection!
-	        // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
-	        if (JPS.body.length > 1e6) req.connection.destroy();
-	    });
-	    req.on('end', () => {
-	        JPS.post = JSON.parse(JPS.body);
-	        JPS.currentUserToken = JPS.post.current_user;
-	        console.log("POST:", JPS.post);
-	        JPS.merchantAuthenticationhash = "6pKF4jkv97zmqBJ3ZL8gUw5DfT2NMQ"
-	        console.log("ORDER_NUMBER", JPS.post.ORDER_NUMBER);
-	        console.log("TIMESTAMP", JPS.post.TIMESTAMP);
-	        console.log("PAID", JPS.post.PAID);
-	        console.log("METHOD", JPS.post.METHOD);
-	        console.log("RETURN_AUTHCODE", JPS.post.RETURN_AUTHCODE);
-	        JPS.hashOK = md5(JPS.post.ORDER_NUMBER + '|' + JPS.post.TIMESTAMP + '|' + JPS.post.PAID + '|' + JPS.post.METHOD + '|' + JPS.merchantAuthenticationhash).toUpperCase()
-	        JPS.hashNOK = md5(JPS.post.ORDER_NUMBER + '|' + JPS.post.TIMESTAMP + '|' + JPS.merchantAuthenticationhash).toUpperCase()
-	        console.log("HASH-OK", JPS.hashOK);
-	        console.log("HASH-NOK", JPS.hashNOK);
-	        JPS.orderNumber = JPS.post.ORDER_NUMBER;
-	        JPS.timeStamp = JPS.post.TIMESTAMP;
-	        JPS.paymentTransactionRef = JPS.post.PAID;
-	        JPS.paymentMethod = JPS.post.METHOD
-	        JPS.authorizationCode = JPS.post.RETURN_AUTHCODE;
-
-	        JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
-	        .then(decodedToken => {
-	            JPS.currentUserUID = decodedToken.sub;
-	            console.log("User: ", JPS.currentUserUID, " requested completepaytrail.");
-	            return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
-	        })
-	        .then(snapshot => {
-	            if(snapshot.val() != null){
-	              JPS.user = snapshot.val()
-	              JPS.user.key = snapshot.key;
-	              if(JPS.post.PAID){
-	                console.log("Transaction was paid OK");
-	                if(JPS.hashOK === JPS.post.RETURN_AUTHCODE){
-	                  console.log("Authorization code matches!!", JPS.hashOK);
-	                  console.log("start processing: ", JPS.orderNumber);
-
-	                  JPS.pendingTransactionsHelper.completePendingTransaction(JPS, JPS.orderNumber, JPS.paymentTransactionRef, "PayTrail", JPS.paymentMethod)
-	                  .then( status => {
-	                      console.log("Status from completing pending transaction: ", status);
-	                      res.status(200).end();
-	                  })
-	                  .catch((error) => {
-	                      console.error("Complete pending transaction request failed: ", error);
-	                      throw( new Error("Complete pending transaction request failed: " + error.message))
-	                  })
-
-	                } else {
-	                  console.error("Input authorization code did not match: " + JPS.hashOK + "!=" + JPS.authorizationCode + " --- " + JPS.hashNOK);
-	                  throw (new Error("Input authorization code did not match: " + JPS.hashOK + "!=" + JPS.authorizationCode + " --- " + JPS.hashNOK))
-	                }
-	              }
-	              else{
-	                console.log("Payment did not clear or was cancelled. Remove the pending transaction: ", JPS.orderNumber);
-	                JPS.firebase.database().ref('/pendingtransactions/'+JPS.orderNumber).remove()
-	                .then(() => {
-	                  console.log("Pending transaction for NOK payment removed: ", JPS.orderNumber);
-	                  res.status(200).end();
-	                })
-	                .catch(error => {
-	                  console.error("Removing pending transaction failed.");
-	                  throw (new Error("Removing pending transaction failed." + error.message))
-	                })
-	              }
-	            } else{
-	              throw( new Error("User was not found in db: " + JPS.currentUserUID) );
-	            }
-
-	        })
-	        .catch(err => {
-	            console.error("Complete Pay Trai transaction failed: ", err);
-	            res.status(500).jsonp({
-	                message: "Complete Pay Trai transaction failde." + err
-	            }).end(err);
-	        })
-	    })
-	  })
-	}
-
-
-/***/ },
-/* 13 */
-/***/ function(module, exports) {
-
-	exports.setApp = function(JPS) {
-
-	    //######################################################
-	    // POST: cashbuy, post the item being purchased
-	    //######################################################
-	    JPS.app.post('/feedback', (req, res) => {
-
-	        JPS.now = Date.now();
-	        console.log("Feedback requested.", JPS.now);
-	        JPS.body = '';
-	        req.on('data', (data) => {
-	            JPS.body += data;
-	            // Too much POST data, kill the connection!
-	            // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
-	            if (JPS.body.length > 1e6) req.connection.destroy();
-	        });
-	        req.on('end', () => {
-	            JPS.post = JSON.parse(JPS.body);
-	            JPS.currentUserToken = JPS.post.current_user;
-	            JPS.feedbackMessage = JPS.post.feedback_message;
-	            console.log("POST:", JPS.post);
-
-	            JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
-	                .then(decodedToken => {
-	                    JPS.currentUserUID = decodedToken.sub;
-	                    console.log("User: ", JPS.currentUserUID, " requested feedback.");
-	                    return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
-	                })
-	                .then(snapshot => {
-	                    JPS.user = snapshot.val()
-	                    JPS.mailer.sendFeedback(JPS.user, JPS.feedbackMessage)
-	                    JPS.mailer.sendThankyouForFeedback(JPS.user)
-	                    res.status(200).jsonp("Feedback sent ok.").end()
-	                }).catch(err => {
-	                    console.error("Feedback failde: ", err);
-	                    res.status(500).jsonp({
-	                        message: "Feedback failde." + err.toString()
-	                    }).end(err);
-	                });
-	        })
-	    })
-	}
-
-
-/***/ },
-/* 14 */
-/***/ function(module, exports) {
-
-	exports.setApp = function(JPS) {
-
-	    //######################################################
-	    // POST: 
-	    //######################################################
-	    JPS.app.post('/initializedelayedtransaction', (req, res) => {
-
-	        JPS.now = Date.now();
-	        console.log("initializedelayedtransaction requested.", JPS.now);
-	        JPS.body = '';
-	        req.on('data', (data) => {
-	            JPS.body += data;
-	            // Too much POST data, kill the connection!
-	            // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
-	            if (JPS.body.length > 1e6) req.connection.destroy();
-	        });
-	        req.on('end', () => {
-	            JPS.post = JSON.parse(JPS.body);
-	            JPS.currentUserToken = JPS.post.current_user;
-	            JPS.shopItemKey = JPS.post.item_key;
-	            JPS.itemType = JPS.post.purchase_target;
-	            console.log("POST:", JPS.post);
-
-	            JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
-	                .then(decodedToken => {
-	                    JPS.currentUserUID = decodedToken.sub;
-	                    console.log("User: ", JPS.currentUserUID, " requested initializedelayedtransaction.");
-	                    return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
-	                })
-	                .then(snapshot => {
-	                    if(snapshot.val() != null){
-	                        JPS.user = snapshot.val()
-	                        JPS.user.key = snapshot.key;
-	                        switch(JPS.itemType){
-	                        case "special":
-	                            return JPS.firebase.database().ref('/specialSlots/' + JPS.shopItemKey).once('value');
-	                        default:
-	                            return JPS.firebase.database().ref('/shopItems/' + JPS.shopItemKey).once('value');
-	                        }
+	                        console.log("USER:", JPS.user);
+	                        return JPS.firebase.database().ref('/bookingsbyslot/' + JPS.slotInfo.key + '/' + JPS.cancelItem + '/' + JPS.user.key).once('value');
 	                    } else {
-	                        throw(new Error("User was not found in the database: ", JPS.currentUserUID))
+	                        throw (new Error("User record does not exist in the database: " + JPS.currentUserUID))
 	                    }
-
 	                })
 	                .then(snapshot => {
-	                    JPS.shopItem = snapshot.val();
-	                    console.log("shopitem: ",JPS.shopItem );
-	                    JPS.transaction = {
-	                            user: JPS.user.key,
-	                            shopItem: JPS.shopItem,
-	                            shopItemKey: JPS.shopItemKey,
-	                            error: { code: 0 },
-	                            details: "pending"
-	                        }
-	                        //==================================
-	                        // Write the transaction to the database
-	                        //==================================
-	                        //calculate the expiry moment if type is count
-	                    if (JPS.shopItem.type === "count") {
-	                        JPS.shopItem.expires = JPS.timeHelper.shiftUntilEndOfDayMs(JPS.date.setTime(JPS.now + JPS.shopItem.expiresAfterDays * 24 * 60 * 60 * 1000));
-	                        JPS.shopItem.unusedtimes = JPS.shopItem.usetimes;
-	                        JPS.ref = JPS.firebase.database().ref('/pendingtransactions/').push({
-	                                transaction: JPS.transaction,
-	                                shopItem: JPS.shopItem,
-	                                user: JPS.user.key,
-	                                receiptEmail: JPS.user.email,
-	                                timestamp: JPS.now
-	                            },err => {
-	                                if(err){
-	                                    console.error("COUNT push failed: ", err)
-	                                    throw (new Error("COUNT push failed" + err.message + " " + err.code));
-	                                } else {
-	                                    console.log("Pending count transaction saved: ", JPS.ref.key);
-	                                    res.status(200).jsonp(JPS.ref.key).end();
-	                                }
-	                            });
+	                    if (snapshot.val() == null) {
+	                        throw (new Error("Booking by-SLOT does not exist in the database."))
 	                    }
-	                    if (JPS.shopItem.type === "time") {
-	                        console.log("time item process started.");
-	                        JPS.lastTimeUserHasValidUseTime = JPS.now;
-	                        JPS.firebase.database().ref('/transactions/' + JPS.user.key).once('value')
+	                    return JPS.firebase.database().ref('/bookingsbyuser/' + JPS.user.key + '/' + JPS.slotInfo.key + '/' + JPS.cancelItem).once('value');
+	                })
+	                .then(snapshot => {
+	                    if (snapshot.val() == null) {
+	                        throw (new Error("Booking by-USER does not exist in the database."))
+	                    }
+	                    return JPS.firebase.database().ref('/bookingsbyuser/' + JPS.user.key + '/' + JPS.slotInfo.key + '/' + JPS.cancelItem).remove();
+	                })
+	                .then(() => {
+	                    return JPS.firebase.database().ref('/bookingsbyslot/' + JPS.slotInfo.key + '/' + JPS.cancelItem + '/' + JPS.user.key).remove();
+	                })
+	                .then(() => {
+	                    console.log("Transaction reference: ", JPS.txRef)
+	                    if (JPS.txRef != 0) {
+	                        //Give back one use time for the user
+	                        JPS.firebase.database().ref('/transactions/' + JPS.user.key + '/' + JPS.txRef).once('value')
 	                            .then(snapshot => {
-	                                if(snapshot.val() != null){ //User has previous transactions - find the latest expiry
-	                                    console.log("Porcessing users previous transactions to find latest expiry.");
-	                                    var one;
-	                                    var all = snapshot.val();
-	                                    for (one in all) {
-	                                        if (all[one].type === "time") {
-	                                            if (all[one].expires > JPS.lastTimeUserHasValidUseTime) {
-	                                                JPS.lastTimeUserHasValidUseTime = all[one].expires;
-	                                                console.log("Found later expiry than now: ", JPS.lastTimeUserHasValidUseTime);
-	                                            }
-	                                        }
-	                                    }
+	                                if (snapshot.val() == null) {
+	                                    throw (new Error("Transaction not found in the DB: TX:" + JPS.user.key + "/" + JPS.txRef));
 	                                }
-	                                JPS.shopItem.expires = JPS.timeHelper.shiftUntilEndOfDayMs(JPS.date.setTime(JPS.lastTimeUserHasValidUseTime + JPS.shopItem.usedays * 24 * 60 * 60 * 1000));
-	                                console.log("This new time expires: ", JPS.shopItem.expires);
-	                                JPS.ref = JPS.firebase.database().ref('/pendingtransactions/').push({
-	                                    transaction: JPS.transaction,
-	                                    shopItem: JPS.shopItem,
-	                                    receiptEmail: JPS.user.email,
-	                                    user: JPS.user.key,
-	                                    timestamp: JPS.now
-	                                }, err => {
-	                                    if(err){
-	                                        console.error("TIME push failed", err)
-	                                        throw (new Error("TIME push failed" + err.message + " " + err.code));                                        
-	                                    } else {
-	                                        console.log("Pending time transaction saved: ",JPS.ref.key);
-	                                        res.status(200).jsonp(JPS.ref.key).end();
-	                                    }
+	                                JPS.unusedtimes = snapshot.val().unusedtimes;
+	                                JPS.unusedtimes++;
+	                                return JPS.firebase.database().ref('/transactions/' + JPS.user.key + '/' + JPS.txRef).update({
+	                                    unusedtimes: JPS.unusedtimes
 	                                })
-	                            }, err => {
-	                                console.error(err.message + " " + err.code)
+	                            })
+	                            .then(err => {
+	                                if (err) {
+	                                    throw (new Error(err.message + " " + err.code));
+	                                }
+	                                res.status(200).jsonp({
+	                                    message: "Cancellation COUNT was succesfull."
+	                                }).end();
+	                                JPS.mailer.sendCancellationCount(JPS.user.email, JPS.slotInfo, JPS.cancelItem); //Send confirmation email
+	                            }).catch(err => {
 	                                throw (new Error(err.message + " " + err.code));
-	                            });
-	                    }
-	                    if(JPS.shopItem.type === "special"){
-	                        console.log("special slot purchase....");
-	                        JPS.shopItem.expires = 0;
-	                        JPS.ref = JPS.firebase.database().ref('/pendingtransactions/').push({
-	                            transaction: JPS.transaction,
-	                            shopItem: JPS.shopItem,
-	                            user: JPS.user.key,
-	                            receiptEmail: JPS.user.email,
-	                            timestamp: JPS.now
-	                        }, err => {
-	                            if(err){
-	                                console.error(err.message + " " + err.code)
-	                                throw (new Error(err.message + " " + err.code));                                        
-	                            } else {
-	                                console.log("Pending special transaction saved: ",JPS.ref.key);
-	                                res.status(200).jsonp(JPS.ref.key).end();
-	                            }
-	                        })
-	                    }
-
-	                    }).catch(err => {
-	                    console.error("Initialize delayed transaction failed: ", err);
-	                    res.status(500).jsonp({
-	                        message: "Initialize delayed transaction failde." + err.toString()
-	                    }).end(err);
-	                });
-	            })
-	        })
-	}
-
-
-/***/ },
-/* 15 */
-/***/ function(module, exports) {
-
-	exports.setApp = function(JPS) {
-
-	    //######################################################
-	    // POST: 
-	    //######################################################
-	    JPS.app.post('/initializepaytrailtransaction', (req, res) => {
-
-	        JPS.now = Date.now();
-	        console.log("initializepaytrailtransaction requested.", JPS.now);
-	        JPS.body = '';
-	        req.on('data', (data) => {
-	            JPS.body += data;
-	            // Too much POST data, kill the connection!
-	            // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
-	            if (JPS.body.length > 1e6) req.connection.destroy();
-	        });
-	        req.on('end', () => {
-	            JPS.post = JSON.parse(JPS.body);
-	            JPS.currentUserToken = JPS.post.current_user;
-	            JPS.shopItemKey = JPS.post.item_key;
-	            JPS.itemType = JPS.post.purchase_target;
-	            console.log("POST:", JPS.post);
-
-	            JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
-	                .then(decodedToken => {
-	                    JPS.currentUserUID = decodedToken.sub;
-	                    console.log("User: ", JPS.currentUserUID, " requested initializepaytrailtransaction.");
-	                    return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
-	                })
-	                .then(snapshot => {
-	                    if(snapshot.val() != null){
-	                        JPS.user = snapshot.val()
-	                        JPS.user.key = snapshot.key;
-	                        switch(JPS.itemType){
-	                        case "special":
-	                            return JPS.firebase.database().ref('/specialSlots/' + JPS.shopItemKey).once('value');
-	                        default:
-	                            return JPS.firebase.database().ref('/shopItems/' + JPS.shopItemKey).once('value');
-	                        }
+	                            })
 	                    } else {
-	                        throw(new Error("User was not found in the database: ", JPS.currentUserUID))
+	                        res.status(200).jsonp({
+	                            message: "Cancellation TIME was succesfull."
+	                        }).end();
+	                        JPS.mailer.sendCancellationTime(JPS.user.email, JPS.slotInfo, JPS.cancelItem); //Send confirmation email
 	                    }
-
 	                })
-	                .then(snapshot => {
-	                    JPS.shopItem = snapshot.val();
-	                    console.log("shopitem: ",JPS.shopItem );
-	                    JPS.transaction = {
-	                            user: JPS.user.key,
-	                            shopItem: JPS.shopItem,
-	                            shopItemKey: JPS.shopItemKey,
-	                            error: { code: 0 },
-	                            details: "pending"
-	                        }
-	                        //==================================
-	                        // Write the transaction to the database
-	                        //==================================
-	                        //calculate the expiry moment if type is count
-	                    if (JPS.shopItem.type === "count") {
-	                        JPS.shopItem.expires = JPS.timeHelper.shiftUntilEndOfDayMs(JPS.date.setTime(JPS.now + JPS.shopItem.expiresAfterDays * 24 * 60 * 60 * 1000));
-	                        JPS.shopItem.unusedtimes = JPS.shopItem.usetimes;
-	                        JPS.ref = JPS.firebase.database().ref('/pendingtransactions/').push({
-	                                transaction: JPS.transaction,
-	                                shopItem: JPS.shopItem,
-	                                user: JPS.user.key,
-	                                receiptEmail: JPS.user.email,
-	                                timestamp: JPS.now
-	                            },err => {
-	                                if(err){
-	                                    console.error("COUNT push failed: ", err)
-	                                    throw (new Error("COUNT push failed" + err.message + " " + err.code));
-	                                } else {
-	                                    console.log("Pending count transaction saved: ", JPS.ref.key);
-	                                    res.status(200).jsonp(JPS.ref.key).end();
-	                                }
-	                            });
-	                    }
-	                    if (JPS.shopItem.type === "time") {
-	                        console.log("time item process started.");
-	                        JPS.lastTimeUserHasValidUseTime = JPS.now;
-	                        JPS.firebase.database().ref('/transactions/' + JPS.user.key).once('value')
-	                            .then(snapshot => {
-	                                if(snapshot.val() != null){ //User has previous transactions - find the latest expiry
-	                                    console.log("Porcessing users previous transactions to find latest expiry.");
-	                                    var one;
-	                                    var all = snapshot.val();
-	                                    for (one in all) {
-	                                        if (all[one].type === "time") {
-	                                            if (all[one].expires > JPS.lastTimeUserHasValidUseTime) {
-	                                                JPS.lastTimeUserHasValidUseTime = all[one].expires;
-	                                                console.log("Found later expiry than now: ", JPS.lastTimeUserHasValidUseTime);
-	                                            }
-	                                        }
-	                                    }
-	                                }
-	                                JPS.shopItem.expires = JPS.timeHelper.shiftUntilEndOfDayMs(JPS.date.setTime(JPS.lastTimeUserHasValidUseTime + JPS.shopItem.usedays * 24 * 60 * 60 * 1000));
-	                                console.log("This new time expires: ", JPS.shopItem.expires);
-	                                JPS.ref = JPS.firebase.database().ref('/pendingtransactions/').push({
-	                                    transaction: JPS.transaction,
-	                                    shopItem: JPS.shopItem,
-	                                    receiptEmail: JPS.user.email,
-	                                    user: JPS.user.key,
-	                                    timestamp: JPS.now
-	                                }, err => {
-	                                    if(err){
-	                                        console.error("TIME push failed", err)
-	                                        throw (new Error("TIME push failed" + err.message + " " + err.code));                                        
-	                                    } else {
-	                                        console.log("Pending time transaction saved: ",JPS.ref.key);
-	                                        res.status(200).jsonp(JPS.ref.key).end();
-	                                    }
-	                                })
-	                            }, err => {
-	                                console.error(err.message + " " + err.code)
-	                                throw (new Error(err.message + " " + err.code));
-	                            });
-	                    }
-	                    if(JPS.shopItem.type === "special"){
-	                        console.log("special slot purchase....");
-	                        JPS.shopItem.expires = 0;
-	                        JPS.ref = JPS.firebase.database().ref('/pendingtransactions/').push({
-	                            transaction: JPS.transaction,
-	                            shopItem: JPS.shopItem,
-	                            user: JPS.user.key,
-	                            receiptEmail: JPS.user.email,
-	                            timestamp: JPS.now
-	                        }, err => {
-	                            if(err){
-	                                console.error(err.message + " " + err.code)
-	                                throw (new Error(err.message + " " + err.code));                                        
-	                            } else {
-	                                console.log("Pending special transaction saved: ",JPS.ref.key);
-	                                res.status(200).jsonp(JPS.ref.key).end();
-	                            }
-	                        })
-	                    }
-
-	                    }).catch(err => {
-	                    console.error("Initialize Pay Trai transaction failed: ", err);
+	                .catch(err => {
+	                    console.error("POST Cancel Slot failed: ", err);
 	                    res.status(500).jsonp({
-	                        message: "Initialize Pay Trai transaction failde." + err.toString()
-	                    }).end(err);
-	                });
-	            })
-	        })
-	}
-
-
-/***/ },
-/* 16 */
-/***/ function(module, exports) {
-
-	exports.setApp = function(JPS) {
-
-	    //######################################################
-	    // POST: cashbuy, post the item being purchased
-	    //######################################################
-	    JPS.app.post('/notifydelayed', (req, res) => {
-
-	        JPS.now = Date.now();
-	        console.log("notifydelayed requested.", JPS.now);
-	        JPS.body = '';
-	        req.on('data', (data) => {
-	            JPS.body += data;
-	            // Too much POST data, kill the connection!
-	            // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
-	            if (JPS.body.length > 1e6) req.connection.destroy();
-	        });
-	        req.on('end', () => {
-	            JPS.post = JSON.parse(JPS.body);
-	            JPS.currentUserToken = JPS.post.current_user;
-	            JPS.transaction = JPS.post.transaction;
-	            console.log("POST:", JPS.post);
-
-	            JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
-	                .then(decodedToken => {
-	                    JPS.currentUserUID = decodedToken.sub;
-	                    console.log("User: ", JPS.currentUserUID, " requested notifydelayed");
-	                    return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
-	                })
-	                .then(snapshot => {
-	                    JPS.user = snapshot.val()
-	                    JPS.mailer.sendNotifyDelayed(JPS.user, JPS.transaction)
-	                    res.status(200).jsonp("Notify sent ok.").end()
-	                }).catch(err => {
-	                    console.error("Notify failde: ", err);
-	                    res.status(500).jsonp( "Feedback failde." + String(err) ).end();
+	                        message: "POST Cancel Slot failed:" + err.toString()
+	                    }).end();
 	                });
 	        })
 	    })
@@ -1576,220 +1719,7 @@ module.exports =
 
 
 /***/ },
-/* 17 */
-/***/ function(module, exports) {
-
-	exports.setApp = function(JPS) {
-
-	    //######################################################
-	    // POST: cashbuy, post the item being purchased
-	    //######################################################
-	    JPS.app.post('/notifyRegistration', (req, res) => {
-
-	        JPS.now = Date.now();
-	        console.log("notifyRegistration requested.", JPS.now);
-	        JPS.body = '';
-	        req.on('data', (data) => {
-	            JPS.body += data;
-	            // Too much POST data, kill the connection!
-	            // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
-	            if (JPS.body.length > 1e6) req.connection.destroy();
-	        });
-	        req.on('end', () => {
-	            JPS.post = JSON.parse(JPS.body);
-	            JPS.currentUserToken = JPS.post.current_user;
-	            console.log("POST:", JPS.post);
-
-	            JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
-	                .then(decodedToken => {
-	                    JPS.currentUserUID = decodedToken.sub;
-	                    console.log("User: ", JPS.currentUserUID, " requested notifyRegistration.");
-	                    return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
-	                })
-	                .then(snapshot => {
-	                    JPS.user = snapshot.val()
-	                    JPS.mailer.sendRegistration(JPS.user)
-	                    res.status(200).jsonp("Notification sent ok.").end()
-	                }).catch(err => {
-	                    console.error("Notification failde: ", err);
-	                    res.status(500).jsonp("Notification failde." + String(err)).end();
-	                });
-	        })
-	    })
-	}
-
-
-/***/ },
-/* 18 */
-/***/ function(module, exports) {
-
-	exports.setApp = function(JPS) {
-
-	    //######################################################
-	    // POST: cashbuy, post the item being purchased
-	    //######################################################
-	    JPS.app.post('/okTransaction', (req, res) => {
-
-	        JPS.now = Date.now();
-	        console.log("okTransaction requested.", JPS.now);
-	        JPS.body = '';
-	        req.on('data', (data) => {
-	            JPS.body += data;
-	            // Too much POST data, kill the connection!
-	            // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
-	            if (JPS.body.length > 1e6) req.connection.destroy();
-	        });
-	        req.on('end', () => {
-	            JPS.post = JSON.parse(JPS.body);
-	            JPS.currentUserToken = JPS.post.current_user;
-	            JPS.forUserId = JPS.post.for_user;
-	            JPS.transactionToOk = JPS.post.transaction;
-	            console.log("POST:", JPS.post);
-
-	            JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
-	                .then(decodedToken => {
-	                    JPS.currentUserUID = decodedToken.sub;
-	                    console.log("User: ", JPS.currentUserUID, " requested okTransaction: ", JPS.forUserId + "/" + JPS.transactionToOk.purchasetime);
-	                    return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
-	                })
-	                .then(snapshot => {
-	                    JPS.user = snapshot.val()
-	                    JPS.user.key = snapshot.key;
-	                    return JPS.firebase.database().ref('/specialUsers/' + JPS.currentUserUID).once('value');
-	                })
-	                .then(snapshot => {
-	                    JPS.specialUser = snapshot.val()
-	                    if (JPS.specialUser.admin) {
-	                        console.log("USER requesting trx ok is ADMIN");
-	                        return JPS.firebase.database()
-	                        .ref('/transactions/' + JPS.forUserId + "/" + JPS.transactionToOk.purchasetime).update({paymentReceived : true});
-	                    }
-	                    throw (new Error("Non admin or instructor user requesting cashbuy."))
-	                })
-	                .then(() => {
-	                    res.status(200).jsonp("Transaction ok succesfully.").end();
-	                }).catch(err => {
-	                    console.error("okTransaction failde: ", err);
-	                    res.status(500).jsonp("okTransaction failde." + String(err)).end();
-	                });
-	        })
-	    })
-	}
-
-
-/***/ },
-/* 19 */
-/***/ function(module, exports, __webpack_require__) {
-
-	
-	var md5 = __webpack_require__ (2)
-
-	exports.setApp = function (JPS){
-
-	    //######################################################
-	    // POST: 
-	    //######################################################
-	    JPS.app.post('/paytrailauthcode', (req, res) => {
-
-	        JPS.now = Date.now();
-	        console.log("paytrailauthcode requested.", JPS.now);
-	        JPS.body = '';
-	        req.on('data', (data) => {
-	            JPS.body += data;
-	            // Too much POST data, kill the connection!
-	            // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
-	            if (JPS.body.length > 1e6) req.connection.destroy();
-	        });
-	        req.on('end', () => {
-	            JPS.post = JSON.parse(JPS.body);
-	            JPS.currentUserToken = JPS.post.current_user;
-	            JPS.trxDetails = JPS.post.auth_code;
-	            console.log("POST:", JPS.post);
-
-	            JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
-	                .then(decodedToken => {
-	                    JPS.currentUserUID = decodedToken.sub;
-	                    console.log("User: ", JPS.currentUserUID, " requested paytrailauthcode.");
-	                    JPS.merchantAuthenticationhash = "6pKF4jkv97zmqBJ3ZL8gUw5DfT2NMQ" //TODO: get this from ENV
-	                    console.log("trxDetails", JPS.trxDetails);
-	                    JPS.hashOK = md5(JPS.merchantAuthenticationhash + '|' + JPS.trxDetails).toUpperCase()
-	                    console.log("HASH-OK", JPS.hashOK);
-	                    res.status(200).end(JPS.hashOK);
-	                }).catch(err => {
-	                    console.error("paytrailauthcode failed: ", err);
-	                    res.status(500).jsonp({
-	                        message: "paytrailauthcode failed." + err.toString()
-	                    }).end(err);
-	                });
-	            })
-	        })
-	}
-
-
-/***/ },
-/* 20 */
-/***/ function(module, exports) {
-
-	exports.setApp = function(JPS) {
-
-	    //######################################################
-	    // POST: cashbuy, post the item being purchased
-	    //######################################################
-	    JPS.app.post('/removeTransaction', (req, res) => {
-
-	        JPS.now = Date.now();
-	        console.log("removeTransaction requested.", JPS.now);
-	        JPS.body = '';
-	        req.on('data', (data) => {
-	            JPS.body += data;
-	            // Too much POST data, kill the connection!
-	            // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
-	            if (JPS.body.length > 1e6) req.connection.destroy();
-	        });
-	        req.on('end', () => {
-	            JPS.post = JSON.parse(JPS.body);
-	            JPS.currentUserToken = JPS.post.current_user;
-	            JPS.forUserId = JPS.post.for_user;
-	            JPS.transactionToRemove = JPS.post.transaction;
-	            console.log("POST:", JPS.post);
-
-	            JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
-	                .then(decodedToken => {
-	                    JPS.currentUserUID = decodedToken.sub;
-	                    console.log("User: ", JPS.currentUserUID, " requested removeTransaction: ", JPS.forUserId + "/" + JPS.transactionToRemove.purchasetime);
-	                    return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
-	                })
-	                .then(snapshot => {
-	                    JPS.user = snapshot.val()
-	                    JPS.user.key = snapshot.key;
-	                    return JPS.firebase.database().ref('/specialUsers/' + JPS.currentUserUID).once('value');
-	                })
-	                .then(snapshot => {
-	                    JPS.specialUser = snapshot.val()
-	                    if (JPS.specialUser.admin) {
-	                        console.log("USER requesting transaction remove is ADMIN");
-	                        return JPS.firebase.database().ref('/transactions/' + JPS.forUserId + "/" + JPS.transactionToRemove.purchasetime).remove();
-	                    }
-	                    throw (new Error("Non admin or instructor user requesting cashbuy."))
-	                })
-	                .then(() => {
-	                    if(JPS.transactionToRemove.type === 'special'){
-	                        console.log("SPECIAL slot transation - remove bookings: ", JPS.transactionToRemove.shopItemKey, JPS.forUserId);
-	                        JPS.firebase.database().ref('/scbookingsbyslot/' + JPS.transactionToRemove.shopItemKey + "/" + JPS.forUserId).remove();
-	                        JPS.firebase.database().ref('/scbookingsbyuser/' + JPS.forUserId + "/" + JPS.transactionToRemove.shopItemKey).remove();
-	                    }
-	                    res.status(200).jsonp("Transaction removed succesfully.").end();
-	                }).catch(err => {
-	                    console.error("removeTransaction failde: ", err);
-	                    res.status(500).jsonp("removeTransaction failde." + String(err)).end();
-	                });
-	        })
-	    })
-	}
-
-
-/***/ },
-/* 21 */
+/* 24 */
 /***/ function(module, exports) {
 
 	
@@ -1925,31 +1855,172 @@ module.exports =
 
 
 /***/ },
-/* 22 */
+/* 25 */
 /***/ function(module, exports) {
 
-	
-	exports.setApp = function (JPS){
+	exports.setApp = function(JPS) {
 
-	  //#############################
-	  // Add headers
-	  //#############################
-	  JPS.app.use( (req, res, next) => {
-	      // Website you wish to allow to connect
-	      res.setHeader('Access-Control-Allow-Origin', '*');
-	      res.setHeader('content-type', 'text/plain')
-	      // Request methods you wish to allow
-	      res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
-	      res.setHeader('Access-Control-Allow-Headers', 'content-type')
-	      // Pass to next layer of middleware
-	      next();
-	  });
+	    //######################################################
+	    // POST: cashbuy, post the item being purchased
+	    //######################################################
+	    JPS.app.post('/notifydelayed', (req, res) => {
 
+	        JPS.now = Date.now();
+	        console.log("notifydelayed requested.", JPS.now);
+	        JPS.body = '';
+	        req.on('data', (data) => {
+	            JPS.body += data;
+	            // Too much POST data, kill the connection!
+	            // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
+	            if (JPS.body.length > 1e6) req.connection.destroy();
+	        });
+	        req.on('end', () => {
+	            JPS.post = JSON.parse(JPS.body);
+	            JPS.currentUserToken = JPS.post.current_user;
+	            JPS.transaction = JPS.post.transaction;
+	            console.log("POST:", JPS.post);
+
+	            JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
+	                .then(decodedToken => {
+	                    JPS.currentUserUID = decodedToken.sub;
+	                    console.log("User: ", JPS.currentUserUID, " requested notifydelayed");
+	                    return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
+	                })
+	                .then(snapshot => {
+	                    JPS.user = snapshot.val()
+	                    JPS.mailer.sendNotifyDelayed(JPS.user, JPS.transaction)
+	                    res.status(200).jsonp("Notify sent ok.").end()
+	                }).catch(err => {
+	                    console.error("Notify failde: ", err);
+	                    res.status(500).jsonp( "Feedback failde." + String(err) ).end();
+	                });
+	        })
+	    })
 	}
 
 
 /***/ },
-/* 23 */
+/* 26 */
+/***/ function(module, exports) {
+
+	exports.setApp = function(JPS) {
+
+	    //######################################################
+	    // POST: cashbuy, post the item being purchased
+	    //######################################################
+	    JPS.app.post('/removeTransaction', (req, res) => {
+
+	        JPS.now = Date.now();
+	        console.log("removeTransaction requested.", JPS.now);
+	        JPS.body = '';
+	        req.on('data', (data) => {
+	            JPS.body += data;
+	            // Too much POST data, kill the connection!
+	            // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
+	            if (JPS.body.length > 1e6) req.connection.destroy();
+	        });
+	        req.on('end', () => {
+	            JPS.post = JSON.parse(JPS.body);
+	            JPS.currentUserToken = JPS.post.current_user;
+	            JPS.forUserId = JPS.post.for_user;
+	            JPS.transactionToRemove = JPS.post.transaction;
+	            console.log("POST:", JPS.post);
+
+	            JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
+	                .then(decodedToken => {
+	                    JPS.currentUserUID = decodedToken.sub;
+	                    console.log("User: ", JPS.currentUserUID, " requested removeTransaction: ", JPS.forUserId + "/" + JPS.transactionToRemove.purchasetime);
+	                    return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
+	                })
+	                .then(snapshot => {
+	                    JPS.user = snapshot.val()
+	                    JPS.user.key = snapshot.key;
+	                    return JPS.firebase.database().ref('/specialUsers/' + JPS.currentUserUID).once('value');
+	                })
+	                .then(snapshot => {
+	                    JPS.specialUser = snapshot.val()
+	                    if (JPS.specialUser.admin) {
+	                        console.log("USER requesting transaction remove is ADMIN");
+	                        return JPS.firebase.database().ref('/transactions/' + JPS.forUserId + "/" + JPS.transactionToRemove.purchasetime).remove();
+	                    }
+	                    throw (new Error("Non admin or instructor user requesting cashbuy."))
+	                })
+	                .then(() => {
+	                    if(JPS.transactionToRemove.type === 'special'){
+	                        console.log("SPECIAL slot transation - remove bookings: ", JPS.transactionToRemove.shopItemKey, JPS.forUserId);
+	                        JPS.firebase.database().ref('/scbookingsbyslot/' + JPS.transactionToRemove.shopItemKey + "/" + JPS.forUserId).remove();
+	                        JPS.firebase.database().ref('/scbookingsbyuser/' + JPS.forUserId + "/" + JPS.transactionToRemove.shopItemKey).remove();
+	                    }
+	                    res.status(200).jsonp("Transaction removed succesfully.").end();
+	                }).catch(err => {
+	                    console.error("removeTransaction failde: ", err);
+	                    res.status(500).jsonp("removeTransaction failde." + String(err)).end();
+	                });
+	        })
+	    })
+	}
+
+
+/***/ },
+/* 27 */
+/***/ function(module, exports) {
+
+	exports.setApp = function(JPS) {
+
+	    //######################################################
+	    // POST: cashbuy, post the item being purchased
+	    //######################################################
+	    JPS.app.post('/okTransaction', (req, res) => {
+
+	        JPS.now = Date.now();
+	        console.log("okTransaction requested.", JPS.now);
+	        JPS.body = '';
+	        req.on('data', (data) => {
+	            JPS.body += data;
+	            // Too much POST data, kill the connection!
+	            // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
+	            if (JPS.body.length > 1e6) req.connection.destroy();
+	        });
+	        req.on('end', () => {
+	            JPS.post = JSON.parse(JPS.body);
+	            JPS.currentUserToken = JPS.post.current_user;
+	            JPS.forUserId = JPS.post.for_user;
+	            JPS.transactionToOk = JPS.post.transaction;
+	            console.log("POST:", JPS.post);
+
+	            JPS.firebase.auth().verifyIdToken(JPS.currentUserToken)
+	                .then(decodedToken => {
+	                    JPS.currentUserUID = decodedToken.sub;
+	                    console.log("User: ", JPS.currentUserUID, " requested okTransaction: ", JPS.forUserId + "/" + JPS.transactionToOk.purchasetime);
+	                    return JPS.firebase.database().ref('/users/' + JPS.currentUserUID).once('value');
+	                })
+	                .then(snapshot => {
+	                    JPS.user = snapshot.val()
+	                    JPS.user.key = snapshot.key;
+	                    return JPS.firebase.database().ref('/specialUsers/' + JPS.currentUserUID).once('value');
+	                })
+	                .then(snapshot => {
+	                    JPS.specialUser = snapshot.val()
+	                    if (JPS.specialUser.admin) {
+	                        console.log("USER requesting trx ok is ADMIN");
+	                        return JPS.firebase.database()
+	                        .ref('/transactions/' + JPS.forUserId + "/" + JPS.transactionToOk.purchasetime).update({paymentReceived : true});
+	                    }
+	                    throw (new Error("Non admin or instructor user requesting cashbuy."))
+	                })
+	                .then(() => {
+	                    res.status(200).jsonp("Transaction ok succesfully.").end();
+	                }).catch(err => {
+	                    console.error("okTransaction failde: ", err);
+	                    res.status(500).jsonp("okTransaction failde." + String(err)).end();
+	                });
+	        })
+	    })
+	}
+
+
+/***/ },
+/* 28 */
 /***/ function(module, exports) {
 
 	
@@ -1994,78 +2065,6 @@ module.exports =
 	  })
 	}
 
-
-/***/ },
-/* 24 */
-/***/ function(module, exports) {
-
-	
-	module.exports = {
-
-	    executeTestCase: (JPS, testCase) => {
-	        var promise = new Promise( (resolve, reject) => {
-	            switch(testCase){
-	            case "firebase_error_log":
-	                JPS.tests.testFirebaseLogging(JPS)
-	                .then(() => {resolve()})
-	                .catch(error => {
-	                    reject(error)})
-	                break;
-	            default:
-	                console.error("Test case was not known");
-	                reject("Unknown test case: " + testCase)
-	            }
-	        })
-	        return promise;
-	    },
-
-	    testFirebaseLogging: (JPS) => {
-	        var promise = new Promise( (resolve, reject) => {
-	            try{
-	                console.log("Test case: testFirebaseLogging");
-	                JPS.errorHelper.logErrorToFirebase(JPS,{
-	                    error: "testivirhe",
-	                    details: "jotain meni tosi pieleen",
-	                    context: {
-	                        id: 56,
-	                        runner: "iskari"
-	                    }
-	                })
-	            } 
-	            catch(e){
-	                console.error("Test case: testFirebaseLogging failed:", e);
-	                reject(e);
-	            }
-	            console.log("Test case: testFirebaseLogging passed");
-	            resolve();
-	        })
-	        return promise;
-	    }
-	}
-
-/***/ },
-/* 25 */
-/***/ function(module, exports) {
-
-	module.exports = require("braintree");
-
-/***/ },
-/* 26 */
-/***/ function(module, exports) {
-
-	module.exports = require("express");
-
-/***/ },
-/* 27 */
-/***/ function(module, exports) {
-
-	module.exports = require("firebase");
-
-/***/ },
-/* 28 */
-/***/ function(module, exports) {
-
-	module.exports = require("mailgun-js");
 
 /***/ }
 /******/ ]);

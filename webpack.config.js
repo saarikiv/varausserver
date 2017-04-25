@@ -21,11 +21,6 @@ module.exports = [
 		publicPath: __dirname + "/public/",
 		libraryTarget: "commonjs2"
 	},
-	plugins:[
-	new webpack.optimize.DedupePlugin(),
-	new webpack.optimize.OccurenceOrderPlugin(),
-	//new webpack.optimize.UglifyJsPlugin({ mangle: false, sourcemap: false }),
-	],
 	externals: /^[a-z\-0-9]+$/,
 	module: {
 		loaders: commonLoaders
