@@ -2,3 +2,5 @@
 .git/
 *.log
 node_modules/
+public/varaus-stage.json
+public/varaus-prod.json
