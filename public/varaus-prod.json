@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "hakolahdentie-2",
+  "private_key_id": "546e92711c674d9c776d689cac6e2aa9c7607a49",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQDvS+3nadvhCHtx\nu2GhebysjnUAMJofOtcrbC0WB88wWnSRwJUNZxtLSTQMHQgv60Q8vUsDkmMXprUs\n1hhNDv6Cb+VyZflwt/XBzKMAXWAgu4tUVwUJhqmN0g8ab+lNa6RURtYlTQy8jYp7\nhJgJSILwlRGs38B53+ybK/aSZ//KGAAoNJbK2yKo9rtsKTgUQsZgsEFL4AUn1zMM\ndDUalzkU9eF7Ae3swF2MTxTHk4G3+ZV54tK5qi7nkywUpg3JTAKwq2dMmedl6pap\n/NiXIMZqVKi4snRLaDpXM/+ZWvt4HnU/fA2xrx0Zj/6fs8h2bimIpTel29ET07NT\nEg3r2EE/AgMBAAECggEBAND/eQZvr4oIlYBMz0VwBLiVJ10GFeYGxxz2ux4Nrgim\nSD9wev4cunrzsZCO3rKzgYKnNVgmR4PFp2FEkC7lVKZpwnU62TR4hx0/dHICG84a\n3uLHqe+a/IWQHH7TlWl4BStSPwCPHfukh3m/4eXhvfMPz0M0nXAUghs4t39Bc+d1\nhGF0qNEB/70nySloAA2+1hzgw7vmMe0g03P5CzHwjLF2c8iP1wTNbgmepQK7iezA\nso2LY9ImJi0mF/uqUUGH+3GziGeAOXDfC3VLiavpVyQuP5Fpd5Df9y2sml3GW++m\naLKzWv5R3dRW+/hqxO6WvZWzaDBPDW6yrgnjTNTjWvECgYEA/R8/KSU81v7/8Ufq\n06EQECUnbBk9pjyFZVIEryoqaL5Ff8Zp9ryUHzERU+xYA3Ak8mB4eGHdyFTlmeY7\ntpqCSmYrLv6AG+gtJmZkeoKgAYQXwdsRka/1MQuqTIC7KY0tkCtYnVxuCvr6RAeP\nAAi71C1ybgIBT3rmoAQUMNu0idkCgYEA8gRw+q3SWhGuzuUcCq369oxLZo8oG4Wk\ntjZ/973J8Puw/SMmgVcN9Onms+cD0SUyjHxAv5DqoztXwKkMn+oycENioAaudKvK\neEgboVyruh5NmB7RsF3LPgJfp1dA63pXJcEv7D+1/VN1lXUiYlVuMKTp7C6n3ZV5\nCu79C9uS3NcCgYBivTapOUJzZ8O1fmVnKpQWiDfJnksDNuaecJEtN1iVxWtc/axG\nOKfbRwvIXhCzPqLa/bDg3ORkCmIKV9qBT+J1XUeJLHQS7s32Bck6VQxPqxSNZYSD\n/Uy7Vh6XezwHaHAWpiIKOI0gsWjA8uXgkIecrCHQMe4K8BlY4F5z9LCHeQKBgQDm\nksCos44i7ZHj33eV3SeqWQNFFMKbZfoE92t3tkN86e43XZPDyhKr8WQwpbmHOq8s\nFP0DBafmGBWEogo7GL8xIaIG4Ba5ZSoi6mAYndemHFTExyfzpYiK7WwAXCqnrgj1\nGVb098YFMcxmthAqK0Yt5hBPSiv3+f42InbHI0yKRQKBgQCDxAHjPWvyCHrVOdIS\nvSELiw6kzzuomtJ35i4YjCjsDkv+tpyEeZnHB3AyirorHiOqx7S/Ut3HWbHwgtIs\n7TF0t/y3+yh1d0Z7O8eOxdBxzuk6FLbaGMrOhfQjAiTnTDjMTDM2NDjI3lUuEJia\neV+Z679AUkMxmjA7aPP2X6BFLw==\n-----END PRIVATE KEY-----\n",
+  "client_email": "varausserver@hakolahdentie-2.iam.gserviceaccount.com",
+  "client_id": "107667576817761201833",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://accounts.google.com/o/oauth2/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/varausserver%40hakolahdentie-2.iam.gserviceaccount.com"
+}

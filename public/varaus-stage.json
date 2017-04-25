@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "varaus-a0250",
+  "private_key_id": "31865c16488ac09099725dc7d5fb60631ac7ef07",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDstOKHIsIwD4/u\nFfNUqE7JBjEyGbP2lsN1ueo6SwilEojuZjntWt6UY0C2ct8dDBKnveapzM3sfkYD\njqSGa/u1H2+PcKsrV2NdLFACHVPO529XcC3shvosf4ZOesIvakfbID84To15YhCx\ng7g60D32uckURbkm9FIYPUN5xI2VaK7Jf3sOhEiacaAM9O1G6354PiOGQOf+8k8W\nKHQH8u2fd/0ClOcBhwN2Wg8L/Mwlig0+ptpgp6hIxR7E8exEQb/5vtYRDnErJ3De\nG6GSL5704GgjmHqcwW3DnUClINoiw6WTzihB2KnsQ0A9oS7S3hCDiJLhAr9dSYKW\ntLXLJf4zAgMBAAECggEAREjiWI2ka2zx3oMikTeEkuVgZ82WZvqTJHEfqvVeZxBz\nxCJlb52ZPEFtt7RnvN9wukdENZPJjAHZfMk3mTepg1SwQDcGihhJp+VSp2mCddu5\n+QV5mhROM2wOeLFdN4R3ejVRR5MRqQSrQCp5iS3t0jFCWsDKavxsemWiA4y6M3FT\neh9elXHfThUuJICDFWqjWbC3OWM6YtHK8cum1/jwvsH7lcfKdunxq+z0C4txNdmn\nECU0h4dh/pGyPmOpOv0fcqpuNULtt5iei4k3qfWSWDy/jBzHtpfyCP0WftIYC8pr\nAuDXtn8tISsfQJgTWr5oNOcGBKUjCPqa11UZea+BIQKBgQD745+ob8ZeM7LuKl+3\n18bKN7cYbRtPb5s7fLb39VGoOP8K9SAZcJnX6/aCH/aLiBZGN8HneSZtYhFDMBk2\nCk7mnx8WLvaeF1Qu0qq3v3yf82H0LS3q4cJpPmbPriHNmeGtAnGd1tnuQ8SY+opX\nFmvH38dsVVjZvjX04IQ7ZxezCQKBgQDwkdRUp1j5KUpue+GqPKrhvolAa4WvAnzU\nxrcaJtXoU2W2jtwBtxsJt73d/y2JhxJFsGuBxoxJJYkV1Q7FduB7YnPB8g5AZdKv\n9z3ZSZjAC1Y2h8jVgCA86wznzI1EuuVKhofqwVhueL81qN67GZwHwxkZK/8nQ9gc\nyIY06qMKWwKBgQClNhodFxsL5GrizYY0heGL9tkvuzhjdLdjYBx+LDhf1uppXHeu\nV+1/8vOfS6mgwSSi76VN1md+7QiXge+3QzGXEB0Kpsj4ziJYB7MTjBQIsVC5H/zz\nBxpFfzld1D+1o82idWzh8u7D2U0UbZfZIQqWcU9S3fPF9X1cXPo+IBMqSQKBgQCZ\nP/zoVJcMWq5sxYQTY4RkPHHI1PYbb9U/4rr/8N9xmbcA3e7vNMsHnMJaKlXC94W/\nWUyTJn11l3DFtK0tQ7ZrQ2OEmINVqMfXiwQeaJDjPhWUtVlOEMn4pK/a9mbD8t9g\nY2UwOizwawE72LDStdS86R8S9wEa7VA9vcwo55QnYwKBgG8b9Puia3qHrZJ4MP6r\nKdSaH3xF+b9zPmB5z0wueP7BPcqJmQlG26q4ZfDR8Rt5e+vHtFJzky1YqT/upw7Z\nP8rVhsMpCuJSgmuxCkfwMNb6okOyHWte6HMYmD7B8q+RyjO7S5EuFIoWO5AsIiX0\nyaEH/83tjnEmT+GkmRRqvyY5\n-----END PRIVATE KEY-----\n",
+  "client_email": "varausserver-herokuapp-com@varaus-a0250.iam.gserviceaccount.com",
+  "client_id": "109613130683153185830",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://accounts.google.com/o/oauth2/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/varausserver-herokuapp-com%40varaus-a0250.iam.gserviceaccount.com"
+}
