@@ -66,3 +66,4 @@
 - index.html on äpin ainoa html tiedosto. Siihen ei näillä näkymin tarvitse koskea.
 - Testit hakemistossa tests.
 - Älä puske sekavia muutoksia .gitignoreen package.jsoniin webpack.config.jsään
+-n...
