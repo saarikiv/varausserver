@@ -47,7 +47,6 @@
 - paina atomin sisällä [ctrl + ,] mene packages kohtaan ja kirjoita hakukenttään "autosave" kilkkaa autosave paketin 'SETTINGS' nappia ja tikkaa "enabled"
 
 ********************************************************************************
-
 ### Linkkejä:
 - [React docs](https://facebook.github.io/react/docs/getting-started.html)
 - [React tutorial](https://www.youtube.com/watch?v=MhkGQAoc7bc&list=PLoYCgNOIyGABj2GQSlDRjgvXtqfDxKm5b)
