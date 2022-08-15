@@ -47,7 +47,7 @@ JPS.firebase.initializeApp(JPS.firebaseConfig);
 // Process handlers
 //------------------------------------------
 process.on('exit', (code) => {
-    console.log("Process exited with code:", code);
+    console.log("Process exited with code: ", code);
 })
 
 
