@@ -2,6 +2,9 @@
   "name": "varausserver",
   "version": "1.0.0",
   "description": "varaus backend",
+  "engines": {
+    "node": "18.x"
+  },
   "main": "webpack.config.js",
   "dependencies": {
     "babel-loader": "^6.2.0",
